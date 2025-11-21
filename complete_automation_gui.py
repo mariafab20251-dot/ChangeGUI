@@ -894,21 +894,21 @@ class VideoAutomationGUI:
 
         # ALL voice keys (60+)
         self.tts_voice_keys = [
-            # PREMIUM MOTIVATIONAL VOICES
+            # PREMIUM MOTIVATIONAL VOICES (Multilingual - Support Urdu + English)
             'steffan_multi', 'andrew_multi', 'brian_multi', 'ava_multi', 'emma_multi',
             'alloy', 'nova', 'shimmer', 'kai', 'luna', 'jenny_multi', 'ryan_multi',
             # US Female Deep
-            'monica', 'nancy', 'ana', 'aria', 'jenny', 'michelle', 'amber', 'ashley', 'sara', 'emma',
+            'monica', 'nancy', 'ana', 'aria', 'michelle', 'amber', 'ashley', 'sara',
             # US Male Deep
-            'andrew', 'brian', 'tony', 'jason', 'brandon', 'jacob', 'christopher', 'guy', 'davis', 'eric', 'roger', 'steffan',
+            'tony', 'jason', 'brandon', 'jacob', 'christopher', 'guy', 'davis', 'eric', 'roger',
             # British
-            'thomas', 'mia', 'ryan', 'sonia', 'libby', 'alfie',
+            'thomas', 'mia', 'sonia', 'libby', 'alfie',
             # Australian
             'annette', 'natasha', 'william',
             # Indian English
             'neerja', 'prabhat',
-            # URDU VOICES
-            'asad', 'uzma', 'salman', 'gul', 'asad_multi', 'uzma_multi', 'faiz', 'parveen'
+            # URDU VOICES (اردو)
+            'asad_multi', 'uzma_multi', 'asad', 'uzma', 'salman', 'gul', 'faiz', 'parveen'
         ]
 
         # Voice display names with FULL descriptions (Professional, Deep, Poetic, etc.)
