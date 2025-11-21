@@ -29,38 +29,45 @@ print(f"\nFonts will be installed to: {USER_FONTS_DIR}")
 FONTS = [
     {
         'name': 'Jameel Noori Nastaleeq',
-        'url': 'https://github.com/urdufont/jameel-noori-nastaleeq/raw/master/JameelNooriNastaleeq.ttf',
+        'url': 'https://github.com/Hassan-kareem/Nastaliq-Urdu_font/releases/download/Noori-Regular-v5.1/Nastaliq-Urdu_Regular-v5.1.zip',
         'filename': 'JameelNooriNastaleeq.ttf',
         'description': '🌟 MOST POPULAR Urdu font - Beautiful Nastaliq script',
-        'size': '~2.5 MB'
+        'size': '~6 MB',
+        'type': 'zip',
+        'ttf_in_zip': 'system/fonts/JameelNooriNastaleeq.ttf'
     },
     {
         'name': 'Jameel Noori Nastaleeq Kasheeda',
-        'url': 'https://github.com/urdufont/jameel-noori-nastaleeq/raw/master/JameelNooriNastaleeqKasheeda.ttf',
+        'url': 'https://github.com/Hassan-kareem/Nastaliq-Urdu_font/releases/download/Noori-Kasheeda-v5.1/Nastaliq-Urdu_Kasheeda-v5.1.zip',
         'filename': 'JameelNooriNastaleeqKasheeda.ttf',
         'description': 'Extended variant with Kasheeda',
-        'size': '~2.5 MB'
+        'size': '~6 MB',
+        'type': 'zip',
+        'ttf_in_zip': 'system/fonts/JameelNooriNastaleeqKasheeda.ttf'
     },
     {
         'name': 'Noto Nastaliq Urdu',
         'url': 'https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoNastaliqUrdu/NotoNastaliqUrdu-Regular.ttf',
         'filename': 'NotoNastaliqUrdu-Regular.ttf',
         'description': 'High quality Urdu font by Google',
-        'size': '~1.5 MB'
+        'size': '~1.5 MB',
+        'type': 'direct'
     },
     {
         'name': 'Noto Nastaliq Urdu Bold',
         'url': 'https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoNastaliqUrdu/NotoNastaliqUrdu-Bold.ttf',
         'filename': 'NotoNastaliqUrdu-Bold.ttf',
         'description': 'Bold variant for emphasis',
-        'size': '~1.5 MB'
+        'size': '~1.5 MB',
+        'type': 'direct'
     },
     {
         'name': 'Noto Naskh Arabic',
         'url': 'https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoNaskhArabic/NotoNaskhArabic-Regular.ttf',
         'filename': 'NotoNaskhArabic-Regular.ttf',
         'description': 'Arabic font compatible with Urdu',
-        'size': '~200 KB'
+        'size': '~200 KB',
+        'type': 'direct'
     }
 ]
 
@@ -95,6 +102,8 @@ def download_with_progress(url, destination):
 
 # Download each font
 success_count = 0
+import tempfile
+
 for i, font in enumerate(FONTS, 1):
     destination = USER_FONTS_DIR / font['filename']
 
@@ -108,14 +117,52 @@ for i, font in enumerate(FONTS, 1):
     print(f"\n[{i}/{len(FONTS)}] Downloading {font['name']}...")
 
     try:
-        download_with_progress(font['url'], str(destination))
+        font_type = font.get('type', 'direct')
 
-        if destination.exists():
-            file_size = destination.stat().st_size / (1024 * 1024)
-            print(f"  ✅ Installed successfully ({file_size:.1f} MB)")
-            success_count += 1
+        if font_type == 'zip':
+            # Download ZIP file to temp directory
+            temp_dir = Path(tempfile.gettempdir())
+            zip_path = temp_dir / f"{font['name'].replace(' ', '_')}.zip"
+
+            print(f"  Downloading ZIP package...")
+            download_with_progress(font['url'], str(zip_path))
+
+            # Extract TTF file from ZIP
+            print(f"  Extracting font file...")
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                # Find the TTF file in the ZIP
+                ttf_in_zip = font.get('ttf_in_zip', font['filename'])
+
+                # Extract to temp directory
+                zip_ref.extract(ttf_in_zip, temp_dir)
+
+                # Move to fonts directory
+                extracted_ttf = temp_dir / ttf_in_zip
+                if extracted_ttf.exists():
+                    shutil.move(str(extracted_ttf), str(destination))
+
+                    # Clean up temp files
+                    zip_path.unlink()
+                    # Clean up extracted directory structure
+                    temp_system_dir = temp_dir / 'system'
+                    if temp_system_dir.exists():
+                        shutil.rmtree(temp_system_dir)
+
+                    file_size = destination.stat().st_size / (1024 * 1024)
+                    print(f"  ✅ Installed successfully ({file_size:.1f} MB)")
+                    success_count += 1
+                else:
+                    print(f"  ❌ Could not find {ttf_in_zip} in ZIP file")
         else:
-            print(f"  ❌ Installation failed - file not found")
+            # Direct TTF download
+            download_with_progress(font['url'], str(destination))
+
+            if destination.exists():
+                file_size = destination.stat().st_size / (1024 * 1024)
+                print(f"  ✅ Installed successfully ({file_size:.1f} MB)")
+                success_count += 1
+            else:
+                print(f"  ❌ Installation failed - file not found")
 
     except Exception as e:
         print(f"  ❌ Download failed: {e}")
