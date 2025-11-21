@@ -178,6 +178,37 @@ class VideoEffects:
         frame = frame.copy()
         return (frame * (1 - intensity)).astype('uint8')
 
+    @staticmethod
+    def apply_gradient_overlay(frame, gradient_type='top_to_bottom', intensity=0.3):
+        """Apply gradient overlay effect"""
+        frame = frame.copy()
+        h, w = frame.shape[:2]
+
+        # Create gradient
+        if gradient_type == 'top_to_bottom':
+            gradient = np.linspace(1, 1 - intensity, h)[:, np.newaxis]
+            gradient = np.repeat(gradient, w, axis=1)
+        elif gradient_type == 'bottom_to_top':
+            gradient = np.linspace(1 - intensity, 1, h)[:, np.newaxis]
+            gradient = np.repeat(gradient, w, axis=1)
+        elif gradient_type == 'left_to_right':
+            gradient = np.linspace(1, 1 - intensity, w)[np.newaxis, :]
+            gradient = np.repeat(gradient, h, axis=0)
+        elif gradient_type == 'right_to_left':
+            gradient = np.linspace(1 - intensity, 1, w)[np.newaxis, :]
+            gradient = np.repeat(gradient, h, axis=0)
+        elif gradient_type == 'radial':
+            y, x = np.ogrid[:h, :w]
+            cx, cy = w / 2, h / 2
+            max_dist = np.sqrt(cx**2 + cy**2)
+            distance = np.sqrt((x - cx)**2 + (y - cy)**2)
+            gradient = 1 - (distance / max_dist * intensity)
+        else:
+            gradient = np.ones((h, w))
+
+        gradient = np.clip(gradient, 0, 1)
+        return (frame * gradient[:, :, np.newaxis]).astype('uint8')
+
 
 class ParticleEffects:
     """Animated particle overlays (glitter, stars, confetti, etc.)"""
@@ -3754,6 +3785,14 @@ class VideoQuoteAutomation:
                 video = video.image_transform(lambda frame: VideoEffects.apply_film_grain(frame, intensity))
             except AttributeError:
                 video = video.fl_image(lambda frame: VideoEffects.apply_film_grain(frame, intensity))
+
+        if self.settings.get('gradient_overlay', False):
+            gradient_type = self.settings.get('gradient_type', 'top_to_bottom')
+            intensity = self.settings.get('gradient_intensity', 0.3)
+            try:
+                video = video.image_transform(lambda frame: VideoEffects.apply_gradient_overlay(frame, gradient_type, intensity))
+            except AttributeError:
+                video = video.fl_image(lambda frame: VideoEffects.apply_gradient_overlay(frame, gradient_type, intensity))
 
         # Apply selective blur for watermark/logo hiding
         if self.settings.get('blur_watermark_enabled', False):
