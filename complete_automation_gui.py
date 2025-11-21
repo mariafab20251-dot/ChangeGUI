@@ -18,16 +18,22 @@ import logging
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-# Setup logging
+# Setup logging with UTF-8 encoding to handle Unicode filenames
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('video_automation.log'),
+        logging.FileHandler('video_automation.log', encoding='utf-8'),
         logging.StreamHandler()
     ]
 )
 logger = logging.getLogger(__name__)
+
+# Configure StreamHandler to use UTF-8 encoding
+import sys
+for handler in logging.getLogger().handlers:
+    if isinstance(handler, logging.StreamHandler) and handler.stream == sys.stderr:
+        handler.stream = open(sys.stderr.fileno(), mode='w', encoding='utf-8', buffering=1)
 
 # Import configuration
 try:
