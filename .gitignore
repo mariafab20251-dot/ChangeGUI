@@ -48,6 +48,10 @@ env/
 *.bak
 *.cache
 
+# Backup files
+*_old.py
+*_backup.py
+
 # Video files (uncomment if you don't want to track videos in git)
 # *.mp4
 # *.avi
