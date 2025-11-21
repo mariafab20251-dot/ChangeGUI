@@ -1,6 +1,6 @@
 """
-Video Automation Studio - Tab-Based Interface
-Clean, professional dashboard with organized tab navigation
+Video Automation Studio - Modern Professional Interface
+Beautiful gradient-based design with premium styling
 """
 
 import tkinter as tk
@@ -46,27 +46,33 @@ except ImportError:
 
 
 class AppStyles:
-    """Clean, professional styling"""
-    # Colors
-    BG_PRIMARY = '#f5f7fa'
-    BG_SECONDARY = '#ffffff'
-    BG_HEADER = '#2c3e50'
-    BG_TAB = '#ecf0f1'
+    """Modern Professional Styling with Gradients"""
+    # Background - Modern gradient-ready colors
+    BG_DARK = '#1a1d29'          # Deep dark blue
+    BG_GRADIENT_START = '#667eea' # Purple-blue
+    BG_GRADIENT_END = '#764ba2'   # Deep purple
+    BG_CARD = '#ffffff'           # Pure white cards
+    BG_CARD_HOVER = '#f8f9ff'     # Subtle hover
+    BG_INPUT = '#f7f8fc'          # Light input background
 
-    # Accent colors
-    ACCENT_BLUE = '#3498db'
-    ACCENT_GREEN = '#27ae60'
-    ACCENT_RED = '#e74c3c'
-    ACCENT_ORANGE = '#f39c12'
+    # Modern accent colors - Vibrant and professional
+    ACCENT_PRIMARY = '#667eea'    # Primary purple-blue
+    ACCENT_SUCCESS = '#10b981'    # Modern green
+    ACCENT_DANGER = '#ef4444'     # Modern red
+    ACCENT_WARNING = '#f59e0b'    # Modern orange
+    ACCENT_INFO = '#3b82f6'       # Modern blue
 
-    # Text colors
-    TEXT_PRIMARY = '#2c3e50'
-    TEXT_SECONDARY = '#7f8c8d'
-    TEXT_LIGHT = '#ffffff'
+    # Text colors - Better contrast
+    TEXT_DARK = '#1f2937'         # Dark gray (almost black)
+    TEXT_MEDIUM = '#6b7280'       # Medium gray
+    TEXT_LIGHT = '#9ca3af'        # Light gray
+    TEXT_WHITE = '#ffffff'        # Pure white
 
-    # Border
-    BORDER = '#bdc3c7'
-    BORDER_LIGHT = '#d5dbdb'
+    # Shadows and effects
+    SHADOW_LIGHT = '#00000010'    # Very light shadow
+    SHADOW_MEDIUM = '#00000020'   # Medium shadow
+    BORDER_LIGHT = '#e5e7eb'      # Very light border
+    BORDER_MEDIUM = '#d1d5db'     # Medium border
 
 
 def get_windows_fonts():
@@ -99,16 +105,49 @@ def get_windows_fonts():
         return ['Arial', 'Impact', 'Verdana']
 
 
+class ModernButton(tk.Button):
+    """Custom modern button with hover effects"""
+    def __init__(self, parent, **kwargs):
+        # Extract custom parameters
+        bg_color = kwargs.pop('bg_color', AppStyles.ACCENT_PRIMARY)
+        hover_color = kwargs.pop('hover_color', AppStyles.ACCENT_INFO)
+
+        # Set default button styling
+        kwargs.setdefault('relief', 'flat')
+        kwargs.setdefault('cursor', 'hand2')
+        kwargs.setdefault('bg', bg_color)
+        kwargs.setdefault('fg', AppStyles.TEXT_WHITE)
+        kwargs.setdefault('font', ('Segoe UI', 10, 'bold'))
+        kwargs.setdefault('padx', 25)
+        kwargs.setdefault('pady', 12)
+        kwargs.setdefault('borderwidth', 0)
+
+        super().__init__(parent, **kwargs)
+
+        self.default_bg = bg_color
+        self.hover_bg = hover_color
+
+        # Bind hover events
+        self.bind('<Enter>', self.on_enter)
+        self.bind('<Leave>', self.on_leave)
+
+    def on_enter(self, e):
+        self['background'] = self.hover_bg
+
+    def on_leave(self, e):
+        self['background'] = self.default_bg
+
+
 class VideoAutomationGUI:
-    """Main tab-based GUI application"""
+    """Main modern GUI application"""
 
     def __init__(self, root):
         self.root = root
         self.root.title("Video Automation Studio - Professional Edition")
-        self.root.geometry("1000x750")
-        self.root.configure(bg=AppStyles.BG_PRIMARY)
+        self.root.geometry("1100x800")
+        self.root.configure(bg=AppStyles.BG_CARD)
         self.root.resizable(True, True)
-        self.root.minsize(900, 650)
+        self.root.minsize(1000, 700)
 
         # Load settings
         self.settings = self.load_settings()
@@ -181,47 +220,99 @@ class VideoAutomationGUI:
             logger.error(f"Error saving paths: {e}")
 
     def setup_ui(self):
-        """Setup the main UI"""
+        """Setup the main UI with modern design"""
 
         # ═══════════════════════════════════════════════════════════
-        # HEADER
+        # MODERN GRADIENT HEADER
         # ═══════════════════════════════════════════════════════════
-        header_frame = tk.Frame(self.root, bg=AppStyles.BG_HEADER, height=70)
+        header_frame = tk.Frame(self.root, bg=AppStyles.BG_GRADIENT_START, height=80)
         header_frame.pack(fill='x', side='top')
         header_frame.pack_propagate(False)
 
-        # App title
-        title_frame = tk.Frame(header_frame, bg=AppStyles.BG_HEADER)
-        title_frame.pack(side='left', padx=30, pady=15)
+        # Create gradient effect with multiple frames
+        gradient_canvas = tk.Canvas(header_frame, height=80, bg=AppStyles.BG_GRADIENT_START,
+                                    highlightthickness=0)
+        gradient_canvas.pack(fill='both', expand=True)
 
-        tk.Label(title_frame, text="🎬 Video Automation Studio",
-                bg=AppStyles.BG_HEADER, fg=AppStyles.TEXT_LIGHT,
-                font=('Segoe UI', 18, 'bold')).pack(anchor='w')
+        # Draw gradient
+        for i in range(80):
+            # Interpolate between gradient colors
+            ratio = i / 80
+            gradient_canvas.create_line(0, i, 1200, i,
+                                       fill=self.interpolate_color(
+                                           AppStyles.BG_GRADIENT_START,
+                                           AppStyles.BG_GRADIENT_END, ratio))
 
-        tk.Label(title_frame, text="Professional Edition",
-                bg=AppStyles.BG_HEADER, fg=AppStyles.TEXT_SECONDARY,
-                font=('Segoe UI', 9)).pack(anchor='w')
+        # Header content on top of gradient
+        header_content = tk.Frame(gradient_canvas, bg='', height=80)
+        gradient_canvas.create_window(0, 0, window=header_content, anchor='nw', width=1200)
 
-        # Status indicator
-        status_frame = tk.Frame(header_frame, bg=AppStyles.BG_HEADER)
-        status_frame.pack(side='right', padx=30)
+        # Left side - Logo and title
+        left_header = tk.Frame(header_content, bg='')
+        left_header.pack(side='left', padx=30, pady=15)
 
-        self.status_label = tk.Label(status_frame, textvariable=self.status_var,
-                                     bg=AppStyles.BG_HEADER, fg=AppStyles.ACCENT_GREEN,
+        tk.Label(left_header, text="🎬 Video Automation Studio",
+                bg='', fg=AppStyles.TEXT_WHITE,
+                font=('Segoe UI', 22, 'bold')).pack(anchor='w')
+
+        tk.Label(left_header, text="Create stunning videos with AI-powered automation",
+                bg='', fg=AppStyles.TEXT_WHITE,
+                font=('Segoe UI', 9)).pack(anchor='w', pady=(3,0))
+
+        # Right side - Status
+        right_header = tk.Frame(header_content, bg='')
+        right_header.pack(side='right', padx=30, pady=15)
+
+        status_badge = tk.Frame(right_header, bg=AppStyles.ACCENT_SUCCESS, padx=15, pady=8)
+        status_badge.pack()
+
+        self.status_label = tk.Label(status_badge, textvariable=self.status_var,
+                                     bg=AppStyles.ACCENT_SUCCESS, fg=AppStyles.TEXT_WHITE,
                                      font=('Segoe UI', 10, 'bold'))
         self.status_label.pack()
 
         # ═══════════════════════════════════════════════════════════
-        # TAB NOTEBOOK
+        # MODERN TAB NOTEBOOK
         # ═══════════════════════════════════════════════════════════
-        style = ttk.Style()
-        style.theme_use('clam')
-        style.configure('TNotebook', background=AppStyles.BG_PRIMARY, borderwidth=0)
-        style.configure('TNotebook.Tab', padding=[20, 10], font=('Segoe UI', 10))
-        style.map('TNotebook.Tab', background=[('selected', AppStyles.BG_SECONDARY)])
 
-        self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(fill='both', expand=True, padx=0, pady=0)
+        # Custom style for modern tabs
+        style = ttk.Style()
+        style.theme_create("modern", parent="alt", settings={
+            "TNotebook": {
+                "configure": {
+                    "tabmargins": [2, 5, 2, 0],
+                    "background": AppStyles.BG_CARD
+                }
+            },
+            "TNotebook.Tab": {
+                "configure": {
+                    "padding": [25, 12],
+                    "background": AppStyles.BG_INPUT,
+                    "foreground": AppStyles.TEXT_MEDIUM,
+                    "borderwidth": 0,
+                    "font": ('Segoe UI', 10, 'bold')
+                },
+                "map": {
+                    "background": [
+                        ("selected", AppStyles.BG_CARD),
+                        ("active", AppStyles.BG_CARD_HOVER)
+                    ],
+                    "foreground": [
+                        ("selected", AppStyles.ACCENT_PRIMARY),
+                        ("active", AppStyles.TEXT_DARK)
+                    ],
+                    "expand": [("selected", [1, 1, 1, 0])]
+                }
+            }
+        })
+        style.theme_use("modern")
+
+        # Tab container with shadow effect
+        tab_container = tk.Frame(self.root, bg=AppStyles.BG_CARD)
+        tab_container.pack(fill='both', expand=True, padx=0, pady=0)
+
+        self.notebook = ttk.Notebook(tab_container)
+        self.notebook.pack(fill='both', expand=True, padx=20, pady=(10, 0))
 
         # Create tabs
         self.create_quick_process_tab()
@@ -232,87 +323,101 @@ class VideoAutomationGUI:
         self.create_transitions_tab()
 
         # ═══════════════════════════════════════════════════════════
-        # PROGRESS BAR & ACTION BUTTONS
+        # MODERN PROGRESS BAR & ACTION BUTTONS
         # ═══════════════════════════════════════════════════════════
-        bottom_frame = tk.Frame(self.root, bg=AppStyles.BG_SECONDARY, height=100)
-        bottom_frame.pack(fill='x', side='bottom')
+        bottom_frame = tk.Frame(self.root, bg=AppStyles.BG_CARD, height=120)
+        bottom_frame.pack(fill='x', side='bottom', padx=20, pady=20)
         bottom_frame.pack_propagate(False)
 
-        # Progress section
-        progress_frame = tk.Frame(bottom_frame, bg=AppStyles.BG_SECONDARY)
-        progress_frame.pack(fill='x', padx=30, pady=10)
+        # Progress section with modern design
+        progress_container = tk.Frame(bottom_frame, bg=AppStyles.BG_CARD)
+        progress_container.pack(fill='x', pady=(0, 15))
 
-        tk.Label(progress_frame, text="Progress",
-                bg=AppStyles.BG_SECONDARY, fg=AppStyles.TEXT_PRIMARY,
-                font=('Segoe UI', 9, 'bold')).pack(anchor='w')
+        tk.Label(progress_container, text="Processing Progress",
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10, 'bold')).pack(anchor='w')
 
-        self.progress_bar = ttk.Progressbar(progress_frame, mode='determinate',
-                                           variable=self.progress_var)
-        self.progress_bar.pack(fill='x', pady=5)
+        # Custom progress bar style
+        style.configure("Modern.Horizontal.TProgressbar",
+                       troughcolor=AppStyles.BG_INPUT,
+                       background=AppStyles.ACCENT_PRIMARY,
+                       borderwidth=0,
+                       thickness=8)
 
-        self.progress_text = tk.Label(progress_frame, text="Ready",
-                                     bg=AppStyles.BG_SECONDARY, fg=AppStyles.TEXT_SECONDARY,
+        self.progress_bar = ttk.Progressbar(progress_container,
+                                           mode='determinate',
+                                           variable=self.progress_var,
+                                           style="Modern.Horizontal.TProgressbar")
+        self.progress_bar.pack(fill='x', pady=8)
+
+        self.progress_text = tk.Label(progress_container, text="Ready to process",
+                                     bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
                                      font=('Segoe UI', 9))
         self.progress_text.pack(anchor='w')
 
-        # Action buttons
-        button_frame = tk.Frame(bottom_frame, bg=AppStyles.BG_SECONDARY)
-        button_frame.pack(pady=5)
+        # Modern action buttons
+        button_frame = tk.Frame(bottom_frame, bg=AppStyles.BG_CARD)
+        button_frame.pack()
 
-        self.btn_process = tk.Button(button_frame, text="▶ Process Now",
-                                     bg=AppStyles.ACCENT_GREEN, fg='white',
-                                     font=('Segoe UI', 11, 'bold'),
-                                     relief='flat', padx=30, pady=10,
-                                     cursor='hand2',
-                                     command=self.start_processing)
+        self.btn_process = ModernButton(button_frame, text="▶  Process Videos",
+                                       bg_color=AppStyles.ACCENT_SUCCESS,
+                                       hover_color='#059669',
+                                       command=self.start_processing)
         self.btn_process.pack(side='left', padx=5)
 
-        self.btn_stop = tk.Button(button_frame, text="■ Stop",
-                                 bg=AppStyles.ACCENT_RED, fg='white',
-                                 font=('Segoe UI', 11, 'bold'),
-                                 relief='flat', padx=30, pady=10,
-                                 cursor='hand2', state='disabled',
-                                 command=self.stop_processing)
+        self.btn_stop = ModernButton(button_frame, text="■  Stop",
+                                     bg_color=AppStyles.ACCENT_DANGER,
+                                     hover_color='#dc2626',
+                                     state='disabled',
+                                     command=self.stop_processing)
         self.btn_stop.pack(side='left', padx=5)
 
-        self.btn_save = tk.Button(button_frame, text="💾 Save Settings",
-                                 bg=AppStyles.ACCENT_BLUE, fg='white',
-                                 font=('Segoe UI', 11, 'bold'),
-                                 relief='flat', padx=30, pady=10,
-                                 cursor='hand2',
-                                 command=self.save_settings)
+        self.btn_save = ModernButton(button_frame, text="💾  Save Settings",
+                                     bg_color=AppStyles.ACCENT_INFO,
+                                     hover_color='#2563eb',
+                                     command=self.save_settings)
         self.btn_save.pack(side='left', padx=5)
 
+    def interpolate_color(self, color1, color2, ratio):
+        """Interpolate between two hex colors"""
+        c1 = tuple(int(color1.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+        c2 = tuple(int(color2.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+
+        r = int(c1[0] + (c2[0] - c1[0]) * ratio)
+        g = int(c1[1] + (c2[1] - c1[1]) * ratio)
+        b = int(c1[2] + (c2[2] - c1[2]) * ratio)
+
+        return f'#{r:02x}{g:02x}{b:02x}'
+
     def create_quick_process_tab(self):
-        """Create Quick Process tab"""
-        tab = tk.Frame(self.notebook, bg=AppStyles.BG_PRIMARY)
-        self.notebook.add(tab, text='Quick Process')
+        """Create modern Quick Process tab"""
+        tab = tk.Frame(self.notebook, bg=AppStyles.BG_CARD)
+        self.notebook.add(tab, text='⚡ Quick Process')
 
         # Scrollable content
-        canvas = tk.Canvas(tab, bg=AppStyles.BG_PRIMARY, highlightthickness=0)
+        canvas = tk.Canvas(tab, bg=AppStyles.BG_CARD, highlightthickness=0)
         scrollbar = ttk.Scrollbar(tab, orient='vertical', command=canvas.yview)
-        content = tk.Frame(canvas, bg=AppStyles.BG_PRIMARY)
+        content = tk.Frame(canvas, bg=AppStyles.BG_CARD)
 
         content.bind('<Configure>', lambda e: canvas.configure(scrollregion=canvas.bbox('all')))
         canvas.create_window((0, 0), window=content, anchor='nw')
         canvas.configure(yscrollcommand=scrollbar.set)
 
-        canvas.pack(side='left', fill='both', expand=True)
+        canvas.pack(side='left', fill='both', expand=True, padx=10, pady=10)
         scrollbar.pack(side='right', fill='y')
 
-        # Input Source Section
-        self.create_section(content, "📁 Input Source", [
+        # Modern sections
+        self.create_modern_section(content, "📁 Input Source", [
             ('Video Folder:', self.video_folder_var, self.browse_video_folder),
             ('Quotes File:', self.quotes_file_var, self.browse_quotes_file),
         ])
 
-        # Output Settings Section
-        self.create_section(content, "📂 Output Settings", [
+        self.create_modern_section(content, "📂 Output Settings", [
             ('Output Folder:', self.output_folder_var, self.browse_output_folder),
         ])
 
-        # Processing Options Section
-        proc_frame = self.create_section_frame(content, "⚙️ Processing Options")
+        # Processing options with modern checkboxes
+        proc_card = self.create_modern_card(content, "⚙️ Processing Options")
 
         options = [
             ('enable_captions', '📝 Generate Captions'),
@@ -324,161 +429,141 @@ class VideoAutomationGUI:
 
         for key, label in options:
             var = tk.BooleanVar(value=self.settings.get(key, False))
-            chk = tk.Checkbutton(proc_frame, text=label,
-                                variable=var, bg=AppStyles.BG_SECONDARY,
-                                font=('Segoe UI', 10), activebackground=AppStyles.BG_SECONDARY,
+
+            chk_frame = tk.Frame(proc_card, bg=AppStyles.BG_CARD)
+            chk_frame.pack(fill='x', padx=20, pady=8)
+
+            chk = tk.Checkbutton(chk_frame, text=label,
+                                variable=var, bg=AppStyles.BG_CARD,
+                                fg=AppStyles.TEXT_DARK,
+                                font=('Segoe UI', 10),
+                                activebackground=AppStyles.BG_CARD,
+                                selectcolor=AppStyles.BG_INPUT,
                                 command=lambda k=key, v=var: self.update_setting(k, v.get()))
-            chk.pack(anchor='w', padx=20, pady=5)
+            chk.pack(anchor='w')
             setattr(self, f'{key}_var', var)
 
-        # Quick Stats Section
-        stats_frame = self.create_section_frame(content, "📊 Quick Stats")
+        # Quick Stats with modern styling
+        stats_card = self.create_modern_card(content, "📊 Quick Stats")
 
-        stats_text = f"""Videos Ready: {self.count_videos()}
-Quotes Available: {self.count_quotes()}
-Output Path Set: {'✓' if self.output_folder_var.get() else '✗'}
-Settings Loaded: ✓"""
+        stats_data = [
+            ("Videos Ready", str(self.count_videos()), "🎬"),
+            ("Quotes Available", str(self.count_quotes()), "💬"),
+            ("Output Path", "✓" if self.output_folder_var.get() else "✗", "📂"),
+        ]
 
-        tk.Label(stats_frame, text=stats_text,
-                bg=AppStyles.BG_SECONDARY, fg=AppStyles.TEXT_PRIMARY,
-                font=('Segoe UI', 10), justify='left').pack(anchor='w', padx=20, pady=10)
+        for label, value, icon in stats_data:
+            stat_row = tk.Frame(stats_card, bg=AppStyles.BG_CARD)
+            stat_row.pack(fill='x', padx=20, pady=8)
+
+            tk.Label(stat_row, text=f"{icon} {label}:",
+                    bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                    font=('Segoe UI', 9)).pack(side='left')
+
+            tk.Label(stat_row, text=value,
+                    bg=AppStyles.BG_CARD, fg=AppStyles.ACCENT_PRIMARY,
+                    font=('Segoe UI', 9, 'bold')).pack(side='right')
 
     def create_text_settings_tab(self):
         """Create Text Settings tab"""
-        tab = tk.Frame(self.notebook, bg=AppStyles.BG_PRIMARY)
-        self.notebook.add(tab, text='Text Settings')
+        tab = tk.Frame(self.notebook, bg=AppStyles.BG_CARD)
+        self.notebook.add(tab, text='📝 Text Settings')
 
-        # Scrollable content
-        canvas = tk.Canvas(tab, bg=AppStyles.BG_PRIMARY, highlightthickness=0)
+        canvas = tk.Canvas(tab, bg=AppStyles.BG_CARD, highlightthickness=0)
         scrollbar = ttk.Scrollbar(tab, orient='vertical', command=canvas.yview)
-        content = tk.Frame(canvas, bg=AppStyles.BG_PRIMARY)
+        content = tk.Frame(canvas, bg=AppStyles.BG_CARD)
 
         content.bind('<Configure>', lambda e: canvas.configure(scrollregion=canvas.bbox('all')))
         canvas.create_window((0, 0), window=content, anchor='nw')
         canvas.configure(yscrollcommand=scrollbar.set)
 
-        canvas.pack(side='left', fill='both', expand=True)
+        canvas.pack(side='left', fill='both', expand=True, padx=10, pady=10)
         scrollbar.pack(side='right', fill='y')
 
-        # Title Settings
-        title_frame = self.create_section_frame(content, "📌 Title Settings")
-        self.create_text_controls(title_frame, 'title')
-
-        # Quote Settings
-        quote_frame = self.create_section_frame(content, "💬 Quote Settings")
-        self.create_text_controls(quote_frame, 'quote')
-
-        # CTA Settings
-        cta_frame = self.create_section_frame(content, "🎯 Call-to-Action Settings")
-        self.create_text_controls(cta_frame, 'cta')
+        # Title, Quote, CTA sections
+        for prefix, icon, title in [
+            ('title', '📌', 'Title Settings'),
+            ('quote', '💬', 'Quote Settings'),
+            ('cta', '🎯', 'Call-to-Action Settings')
+        ]:
+            card = self.create_modern_card(content, f"{icon} {title}")
+            self.create_text_controls(card, prefix)
 
     def create_effects_tab(self):
         """Create Visual Effects tab"""
-        tab = tk.Frame(self.notebook, bg=AppStyles.BG_PRIMARY)
-        self.notebook.add(tab, text='Visual Effects')
+        tab = tk.Frame(self.notebook, bg=AppStyles.BG_CARD)
+        self.notebook.add(tab, text='✨ Visual Effects')
 
-        # Scrollable content
-        canvas = tk.Canvas(tab, bg=AppStyles.BG_PRIMARY, highlightthickness=0)
+        canvas = tk.Canvas(tab, bg=AppStyles.BG_CARD, highlightthickness=0)
         scrollbar = ttk.Scrollbar(tab, orient='vertical', command=canvas.yview)
-        content = tk.Frame(canvas, bg=AppStyles.BG_PRIMARY)
+        content = tk.Frame(canvas, bg=AppStyles.BG_CARD)
 
         content.bind('<Configure>', lambda e: canvas.configure(scrollregion=canvas.bbox('all')))
         canvas.create_window((0, 0), window=content, anchor='nw')
         canvas.configure(yscrollcommand=scrollbar.set)
 
-        canvas.pack(side='left', fill='both', expand=True)
+        canvas.pack(side='left', fill='both', expand=True, padx=10, pady=10)
         scrollbar.pack(side='right', fill='y')
 
         # Text Effects
-        text_fx_frame = self.create_section_frame(content, "✍️ Text Effects")
-
-        text_effects = [
+        self.create_effect_section(content, "✍️ Text Effects", [
             ('text_fade_in', '💫 Fade In'),
             ('text_slide_up', '⬆️ Slide Up'),
             ('text_bounce', '🎾 Bounce'),
             ('text_kinetic', '⚡ Kinetic Typing'),
             ('text_glitch', '📺 Glitch Effect'),
-        ]
-
-        for key, label in text_effects:
-            var = tk.BooleanVar(value=self.settings.get(key, False))
-            chk = tk.Checkbutton(text_fx_frame, text=label,
-                                variable=var, bg=AppStyles.BG_SECONDARY,
-                                font=('Segoe UI', 10), activebackground=AppStyles.BG_SECONDARY,
-                                command=lambda k=key, v=var: self.update_setting(k, v.get()))
-            chk.pack(anchor='w', padx=20, pady=5)
+        ])
 
         # Visual Effects
-        visual_fx_frame = self.create_section_frame(content, "🌟 Visual Effects")
-
-        visual_effects = [
+        self.create_effect_section(content, "🌟 Visual Effects", [
             ('text_glow', '✨ Text Glow'),
             ('vignette', '🌑 Vignette'),
             ('background_dim', '🌙 Background Dim'),
             ('film_grain', '🎞️ Film Grain'),
             ('neon_glow', '💡 Neon Glow'),
             ('drop_shadow', '👤 Drop Shadow'),
-        ]
-
-        for key, label in visual_effects:
-            var = tk.BooleanVar(value=self.settings.get(key, False))
-            chk = tk.Checkbutton(visual_fx_frame, text=label,
-                                variable=var, bg=AppStyles.BG_SECONDARY,
-                                font=('Segoe UI', 10), activebackground=AppStyles.BG_SECONDARY,
-                                command=lambda k=key, v=var: self.update_setting(k, v.get()))
-            chk.pack(anchor='w', padx=20, pady=5)
+        ])
 
         # Particle Effects
-        particle_fx_frame = self.create_section_frame(content, "🎊 Particle Effects")
-
-        particle_effects = [
+        self.create_effect_section(content, "🎊 Particle Effects", [
             ('add_glitter', '✨ Glitter'),
             ('add_stars', '⭐ Stars'),
             ('add_hearts', '❤️ Hearts'),
             ('add_confetti', '🎉 Confetti'),
-        ]
-
-        for key, label in particle_effects:
-            var = tk.BooleanVar(value=self.settings.get(key, False))
-            chk = tk.Checkbutton(particle_fx_frame, text=label,
-                                variable=var, bg=AppStyles.BG_SECONDARY,
-                                font=('Segoe UI', 10), activebackground=AppStyles.BG_SECONDARY,
-                                command=lambda k=key, v=var: self.update_setting(k, v.get()))
-            chk.pack(anchor='w', padx=20, pady=5)
+        ])
 
     def create_audio_tab(self):
         """Create Audio Settings tab"""
-        tab = tk.Frame(self.notebook, bg=AppStyles.BG_PRIMARY)
-        self.notebook.add(tab, text='Audio Settings')
+        tab = tk.Frame(self.notebook, bg=AppStyles.BG_CARD)
+        self.notebook.add(tab, text='🔊 Audio Settings')
 
-        # Scrollable content
-        canvas = tk.Canvas(tab, bg=AppStyles.BG_PRIMARY, highlightthickness=0)
+        canvas = tk.Canvas(tab, bg=AppStyles.BG_CARD, highlightthickness=0)
         scrollbar = ttk.Scrollbar(tab, orient='vertical', command=canvas.yview)
-        content = tk.Frame(canvas, bg=AppStyles.BG_PRIMARY)
+        content = tk.Frame(canvas, bg=AppStyles.BG_CARD)
 
         content.bind('<Configure>', lambda e: canvas.configure(scrollregion=canvas.bbox('all')))
         canvas.create_window((0, 0), window=content, anchor='nw')
         canvas.configure(yscrollcommand=scrollbar.set)
 
-        canvas.pack(side='left', fill='both', expand=True)
+        canvas.pack(side='left', fill='both', expand=True, padx=10, pady=10)
         scrollbar.pack(side='right', fill='y')
 
         # TTS Settings
-        tts_frame = self.create_section_frame(content, "🗣️ Text-to-Speech Settings")
+        tts_card = self.create_modern_card(content, "🗣️ Text-to-Speech Settings")
 
-        # TTS Enable
         tts_var = tk.BooleanVar(value=self.settings.get('use_tts_voiceover', True))
-        tk.Checkbutton(tts_frame, text='Enable TTS Voiceover',
-                      variable=tts_var, bg=AppStyles.BG_SECONDARY,
-                      font=('Segoe UI', 10, 'bold'), activebackground=AppStyles.BG_SECONDARY,
+        tk.Checkbutton(tts_card, text='Enable TTS Voiceover',
+                      variable=tts_var, bg=AppStyles.BG_CARD,
+                      font=('Segoe UI', 10, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
                       command=lambda: self.update_setting('use_tts_voiceover', tts_var.get())).pack(anchor='w', padx=20, pady=10)
 
-        # TTS Voice selection
-        voice_frame = tk.Frame(tts_frame, bg=AppStyles.BG_SECONDARY)
-        voice_frame.pack(fill='x', padx=20, pady=5)
+        # Voice selection
+        voice_frame = tk.Frame(tts_card, bg=AppStyles.BG_CARD)
+        voice_frame.pack(fill='x', padx=20, pady=8)
 
         tk.Label(voice_frame, text='Voice:',
-                bg=AppStyles.BG_SECONDARY, fg=AppStyles.TEXT_PRIMARY,
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                 font=('Segoe UI', 10)).pack(side='left')
 
         voices = ['andrew_multi', 'aria_multi', 'emily_multi', 'ryan_multi']
@@ -488,278 +573,273 @@ Settings Loaded: ✓"""
         voice_combo.bind('<<ComboboxSelected>>',
                         lambda e: self.update_setting('tts_voice', voice_combo.get()))
 
-        # TTS Speed
-        speed_frame = tk.Frame(tts_frame, bg=AppStyles.BG_SECONDARY)
-        speed_frame.pack(fill='x', padx=20, pady=5)
-
-        tk.Label(speed_frame, text='Speed:',
-                bg=AppStyles.BG_SECONDARY, fg=AppStyles.TEXT_PRIMARY,
-                font=('Segoe UI', 10)).pack(side='left')
-
-        speed_var = tk.IntVar(value=self.settings.get('tts_speed', 144))
-        speed_scale = tk.Scale(speed_frame, from_=50, to=200, orient='horizontal',
-                              variable=speed_var, bg=AppStyles.BG_SECONDARY,
-                              command=lambda v: self.update_setting('tts_speed', int(float(v))))
-        speed_scale.pack(side='left', fill='x', expand=True, padx=10)
+        # Speed slider
+        self.create_slider_control(tts_card, 'TTS Speed:', 'tts_speed', 50, 200, 144)
 
         # BGM Settings
-        bgm_frame = self.create_section_frame(content, "🎵 Background Music Settings")
+        bgm_card = self.create_modern_card(content, "🎵 Background Music Settings")
 
         bgm_var = tk.BooleanVar(value=self.settings.get('add_custom_bgm', False))
-        tk.Checkbutton(bgm_frame, text='Add Background Music',
-                      variable=bgm_var, bg=AppStyles.BG_SECONDARY,
-                      font=('Segoe UI', 10, 'bold'), activebackground=AppStyles.BG_SECONDARY,
+        tk.Checkbutton(bgm_card, text='Add Background Music',
+                      variable=bgm_var, bg=AppStyles.BG_CARD,
+                      font=('Segoe UI', 10, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
                       command=lambda: self.update_setting('add_custom_bgm', bgm_var.get())).pack(anchor='w', padx=20, pady=10)
 
-        # BGM File
-        bgm_file_frame = tk.Frame(bgm_frame, bg=AppStyles.BG_SECONDARY)
-        bgm_file_frame.pack(fill='x', padx=20, pady=5)
+        # BGM File selection
+        bgm_file_frame = tk.Frame(bgm_card, bg=AppStyles.BG_CARD)
+        bgm_file_frame.pack(fill='x', padx=20, pady=8)
 
         tk.Label(bgm_file_frame, text='BGM File:',
-                bg=AppStyles.BG_SECONDARY, fg=AppStyles.TEXT_PRIMARY,
-                font=('Segoe UI', 10)).pack(side='left')
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(0, 5))
+
+        bgm_input_frame = tk.Frame(bgm_file_frame, bg=AppStyles.BG_CARD)
+        bgm_input_frame.pack(fill='x')
 
         bgm_file_var = tk.StringVar(value=self.settings.get('bgm_file', ''))
-        tk.Entry(bgm_file_frame, textvariable=bgm_file_var, width=40).pack(side='left', padx=10)
-        tk.Button(bgm_file_frame, text='Browse', command=lambda: self.browse_bgm_file(bgm_file_var)).pack(side='left')
+        bgm_entry = tk.Entry(bgm_input_frame, textvariable=bgm_file_var,
+                            bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                            font=('Segoe UI', 9), relief='flat', bd=2)
+        bgm_entry.pack(side='left', fill='x', expand=True, ipady=6)
 
-        # BGM Volume
-        volume_frame = tk.Frame(bgm_frame, bg=AppStyles.BG_SECONDARY)
-        volume_frame.pack(fill='x', padx=20, pady=5)
+        ModernButton(bgm_input_frame, text='Browse',
+                    bg_color=AppStyles.ACCENT_INFO,
+                    command=lambda: self.browse_bgm_file(bgm_file_var)).pack(side='left', padx=(5, 0))
 
-        tk.Label(volume_frame, text='BGM Volume:',
-                bg=AppStyles.BG_SECONDARY, fg=AppStyles.TEXT_PRIMARY,
-                font=('Segoe UI', 10)).pack(side='left')
-
-        bgm_volume_var = tk.DoubleVar(value=self.settings.get('bgm_volume', 0.3))
-        volume_scale = tk.Scale(volume_frame, from_=0.0, to=1.0, resolution=0.1,
-                               orient='horizontal', variable=bgm_volume_var,
-                               bg=AppStyles.BG_SECONDARY,
-                               command=lambda v: self.update_setting('bgm_volume', float(v)))
-        volume_scale.pack(side='left', fill='x', expand=True, padx=10)
-
-        # Audio Mixing
-        mix_frame = self.create_section_frame(content, "🎚️ Audio Mixing")
-
-        mute_var = tk.BooleanVar(value=self.settings.get('mute_original_audio', False))
-        tk.Checkbutton(mix_frame, text='Mute Original Audio',
-                      variable=mute_var, bg=AppStyles.BG_SECONDARY,
-                      font=('Segoe UI', 10), activebackground=AppStyles.BG_SECONDARY,
-                      command=lambda: self.update_setting('mute_original_audio', mute_var.get())).pack(anchor='w', padx=20, pady=5)
+        # Volume slider
+        self.create_slider_control(bgm_card, 'BGM Volume:', 'bgm_volume', 0.0, 1.0, 0.3, resolution=0.1)
 
     def create_captions_tab(self):
         """Create Captions tab"""
-        tab = tk.Frame(self.notebook, bg=AppStyles.BG_PRIMARY)
-        self.notebook.add(tab, text='Captions')
+        tab = tk.Frame(self.notebook, bg=AppStyles.BG_CARD)
+        self.notebook.add(tab, text='💬 Captions')
 
-        # Scrollable content
-        canvas = tk.Canvas(tab, bg=AppStyles.BG_PRIMARY, highlightthickness=0)
+        canvas = tk.Canvas(tab, bg=AppStyles.BG_CARD, highlightthickness=0)
         scrollbar = ttk.Scrollbar(tab, orient='vertical', command=canvas.yview)
-        content = tk.Frame(canvas, bg=AppStyles.BG_PRIMARY)
+        content = tk.Frame(canvas, bg=AppStyles.BG_CARD)
 
         content.bind('<Configure>', lambda e: canvas.configure(scrollregion=canvas.bbox('all')))
         canvas.create_window((0, 0), window=content, anchor='nw')
         canvas.configure(yscrollcommand=scrollbar.set)
 
-        canvas.pack(side='left', fill='both', expand=True)
+        canvas.pack(side='left', fill='both', expand=True, padx=10, pady=10)
         scrollbar.pack(side='right', fill='y')
 
-        # Caption Enable
-        cap_frame = self.create_section_frame(content, "💬 Caption Settings")
+        # Caption Settings
+        cap_card = self.create_modern_card(content, "💬 Caption Settings")
 
         caption_var = tk.BooleanVar(value=self.settings.get('enable_captions', False))
-        tk.Checkbutton(cap_frame, text='Enable Captions',
-                      variable=caption_var, bg=AppStyles.BG_SECONDARY,
-                      font=('Segoe UI', 10, 'bold'), activebackground=AppStyles.BG_SECONDARY,
+        tk.Checkbutton(cap_card, text='Enable Captions',
+                      variable=caption_var, bg=AppStyles.BG_CARD,
+                      font=('Segoe UI', 10, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
                       command=lambda: self.update_setting('enable_captions', caption_var.get())).pack(anchor='w', padx=20, pady=10)
 
-        # Caption Style
-        style_frame = self.create_section_frame(content, "🎨 Caption Style")
-
         # Font size
-        size_frame = tk.Frame(style_frame, bg=AppStyles.BG_SECONDARY)
-        size_frame.pack(fill='x', padx=20, pady=5)
+        self.create_slider_control(cap_card, 'Font Size:', 'caption_font_size', 20, 100, 55)
 
-        tk.Label(size_frame, text='Font Size:',
-                bg=AppStyles.BG_SECONDARY, fg=AppStyles.TEXT_PRIMARY,
-                font=('Segoe UI', 10)).pack(side='left')
-
-        cap_size_var = tk.IntVar(value=self.settings.get('caption_font_size', 55))
-        tk.Scale(size_frame, from_=20, to=100, orient='horizontal',
-                variable=cap_size_var, bg=AppStyles.BG_SECONDARY,
-                command=lambda v: self.update_setting('caption_font_size', int(float(v)))).pack(side='left', fill='x', expand=True, padx=10)
-
-        # Caption Highlighting
-        highlight_frame = self.create_section_frame(content, "🖍️ Word Highlighting")
+        # Highlighting options
+        highlight_card = self.create_modern_card(content, "🖍️ Word Highlighting")
 
         highlight_var = tk.BooleanVar(value=self.settings.get('caption_highlight_enabled', True))
-        tk.Checkbutton(highlight_frame, text='Enable Word Highlighting',
-                      variable=highlight_var, bg=AppStyles.BG_SECONDARY,
-                      font=('Segoe UI', 10), activebackground=AppStyles.BG_SECONDARY,
+        tk.Checkbutton(highlight_card, text='Enable Word Highlighting',
+                      variable=highlight_var, bg=AppStyles.BG_CARD,
+                      font=('Segoe UI', 10),
+                      activebackground=AppStyles.BG_CARD,
                       command=lambda: self.update_setting('caption_highlight_enabled', highlight_var.get())).pack(anchor='w', padx=20, pady=5)
 
-        # Emoji in Captions
         emoji_var = tk.BooleanVar(value=self.settings.get('emoji_in_captions', True))
-        tk.Checkbutton(highlight_frame, text='Include Emojis in Captions',
-                      variable=emoji_var, bg=AppStyles.BG_SECONDARY,
-                      font=('Segoe UI', 10), activebackground=AppStyles.BG_SECONDARY,
+        tk.Checkbutton(highlight_card, text='Include Emojis in Captions',
+                      variable=emoji_var, bg=AppStyles.BG_CARD,
+                      font=('Segoe UI', 10),
+                      activebackground=AppStyles.BG_CARD,
                       command=lambda: self.update_setting('emoji_in_captions', emoji_var.get())).pack(anchor='w', padx=20, pady=5)
 
     def create_transitions_tab(self):
         """Create Transitions tab"""
-        tab = tk.Frame(self.notebook, bg=AppStyles.BG_PRIMARY)
-        self.notebook.add(tab, text='Transitions')
+        tab = tk.Frame(self.notebook, bg=AppStyles.BG_CARD)
+        self.notebook.add(tab, text='🎬 Transitions')
 
-        # Scrollable content
-        canvas = tk.Canvas(tab, bg=AppStyles.BG_PRIMARY, highlightthickness=0)
+        canvas = tk.Canvas(tab, bg=AppStyles.BG_CARD, highlightthickness=0)
         scrollbar = ttk.Scrollbar(tab, orient='vertical', command=canvas.yview)
-        content = tk.Frame(canvas, bg=AppStyles.BG_PRIMARY)
+        content = tk.Frame(canvas, bg=AppStyles.BG_CARD)
 
         content.bind('<Configure>', lambda e: canvas.configure(scrollregion=canvas.bbox('all')))
         canvas.create_window((0, 0), window=content, anchor='nw')
         canvas.configure(yscrollcommand=scrollbar.set)
 
-        canvas.pack(side='left', fill='both', expand=True)
+        canvas.pack(side='left', fill='both', expand=True, padx=10, pady=10)
         scrollbar.pack(side='right', fill='y')
 
-        # Fade Transitions
-        fade_frame = self.create_section_frame(content, "🌅 Fade Transitions")
-
-        transitions = [
+        # Fade transitions
+        self.create_effect_section(content, "🌅 Fade Transitions", [
             ('transition_fade_in', 'Fade In'),
             ('transition_fade_out', 'Fade Out'),
-        ]
+        ])
 
-        for key, label in transitions:
-            var = tk.BooleanVar(value=self.settings.get(key, False))
-            chk = tk.Checkbutton(fade_frame, text=label,
-                                variable=var, bg=AppStyles.BG_SECONDARY,
-                                font=('Segoe UI', 10), activebackground=AppStyles.BG_SECONDARY,
-                                command=lambda k=key, v=var: self.update_setting(k, v.get()))
-            chk.pack(anchor='w', padx=20, pady=5)
-
-        # Zoom Transitions
-        zoom_frame = self.create_section_frame(content, "🔍 Zoom Transitions")
-
-        zoom_transitions = [
+        # Zoom transitions
+        self.create_effect_section(content, "🔍 Zoom Transitions", [
             ('transition_zoom_in', 'Zoom In'),
             ('transition_zoom_out', 'Zoom Out'),
-        ]
+        ])
 
-        for key, label in zoom_transitions:
-            var = tk.BooleanVar(value=self.settings.get(key, False))
-            chk = tk.Checkbutton(zoom_frame, text=label,
-                                variable=var, bg=AppStyles.BG_SECONDARY,
-                                font=('Segoe UI', 10), activebackground=AppStyles.BG_SECONDARY,
-                                command=lambda k=key, v=var: self.update_setting(k, v.get()))
-            chk.pack(anchor='w', padx=20, pady=5)
-
-        # Cinematic Effects
-        cinema_frame = self.create_section_frame(content, "🎬 Cinematic Effects")
-
-        cinema_effects = [
+        # Cinematic effects
+        self.create_effect_section(content, "🎬 Cinematic Effects", [
             ('lens_flare_enabled', '✨ Lens Flare'),
             ('light_leak_enabled', '💡 Light Leaks'),
             ('film_burn_enabled', '🔥 Film Burn'),
-        ]
-
-        for key, label in cinema_effects:
-            var = tk.BooleanVar(value=self.settings.get(key, False))
-            chk = tk.Checkbutton(cinema_frame, text=label,
-                                variable=var, bg=AppStyles.BG_SECONDARY,
-                                font=('Segoe UI', 10), activebackground=AppStyles.BG_SECONDARY,
-                                command=lambda k=key, v=var: self.update_setting(k, v.get()))
-            chk.pack(anchor='w', padx=20, pady=5)
+        ])
 
     # Helper methods
 
-    def create_section_frame(self, parent, title):
-        """Create a section frame with title"""
-        section = tk.Frame(parent, bg=AppStyles.BG_SECONDARY, relief='solid', borderwidth=1)
-        section.pack(fill='x', padx=20, pady=10)
+    def create_modern_card(self, parent, title):
+        """Create a modern card with shadow and rounded corners"""
+        # Outer frame for shadow effect
+        card_outer = tk.Frame(parent, bg=AppStyles.SHADOW_LIGHT, pady=2, padx=2)
+        card_outer.pack(fill='x', padx=15, pady=10)
 
-        # Section header
-        header = tk.Frame(section, bg=AppStyles.BG_TAB, height=35)
+        # Inner card
+        card = tk.Frame(card_outer, bg=AppStyles.BG_CARD, relief='flat')
+        card.pack(fill='both', expand=True)
+
+        # Card header with gradient effect
+        header = tk.Frame(card, bg=AppStyles.BG_INPUT, height=45)
         header.pack(fill='x')
         header.pack_propagate(False)
 
         tk.Label(header, text=title,
-                bg=AppStyles.BG_TAB, fg=AppStyles.TEXT_PRIMARY,
-                font=('Segoe UI', 11, 'bold')).pack(anchor='w', padx=15, pady=5)
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 12, 'bold')).pack(anchor='w', padx=20, pady=10)
 
-        return section
+        return card
 
-    def create_section(self, parent, title, fields):
-        """Create a section with input fields"""
-        frame = self.create_section_frame(parent, title)
+    def create_modern_section(self, parent, title, fields):
+        """Create a modern section with input fields"""
+        card = self.create_modern_card(parent, title)
 
         for label_text, var, browse_cmd in fields:
-            field_frame = tk.Frame(frame, bg=AppStyles.BG_SECONDARY)
-            field_frame.pack(fill='x', padx=20, pady=10)
+            field_container = tk.Frame(card, bg=AppStyles.BG_CARD)
+            field_container.pack(fill='x', padx=20, pady=12)
 
-            tk.Label(field_frame, text=label_text,
-                    bg=AppStyles.BG_SECONDARY, fg=AppStyles.TEXT_PRIMARY,
-                    font=('Segoe UI', 10)).pack(anchor='w')
+            tk.Label(field_container, text=label_text,
+                    bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                    font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(0, 5))
 
-            entry_frame = tk.Frame(field_frame, bg=AppStyles.BG_SECONDARY)
-            entry_frame.pack(fill='x', pady=5)
+            input_frame = tk.Frame(field_container, bg=AppStyles.BG_CARD)
+            input_frame.pack(fill='x')
 
-            entry = tk.Entry(entry_frame, textvariable=var, font=('Segoe UI', 9))
-            entry.pack(side='left', fill='x', expand=True)
+            entry = tk.Entry(input_frame, textvariable=var,
+                           bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                           font=('Segoe UI', 9), relief='flat', bd=2)
+            entry.pack(side='left', fill='x', expand=True, ipady=6)
 
-            btn = tk.Button(entry_frame, text='Browse Folder' if 'Folder' in label_text else 'Browse File',
-                           bg=AppStyles.ACCENT_BLUE, fg='white',
-                           font=('Segoe UI', 9), relief='flat', padx=15, pady=5,
-                           command=browse_cmd)
-            btn.pack(side='left', padx=5)
+            btn_text = 'Browse Folder' if 'Folder' in label_text else 'Browse File'
+            ModernButton(input_frame, text=btn_text,
+                        bg_color=AppStyles.ACCENT_INFO,
+                        font=('Segoe UI', 9, 'bold'),
+                        padx=20, pady=8,
+                        command=browse_cmd).pack(side='left', padx=(5, 0))
 
-        return frame
+        return card
+
+    def create_effect_section(self, parent, title, effects):
+        """Create effect section with checkboxes"""
+        card = self.create_modern_card(parent, title)
+
+        for key, label in effects:
+            var = tk.BooleanVar(value=self.settings.get(key, False))
+
+            chk_frame = tk.Frame(card, bg=AppStyles.BG_CARD)
+            chk_frame.pack(fill='x', padx=20, pady=6)
+
+            chk = tk.Checkbutton(chk_frame, text=label,
+                                variable=var, bg=AppStyles.BG_CARD,
+                                fg=AppStyles.TEXT_DARK,
+                                font=('Segoe UI', 10),
+                                activebackground=AppStyles.BG_CARD,
+                                selectcolor=AppStyles.BG_INPUT,
+                                command=lambda k=key, v=var: self.update_setting(k, v.get()))
+            chk.pack(anchor='w')
+
+    def create_slider_control(self, parent, label, key, from_, to, default, resolution=1):
+        """Create a modern slider control"""
+        slider_frame = tk.Frame(parent, bg=AppStyles.BG_CARD)
+        slider_frame.pack(fill='x', padx=20, pady=8)
+
+        tk.Label(slider_frame, text=label,
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(side='left')
+
+        var = tk.DoubleVar(value=self.settings.get(key, default))
+
+        value_label = tk.Label(slider_frame, text=str(var.get()),
+                              bg=AppStyles.BG_CARD, fg=AppStyles.ACCENT_PRIMARY,
+                              font=('Segoe UI', 9, 'bold'), width=6)
+        value_label.pack(side='right')
+
+        scale = tk.Scale(slider_frame, from_=from_, to=to, resolution=resolution,
+                        orient='horizontal', variable=var,
+                        bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                        highlightthickness=0, troughcolor=AppStyles.BG_INPUT,
+                        showvalue=False,
+                        command=lambda v, k=key, vl=value_label: self.on_slider_change(k, v, vl))
+        scale.pack(side='left', fill='x', expand=True, padx=10)
+
+    def on_slider_change(self, key, value, value_label):
+        """Handle slider value change"""
+        val = float(value)
+        value_label.config(text=f"{val:.2f}" if val < 10 else str(int(val)))
+        self.update_setting(key, val if val < 10 else int(val))
 
     def create_text_controls(self, parent, prefix):
         """Create text controls for title/quote/cta"""
         # Enable checkbox
         enabled_var = tk.BooleanVar(value=self.settings.get(f'{prefix}_enabled', True))
         tk.Checkbutton(parent, text=f'Enable {prefix.title()}',
-                      variable=enabled_var, bg=AppStyles.BG_SECONDARY,
-                      font=('Segoe UI', 10, 'bold'), activebackground=AppStyles.BG_SECONDARY,
+                      variable=enabled_var, bg=AppStyles.BG_CARD,
+                      font=('Segoe UI', 10, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
                       command=lambda: self.update_setting(f'{prefix}_enabled', enabled_var.get())).pack(anchor='w', padx=20, pady=10)
 
-        # Font Size
-        size_frame = tk.Frame(parent, bg=AppStyles.BG_SECONDARY)
-        size_frame.pack(fill='x', padx=20, pady=5)
+        # Font Size slider
+        self.create_slider_control(parent, 'Font Size:', f'{prefix}_font_size', 10, 100, 30)
 
-        tk.Label(size_frame, text='Font Size:',
-                bg=AppStyles.BG_SECONDARY, fg=AppStyles.TEXT_PRIMARY,
-                font=('Segoe UI', 10)).pack(side='left')
-
-        size_var = tk.IntVar(value=self.settings.get(f'{prefix}_font_size', 30))
-        tk.Scale(size_frame, from_=10, to=100, orient='horizontal',
-                variable=size_var, bg=AppStyles.BG_SECONDARY,
-                command=lambda v, p=prefix: self.update_setting(f'{p}_font_size', int(float(v)))).pack(side='left', fill='x', expand=True, padx=10)
-
-        # Text Color
-        color_frame = tk.Frame(parent, bg=AppStyles.BG_SECONDARY)
-        color_frame.pack(fill='x', padx=20, pady=5)
+        # Text Color picker
+        color_frame = tk.Frame(parent, bg=AppStyles.BG_CARD)
+        color_frame.pack(fill='x', padx=20, pady=8)
 
         tk.Label(color_frame, text='Text Color:',
-                bg=AppStyles.BG_SECONDARY, fg=AppStyles.TEXT_PRIMARY,
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                 font=('Segoe UI', 10)).pack(side='left')
 
         color_var = tk.StringVar(value=self.settings.get(f'{prefix}_text_color', '#FFFFFF'))
-        tk.Entry(color_frame, textvariable=color_var, width=10).pack(side='left', padx=10)
-        tk.Button(color_frame, text='Pick Color',
-                 command=lambda p=prefix, v=color_var: self.pick_color(p, v)).pack(side='left')
+
+        color_preview = tk.Frame(color_frame, bg=color_var.get(), width=40, height=25,
+                                relief='solid', borderwidth=1)
+        color_preview.pack(side='right', padx=5)
+
+        tk.Entry(color_frame, textvariable=color_var, width=10,
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9), relief='flat').pack(side='right', padx=5)
+
+        ModernButton(color_frame, text='Pick Color',
+                    bg_color=AppStyles.ACCENT_INFO,
+                    font=('Segoe UI', 9, 'bold'),
+                    padx=15, pady=6,
+                    command=lambda p=prefix, v=color_var, cp=color_preview: self.pick_color(p, v, cp)).pack(side='right', padx=5)
 
     def update_setting(self, key, value):
         """Update a setting value"""
         self.settings[key] = value
         logger.debug(f"Setting updated: {key} = {value}")
 
-    def pick_color(self, prefix, var):
+    def pick_color(self, prefix, var, preview_frame):
         """Open color picker"""
         color = colorchooser.askcolor(title=f"Choose {prefix} color")
         if color[1]:
             var.set(color[1])
+            preview_frame.config(bg=color[1])
             self.update_setting(f'{prefix}_text_color', color[1])
 
     def browse_video_folder(self):
@@ -841,7 +921,7 @@ Settings Loaded: ✓"""
         self.btn_process.config(state='disabled')
         self.btn_stop.config(state='normal')
         self.status_var.set("Processing...")
-        self.status_label.config(fg=AppStyles.ACCENT_ORANGE)
+        self.status_label.config(bg=AppStyles.ACCENT_WARNING)
 
         self.process_thread = threading.Thread(target=self.process_videos, daemon=True)
         self.process_thread.start()
@@ -914,7 +994,7 @@ Settings Loaded: ✓"""
         self.btn_process.config(state='normal')
         self.btn_stop.config(state='disabled')
         self.status_var.set("Ready")
-        self.status_label.config(fg=AppStyles.ACCENT_GREEN)
+        self.status_label.config(bg=AppStyles.ACCENT_SUCCESS)
         logger.info("Processing finished")
 
 
