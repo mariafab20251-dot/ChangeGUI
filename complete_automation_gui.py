@@ -1526,9 +1526,18 @@ class VideoAutomationGUI:
         # Combined transitions list for horizontal grid
         all_transitions = [
             ('transition_fade_in', '🌅 Fade In'),
-            ('transition_fade_out', '🌅 Fade Out'),
+            ('transition_fade_out', '🌇 Fade Out'),
             ('transition_zoom_in', '🔍 Zoom In'),
-            ('transition_zoom_out', '🔍 Zoom Out'),
+            ('transition_zoom_out', '🔎 Zoom Out'),
+            ('transition_blur_in', '💨 Blur In'),
+            ('transition_blur_out', '🌫️ Blur Out'),
+            ('transition_slide_in', '⬅️ Slide In'),
+            ('transition_slide_out', '➡️ Slide Out'),
+            ('transition_wipe_in', '📱 Wipe In'),
+            ('transition_wipe_out', '📲 Wipe Out'),
+            ('transition_glitch_start', '📺 Glitch Start'),
+            ('transition_glitch_end', '⚡ Glitch End'),
+            ('transition_cinematic_bars', '🎞️ Cinematic Bars'),
             ('lens_flare_enabled', '✨ Lens Flare'),
             ('light_leak_enabled', '💡 Light Leaks'),
             ('film_burn_enabled', '🔥 Film Burn'),
@@ -1536,6 +1545,59 @@ class VideoAutomationGUI:
 
         # Create horizontal grid layout (4 columns)
         self.create_effect_grid(content, "🎬 Transitions & Cinematic Effects", all_transitions, columns=4)
+
+        # Transition Settings (Advanced Controls)
+        settings_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
+        settings_card.pack(fill='x', padx=15, pady=(15, 0))
+
+        tk.Label(settings_card, text='⚙️ Transition Settings',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 13, 'bold')).pack(anchor='w', pady=(0, 10))
+
+        # Slide/Swipe Direction
+        dir_frame = tk.Frame(settings_card, bg=AppStyles.BG_INPUT)
+        dir_frame.pack(fill='x', pady=(0, 10))
+
+        tk.Label(dir_frame, text='Slide/Swipe Direction:',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
+
+        self.slide_direction_var = tk.StringVar(value=self.settings.get('transition_slide_direction', 'left'))
+        slide_dir_dropdown = ttk.Combobox(dir_frame, textvariable=self.slide_direction_var,
+                                         values=['left', 'right', 'up', 'down'],
+                                         state='readonly', width=15)
+        slide_dir_dropdown.pack(side='left')
+        slide_dir_dropdown.bind('<<ComboboxSelected>>',
+                               lambda e: self.update_setting('transition_slide_direction', self.slide_direction_var.get()))
+
+        tk.Label(dir_frame, text='(Direction video slides from/to)',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(side='left', padx=(10, 0))
+
+        # Wipe Direction
+        wipe_frame = tk.Frame(settings_card, bg=AppStyles.BG_INPUT)
+        wipe_frame.pack(fill='x', pady=(0, 10))
+
+        tk.Label(wipe_frame, text='Wipe Direction:',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
+
+        self.wipe_direction_var = tk.StringVar(value=self.settings.get('transition_wipe_direction', 'right'))
+        wipe_dir_dropdown = ttk.Combobox(wipe_frame, textvariable=self.wipe_direction_var,
+                                        values=['left', 'right', 'up', 'down'],
+                                        state='readonly', width=15)
+        wipe_dir_dropdown.pack(side='left')
+        wipe_dir_dropdown.bind('<<ComboboxSelected>>',
+                              lambda e: self.update_setting('transition_wipe_direction', self.wipe_direction_var.get()))
+
+        # Duration Sliders
+        self.create_slider_control(settings_card, 'Fade Duration:', 'transition_fade_in_duration', 0.1, 2.0, 0.5, resolution=0.1, value_format=lambda v: f"{v:.1f}s")
+        self.create_slider_control(settings_card, 'Zoom Duration:', 'transition_zoom_in_duration', 0.5, 3.0, 1.0, resolution=0.1, value_format=lambda v: f"{v:.1f}s")
+        self.create_slider_control(settings_card, 'Blur Duration:', 'transition_blur_duration', 0.1, 2.0, 0.5, resolution=0.1, value_format=lambda v: f"{v:.1f}s")
+        self.create_slider_control(settings_card, 'Slide Duration:', 'transition_slide_duration', 0.3, 2.0, 0.8, resolution=0.1, value_format=lambda v: f"{v:.1f}s")
+        self.create_slider_control(settings_card, 'Zoom Scale:', 'transition_zoom_scale', 1.1, 2.0, 1.3, resolution=0.1, value_format=lambda v: f"{v:.1f}x")
+        self.create_slider_control(settings_card, 'Blur Amount:', 'transition_blur_amount', 5, 30, 15, value_format=lambda v: f"{int(v)}px")
+        self.create_slider_control(settings_card, 'Glitch Intensity:', 'transition_glitch_intensity', 0.1, 1.0, 0.5, resolution=0.1, value_format=lambda v: f"{int(v*100)}%")
 
     # Helper methods
 
