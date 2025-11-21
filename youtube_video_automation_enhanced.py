@@ -3678,6 +3678,57 @@ class VideoQuoteAutomation:
             except Exception as e:
                 print(f"[WARNING] Light leak compositing failed: {e}")
 
+        # Add watermark if enabled
+        if self.settings.get('watermark_enabled', False):
+            try:
+                watermark_path = self.settings.get('watermark_image_path', '')
+                if watermark_path and Path(watermark_path).exists():
+                    from moviepy.editor import ImageClip
+
+                    # Load watermark image
+                    watermark = ImageClip(watermark_path)
+
+                    # Get settings
+                    position = self.settings.get('watermark_position', 'bottom-right')
+                    opacity = self.settings.get('watermark_opacity', 70) / 100.0  # Convert to 0-1
+                    scale = self.settings.get('watermark_scale', 0.15)  # Size relative to video width
+                    margin_x = self.settings.get('watermark_margin_x', 20)
+                    margin_y = self.settings.get('watermark_margin_y', 20)
+
+                    # Resize watermark to scale relative to video width
+                    new_width = int(video.w * scale)
+                    watermark = watermark.resize(width=new_width)
+
+                    # Set opacity
+                    watermark = watermark.set_opacity(opacity)
+
+                    # Calculate position
+                    if position == 'top-left':
+                        pos = (margin_x, margin_y)
+                    elif position == 'top-right':
+                        pos = (video.w - watermark.w - margin_x, margin_y)
+                    elif position == 'bottom-left':
+                        pos = (margin_x, video.h - watermark.h - margin_y)
+                    elif position == 'bottom-right':
+                        pos = (video.w - watermark.w - margin_x, video.h - watermark.h - margin_y)
+                    elif position == 'center':
+                        pos = ((video.w - watermark.w) / 2, (video.h - watermark.h) / 2)
+                    else:
+                        pos = (video.w - watermark.w - margin_x, video.h - watermark.h - margin_y)  # Default to bottom-right
+
+                    # Set position and duration
+                    watermark = watermark.set_position(pos).set_duration(final_video.duration)
+
+                    # Composite watermark onto video
+                    final_video = CompositeVideoClip([final_video, watermark])
+                    print(f"[OK] Added watermark at {position} (opacity: {int(opacity*100)}%, scale: {int(scale*100)}%)")
+                else:
+                    print(f"[WARNING] Watermark enabled but image not found: {watermark_path}")
+            except Exception as e:
+                print(f"[WARNING] Watermark overlay failed: {e}")
+                import traceback
+                traceback.print_exc()
+
         output_path = self.output_folder / output_filename
         counter = 1
         original_output_path = output_path
