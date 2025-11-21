@@ -74,33 +74,51 @@ class AppStyles:
 
 
 def get_windows_fonts():
-    """Scan Windows fonts folder and return available font families"""
+    """Scan Windows fonts folder and return available font families including Urdu fonts"""
     try:
-        if config:
-            fonts_folder = config.SYSTEM_FONTS_FOLDER
-        else:
-            fonts_folder = Path(r"C:\Windows\Fonts")
-
         font_files = {}
 
-        if not fonts_folder.exists():
-            logger.warning(f"Fonts folder not found: {fonts_folder}")
-            return ['Arial', 'Arial Bold', 'Impact', 'Verdana']
+        # Check multiple font locations
+        font_locations = [
+            Path(r"C:\Windows\Fonts"),  # Windows system fonts
+            Path.home() / "AppData/Local/Microsoft/Windows/Fonts",  # Windows user fonts
+        ]
 
-        # Scan for TTF fonts
-        for font_file in fonts_folder.glob("*.ttf"):
-            try:
-                font_name = font_file.stem
-                font_files[font_name] = str(font_file)
-            except Exception as e:
-                logger.debug(f"Could not load font {font_file}: {e}")
-                continue
+        # Scan all locations for TTF fonts
+        for fonts_folder in font_locations:
+            if fonts_folder.exists():
+                for font_file in fonts_folder.glob("*.ttf"):
+                    try:
+                        font_name = font_file.stem
+                        font_files[font_name] = str(font_file)
+                    except Exception as e:
+                        logger.debug(f"Could not load font {font_file}: {e}")
+                        continue
+
+        # Add Urdu/Arabic fonts explicitly (user-friendly names)
+        urdu_fonts = {
+            'Jameel Noori Nastaleeq': 'Jameel Noori Nastaleeq',
+            'Jameel Noori Nastaleeq Kasheeda': 'Jameel Noori Nastaleeq Kasheeda',
+            'Noto Nastaliq Urdu': 'Noto Nastaliq Urdu',
+            'Noto Nastaliq Urdu Bold': 'Noto Nastaliq Urdu Bold',
+            'Noto Naskh Arabic': 'Noto Naskh Arabic',
+        }
+
+        # Add Urdu fonts to the list
+        for font_name in urdu_fonts:
+            font_files[font_name] = font_name
+
+        # Add common default fonts
+        common_fonts = ['Arial', 'Arial Bold', 'Impact', 'Verdana', 'Times New Roman', 'Segoe UI']
+        for font in common_fonts:
+            if font not in font_files:
+                font_files[font] = font
 
         return sorted(font_files.keys()) if font_files else ['Arial', 'Impact', 'Verdana']
 
     except Exception as e:
-        logger.error(f"Error getting Windows fonts: {e}")
-        return ['Arial', 'Impact', 'Verdana']
+        logger.error(f"Error getting fonts: {e}")
+        return ['Arial', 'Impact', 'Verdana', 'Jameel Noori Nastaleeq']
 
 
 class ModernButton(tk.Button):

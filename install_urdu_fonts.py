@@ -28,10 +28,24 @@ print(f"\nFonts will be installed to: {USER_FONTS_DIR}")
 # Fonts to download (Free & Open Source)
 FONTS = [
     {
+        'name': 'Jameel Noori Nastaleeq',
+        'url': 'https://github.com/urdufont/jameel-noori-nastaleeq/raw/master/JameelNooriNastaleeq.ttf',
+        'filename': 'JameelNooriNastaleeq.ttf',
+        'description': '🌟 MOST POPULAR Urdu font - Beautiful Nastaliq script',
+        'size': '~2.5 MB'
+    },
+    {
+        'name': 'Jameel Noori Nastaleeq Kasheeda',
+        'url': 'https://github.com/urdufont/jameel-noori-nastaleeq/raw/master/JameelNooriNastaleeqKasheeda.ttf',
+        'filename': 'JameelNooriNastaleeqKasheeda.ttf',
+        'description': 'Extended variant with Kasheeda',
+        'size': '~2.5 MB'
+    },
+    {
         'name': 'Noto Nastaliq Urdu',
         'url': 'https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoNastaliqUrdu/NotoNastaliqUrdu-Regular.ttf',
         'filename': 'NotoNastaliqUrdu-Regular.ttf',
-        'description': 'Best quality Urdu font by Google (Recommended)',
+        'description': 'High quality Urdu font by Google',
         'size': '~1.5 MB'
     },
     {

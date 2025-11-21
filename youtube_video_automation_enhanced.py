@@ -1404,7 +1404,8 @@ class CaptionRenderer:
             "Poppins Bold": "arialbd.ttf",  # Fallback to Arial Bold
             "Roboto Bold": "arialbd.ttf",  # Fallback to Arial Bold
             # URDU & ARABIC FONTS
-            "Jameel Noori Nastaleeq": "NotoNastaliqUrdu-Regular.ttf",  # Urdu Nastaliq
+            "Jameel Noori Nastaleeq": "JameelNooriNastaleeq.ttf",  # Most popular Urdu font
+            "Jameel Noori Nastaleeq Kasheeda": "JameelNooriNastaleeqKasheeda.ttf",
             "Noto Nastaliq Urdu": "NotoNastaliqUrdu-Regular.ttf",
             "Noto Nastaliq Urdu Bold": "NotoNastaliqUrdu-Bold.ttf",
             "Noto Naskh Arabic": "NotoNaskhArabic-Regular.ttf",
