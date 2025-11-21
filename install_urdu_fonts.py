@@ -130,29 +130,56 @@ for i, font in enumerate(FONTS, 1):
             # Extract TTF file from ZIP
             print(f"  Extracting font file...")
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                # Find the TTF file in the ZIP
-                ttf_in_zip = font.get('ttf_in_zip', font['filename'])
+                # List all files in ZIP and find TTF files
+                all_files = zip_ref.namelist()
+                ttf_files = [f for f in all_files if f.lower().endswith('.ttf')]
+
+                if not ttf_files:
+                    print(f"  ❌ No TTF files found in ZIP")
+                    print(f"  ZIP contains: {all_files[:5]}")  # Show first 5 files
+                    continue
+
+                # Find the matching TTF file (case-insensitive search)
+                target_name = font['filename'].lower()
+                ttf_file = None
+
+                for f in ttf_files:
+                    if target_name in f.lower() or os.path.basename(f).lower() == target_name:
+                        ttf_file = f
+                        break
+
+                # If no exact match, use first TTF file
+                if not ttf_file:
+                    ttf_file = ttf_files[0]
+                    print(f"  Using: {os.path.basename(ttf_file)}")
 
                 # Extract to temp directory
-                zip_ref.extract(ttf_in_zip, temp_dir)
+                zip_ref.extract(ttf_file, temp_dir)
 
                 # Move to fonts directory
-                extracted_ttf = temp_dir / ttf_in_zip
+                extracted_ttf = temp_dir / ttf_file
                 if extracted_ttf.exists():
                     shutil.move(str(extracted_ttf), str(destination))
 
                     # Clean up temp files
                     zip_path.unlink()
                     # Clean up extracted directory structure
-                    temp_system_dir = temp_dir / 'system'
-                    if temp_system_dir.exists():
-                        shutil.rmtree(temp_system_dir)
+                    extracted_parent = extracted_ttf.parent
+                    while extracted_parent != temp_dir and extracted_parent.exists():
+                        try:
+                            if not list(extracted_parent.iterdir()):  # Only remove if empty
+                                extracted_parent.rmdir()
+                                extracted_parent = extracted_parent.parent
+                            else:
+                                break
+                        except:
+                            break
 
                     file_size = destination.stat().st_size / (1024 * 1024)
                     print(f"  ✅ Installed successfully ({file_size:.1f} MB)")
                     success_count += 1
                 else:
-                    print(f"  ❌ Could not find {ttf_in_zip} in ZIP file")
+                    print(f"  ❌ Could not extract {ttf_file} from ZIP")
         else:
             # Direct TTF download
             download_with_progress(font['url'], str(destination))
