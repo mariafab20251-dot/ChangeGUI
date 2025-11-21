@@ -1171,6 +1171,63 @@ class AudioSettingsPopup:
         tk.Label(speed_frame, textvariable=self.tts_speed_var, bg=ModernStyles.BG_CARD,
                 fg=ModernStyles.TEXT_PRIMARY, width=4, font=('Segoe UI', 10)).pack(side='left', padx=10)
 
+        # ═══════════════════════════════════════════════════════════
+        # VOICE PREVIEW SECTION (NEW!)
+        # ═══════════════════════════════════════════════════════════
+        preview_section = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        preview_section.pack(fill='x', padx=20, pady=(15,5))
+
+        tk.Label(preview_section, text="🎧 Voice Preview",
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_PRIMARY,
+                font=('Segoe UI', 11, 'bold')).pack(anchor='w', padx=15, pady=(10,5))
+
+        tk.Label(preview_section,
+                text="Test how the selected voice sounds with custom text",
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_SECONDARY,
+                font=('Segoe UI', 9)).pack(anchor='w', padx=15, pady=(0,10))
+
+        # Preview text input
+        preview_text_frame = tk.Frame(preview_section, bg=ModernStyles.BG_CARD)
+        preview_text_frame.pack(fill='x', padx=15, pady=5)
+
+        tk.Label(preview_text_frame, text="Test Text:",
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_SECONDARY,
+                font=('Segoe UI', 9)).pack(anchor='w', pady=(0,5))
+
+        # Default sample text
+        default_preview_text = "Success comes from taking action every single day. Remember, you are capable of incredible things!"
+
+        self.preview_text_var = tk.StringVar(value=default_preview_text)
+        preview_text_entry = tk.Entry(preview_text_frame,
+                                      textvariable=self.preview_text_var,
+                                      bg='#0f172a', fg=ModernStyles.TEXT_PRIMARY,
+                                      font=('Segoe UI', 10), relief='flat',
+                                      insertbackground=ModernStyles.TEXT_PRIMARY)
+        preview_text_entry.pack(fill='x', pady=(0,10), ipady=8)
+
+        # Preview buttons and status
+        preview_btn_frame = tk.Frame(preview_section, bg=ModernStyles.BG_CARD)
+        preview_btn_frame.pack(fill='x', padx=15, pady=(0,15))
+
+        tk.Button(preview_btn_frame, text="▶ Play Voice Preview",
+                 command=self.play_voice_preview,
+                 bg=ModernStyles.ACCENT_BLUE, fg='white',
+                 font=('Segoe UI', 10, 'bold'),
+                 relief='flat', padx=25, pady=10, cursor='hand2').pack(side='left', padx=(0,10))
+
+        tk.Button(preview_btn_frame, text="⏹ Stop",
+                 command=self.stop_voice_preview,
+                 bg=ModernStyles.ACCENT_RED, fg='white',
+                 font=('Segoe UI', 10, 'bold'),
+                 relief='flat', padx=20, pady=10, cursor='hand2').pack(side='left')
+
+        # Preview status label
+        self.preview_status_label = tk.Label(preview_section, text="",
+                                            bg=ModernStyles.BG_CARD,
+                                            fg=ModernStyles.TEXT_SECONDARY,
+                                            font=('Segoe UI', 9, 'italic'))
+        self.preview_status_label.pack(anchor='w', padx=15, pady=(5,10))
+
         # Voiceover Text File (Separate from Quotes)
         self.create_label(content, "Voiceover Text File (Optional - for longer narration):")
         info_frame_vo = tk.Frame(content, bg=ModernStyles.BG_CARD)
@@ -1298,6 +1355,113 @@ class AudioSettingsPopup:
         except Exception as e:
             messagebox.showerror("Error", f"Failed to generate images:\n{str(e)}")
             self.image_gen_status_var.set(f"✗ Error: {str(e)}")
+
+    def play_voice_preview(self):
+        """Generate and play voice preview"""
+        import tempfile
+        import subprocess
+        import platform
+
+        # Get selected voice key
+        display_name = self.tts_voice_var.get()
+        voice_key = 'aria'  # Default
+
+        if TTSGenerator:
+            voice_options = [TTSGenerator.VOICE_NAMES.get(k, k) for k in self.tts_voice_keys]
+            try:
+                voice_index = voice_options.index(display_name)
+                voice_key = self.tts_voice_keys[voice_index]
+            except (ValueError, IndexError):
+                voice_key = 'aria'
+
+        # Get test text
+        test_text = self.preview_text_var.get().strip()
+        if not test_text:
+            self.preview_status_label.config(text="⚠ Please enter test text", fg=ModernStyles.ACCENT_ORANGE)
+            return
+
+        # Get speed
+        speed = self.tts_speed_var.get()
+
+        # Update status
+        self.preview_status_label.config(text="🔄 Generating preview audio...", fg=ModernStyles.ACCENT_BLUE)
+        self.window.update()
+
+        # Generate audio in background thread
+        def generate_and_play():
+            try:
+                if not TTS_AVAILABLE:
+                    self.preview_status_label.config(text="❌ edge-tts not installed. Run: pip install edge-tts",
+                                                   fg=ModernStyles.ACCENT_RED)
+                    return
+
+                # Get voice mapping
+                if TTSGenerator:
+                    voice_id = TTSGenerator.VOICE_MAP.get(voice_key, 'en-US-AriaNeural')
+                else:
+                    voice_id = 'en-US-AriaNeural'
+
+                # Create temp file
+                temp_dir = tempfile.gettempdir()
+                preview_file = Path(temp_dir) / f"tts_preview_{voice_key}.mp3"
+
+                # Generate audio using edge-tts
+                import asyncio
+                import edge_tts
+
+                async def generate_audio():
+                    # Calculate rate from speed (150 WPM = +0%, 100 WPM = -33%, 200 WPM = +33%)
+                    rate_percent = int((speed - 150) / 150 * 100)
+                    rate = f"{rate_percent:+d}%"
+
+                    communicate = edge_tts.Communicate(test_text, voice_id, rate=rate)
+                    await communicate.save(str(preview_file))
+
+                # Run async generation
+                asyncio.run(generate_audio())
+
+                # Store preview file path for stopping
+                self.current_preview_file = preview_file
+
+                # Update status
+                self.preview_status_label.config(text=f"▶ Playing: {TTSGenerator.VOICE_NAMES.get(voice_key, voice_key) if TTSGenerator else voice_key}",
+                                                fg=ModernStyles.ACCENT_GREEN)
+
+                # Play audio based on platform
+                system = platform.system()
+                if system == 'Windows':
+                    # Use Windows Media Player
+                    subprocess.run(['start', '', str(preview_file)], shell=True, check=False)
+                elif system == 'Darwin':  # macOS
+                    subprocess.run(['afplay', str(preview_file)], check=False)
+                else:  # Linux
+                    subprocess.run(['xdg-open', str(preview_file)], check=False)
+
+                # Update status after a delay
+                self.window.after(2000, lambda: self.preview_status_label.config(
+                    text=f"✅ Preview played. Audio saved to: {preview_file}",
+                    fg=ModernStyles.TEXT_SECONDARY))
+
+            except Exception as e:
+                self.preview_status_label.config(text=f"❌ Error: {str(e)}", fg=ModernStyles.ACCENT_RED)
+
+        # Run in background thread
+        thread = threading.Thread(target=generate_and_play, daemon=True)
+        thread.start()
+
+    def stop_voice_preview(self):
+        """Stop any playing preview audio"""
+        try:
+            # On Windows, kill any wmplayer processes
+            if platform.system() == 'Windows':
+                subprocess.run(['taskkill', '/F', '/IM', 'wmplayer.exe'],
+                             capture_output=True, check=False)
+                subprocess.run(['taskkill', '/F', '/IM', 'Microsoft.Media.Player.exe'],
+                             capture_output=True, check=False)
+
+            self.preview_status_label.config(text="⏹ Playback stopped", fg=ModernStyles.TEXT_SECONDARY)
+        except Exception as e:
+            self.preview_status_label.config(text=f"⚠ Stop failed: {str(e)}", fg=ModernStyles.ACCENT_ORANGE)
 
     def save_settings(self):
         self.settings['mute_original_audio'] = self.mute_var.get()
