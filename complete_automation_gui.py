@@ -673,6 +673,7 @@ class VideoAutomationGUI:
             ('text_kinetic', '⚡ Kinetic Typing'),
             ('text_glitch', '📺 Glitch Effect'),
             # Visual Effects
+            ('chromatic_aberration', '🌈 RGB Glitch'),
             ('text_glow', '✨ Text Glow'),
             ('vignette', '🌑 Vignette'),
             ('background_dim', '🌙 Background Dim'),
@@ -688,6 +689,41 @@ class VideoAutomationGUI:
 
         # Create horizontal grid layout (4 columns)
         self.create_effect_grid(content, "🎨 Visual Effects & Enhancements", all_effects, columns=4)
+
+        # Chromatic Aberration Settings
+        chroma_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
+        chroma_card.pack(fill='x', padx=15, pady=(15, 0))
+
+        tk.Label(chroma_card, text='🌈 Chromatic Aberration (RGB Glitch)',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 13, 'bold')).pack(anchor='w', pady=(0, 10))
+
+        tk.Label(chroma_card, text='ℹ️ Trendy RGB split effect - separates color channels for a glitchy, modern look',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(0, 10))
+
+        # Direction
+        dir_frame = tk.Frame(chroma_card, bg=AppStyles.BG_INPUT)
+        dir_frame.pack(fill='x', pady=(0, 10))
+
+        tk.Label(dir_frame, text='Direction:',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
+
+        self.chromatic_direction_var = tk.StringVar(value=self.settings.get('chromatic_direction', 'horizontal'))
+        chroma_dir_dropdown = ttk.Combobox(dir_frame, textvariable=self.chromatic_direction_var,
+                                          values=['horizontal', 'vertical', 'both'],
+                                          state='readonly', width=15)
+        chroma_dir_dropdown.pack(side='left')
+        chroma_dir_dropdown.bind('<<ComboboxSelected>>',
+                                lambda e: self.update_setting('chromatic_direction', self.chromatic_direction_var.get()))
+
+        tk.Label(dir_frame, text='(Horizontal = left/right split, Vertical = up/down, Both = diagonal)',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(side='left', padx=(10, 0))
+
+        # Intensity slider
+        self.create_slider_control(chroma_card, 'Intensity (pixel offset):', 'chromatic_intensity', 1, 20, 5, value_format=lambda v: f"{int(v)}px")
 
         # Progress Bar Section
         progress_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
