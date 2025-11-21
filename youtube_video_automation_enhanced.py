@@ -3071,6 +3071,80 @@ class VideoQuoteAutomation:
 
         video = VideoFileClip(str(video_path))
 
+        # Apply platform preset if enabled
+        if self.settings.get('enable_platform_preset', False):
+            platform = self.settings.get('platform_preset', 'none')
+            if platform != 'none':
+                print(f"\n[PLATFORM] Applying {platform} preset...")
+
+                # Platform dimensions
+                platform_dims = {
+                    'instagram_reels': (1080, 1920),  # 9:16
+                    'tiktok': (1080, 1920),           # 9:16
+                    'youtube_shorts': (1080, 1920),   # 9:16
+                    'youtube': (1920, 1080),          # 16:9
+                    'facebook': (1080, 1080),         # 1:1
+                }
+
+                if platform in platform_dims:
+                    target_w, target_h = platform_dims[platform]
+                    target_aspect = target_w / target_h
+                    current_aspect = video.w / video.h
+
+                    crop_mode = self.settings.get('crop_mode', 'center')
+
+                    print(f"[PLATFORM] Current: {video.w}x{video.h} ({current_aspect:.2f})")
+                    print(f"[PLATFORM] Target: {target_w}x{target_h} ({target_aspect:.2f})")
+                    print(f"[PLATFORM] Crop mode: {crop_mode}")
+
+                    # Calculate scaling and cropping
+                    if abs(current_aspect - target_aspect) > 0.01:  # Need to crop
+                        if current_aspect > target_aspect:
+                            # Video is wider - crop width
+                            new_h = video.h
+                            new_w = int(new_h * target_aspect)
+
+                            if crop_mode == 'center':
+                                x1 = (video.w - new_w) // 2
+                            elif crop_mode == 'left':
+                                x1 = 0
+                            elif crop_mode == 'right':
+                                x1 = video.w - new_w
+                            else:  # smart or others default to center
+                                x1 = (video.w - new_w) // 2
+
+                            y1 = 0
+                            x2 = x1 + new_w
+                            y2 = video.h
+
+                            video = video.crop(x1=x1, y1=y1, x2=x2, y2=y2)
+                            print(f"[PLATFORM] Cropped width: {x1},{y1} to {x2},{y2}")
+                        else:
+                            # Video is taller - crop height
+                            new_w = video.w
+                            new_h = int(new_w / target_aspect)
+
+                            if crop_mode == 'center':
+                                y1 = (video.h - new_h) // 2
+                            elif crop_mode == 'top':
+                                y1 = 0
+                            elif crop_mode == 'bottom':
+                                y1 = video.h - new_h
+                            else:  # smart or others default to center
+                                y1 = (video.h - new_h) // 2
+
+                            x1 = 0
+                            x2 = video.w
+                            y2 = y1 + new_h
+
+                            video = video.crop(x1=x1, y1=y1, x2=x2, y2=y2)
+                            print(f"[PLATFORM] Cropped height: {x1},{y1} to {x2},{y2}")
+
+                    # Resize to target dimensions
+                    video = video.resize((target_w, target_h))
+                    print(f"[PLATFORM] Resized to: {target_w}x{target_h}")
+                    print(f"[OK] Platform formatting complete!")
+
         emoji_pattern = re.compile(r'[\U0001F300-\U0001F9FF\U0001F600-\U0001F64F\U0001F680-\U0001F6FF\U00002600-\U000027BF\U0001F1E0-\U0001F1FF]+')
 
         # Parse subtitle text for visual display (Title + Quote + CTA format)

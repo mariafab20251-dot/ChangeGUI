@@ -538,6 +538,81 @@ class VideoAutomationGUI:
                     bg=AppStyles.BG_INPUT, fg=AppStyles.ACCENT_PRIMARY,
                     font=('Segoe UI', 11, 'bold')).pack(anchor='w')
 
+        # ROW 3: Platform Presets (full width)
+        platform_card = self.create_grid_card(grid_container, "📱 Platform Presets", row=2, col=0, colspan=3)
+
+        preset_frame = tk.Frame(platform_card, bg=AppStyles.BG_CARD)
+        preset_frame.pack(fill='x', padx=20, pady=10)
+
+        # Enable checkbox
+        platform_var = tk.BooleanVar(value=self.settings.get('enable_platform_preset', False))
+        tk.Checkbutton(preset_frame, text='Enable Platform Formatting',
+                      variable=platform_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 10, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('enable_platform_preset', platform_var.get())).pack(anchor='w', pady=(0, 10))
+
+        # Platform selection buttons (horizontal)
+        platforms_row = tk.Frame(preset_frame, bg=AppStyles.BG_CARD)
+        platforms_row.pack(fill='x', pady=(0, 10))
+
+        tk.Label(platforms_row, text='Select Platform:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(side='left', padx=(0, 15))
+
+        platforms = [
+            ('📱 Instagram Reels', 'instagram_reels', '9:16 (1080x1920)'),
+            ('🎵 TikTok', 'tiktok', '9:16 (1080x1920)'),
+            ('▶️ YouTube Shorts', 'youtube_shorts', '9:16 (1080x1920)'),
+            ('🎬 YouTube', 'youtube', '16:9 (1920x1080)'),
+            ('👥 Facebook', 'facebook', '1:1 (1080x1080)'),
+        ]
+
+        self.platform_preset_var = tk.StringVar(value=self.settings.get('platform_preset', 'none'))
+
+        for label, value, dimensions in platforms:
+            btn_frame = tk.Frame(platforms_row, bg=AppStyles.BG_INPUT if self.platform_preset_var.get() == value else AppStyles.BG_CARD,
+                                padx=10, pady=6, relief='raised', bd=1)
+            btn_frame.pack(side='left', padx=5)
+
+            def select_platform(v=value, d=dimensions, frame=btn_frame):
+                self.platform_preset_var.set(v)
+                self.update_setting('platform_preset', v)
+                # Update visual selection
+                for child in platforms_row.winfo_children():
+                    if isinstance(child, tk.Frame) and child != platforms_row.winfo_children()[0]:
+                        child.config(bg=AppStyles.BG_CARD)
+                frame.config(bg=AppStyles.BG_INPUT)
+
+            btn_frame.bind('<Button-1>', lambda e, v=value, d=dimensions, frame=btn_frame: select_platform(v, d, frame))
+
+            label_widget = tk.Label(btn_frame, text=f"{label}\n{dimensions}",
+                                   bg=btn_frame['bg'], fg=AppStyles.TEXT_DARK,
+                                   font=('Segoe UI', 9), cursor='hand2')
+            label_widget.pack()
+            label_widget.bind('<Button-1>', lambda e, v=value, d=dimensions, frame=btn_frame: select_platform(v, d, frame))
+
+        # Crop mode selection
+        crop_frame = tk.Frame(preset_frame, bg=AppStyles.BG_CARD)
+        crop_frame.pack(fill='x', pady=(5, 0))
+
+        tk.Label(crop_frame, text='Crop Mode:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
+
+        self.crop_mode_var = tk.StringVar(value=self.settings.get('crop_mode', 'center'))
+        crop_dropdown = ttk.Combobox(crop_frame, textvariable=self.crop_mode_var,
+                                     values=['center', 'top', 'bottom', 'smart'],
+                                     state='readonly', width=15)
+        crop_dropdown.pack(side='left')
+        crop_dropdown.bind('<<ComboboxSelected>>',
+                          lambda e: self.update_setting('crop_mode', self.crop_mode_var.get()))
+
+        tk.Label(crop_frame, text='(Center: Crop from center | Top/Bottom: Keep that edge | Smart: Auto-detect faces)',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(side='left', padx=(10, 0))
+
     def create_text_settings_tab(self):
         """Create Text Settings tab with horizontal grid layout"""
         tab = tk.Frame(self.notebook, bg=AppStyles.BG_CARD)
