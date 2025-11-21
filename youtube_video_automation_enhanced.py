@@ -2488,10 +2488,11 @@ class QuoteImageGenerator:
 class VideoQuoteAutomation:
     """Automate adding quotes to videos with advanced effects"""
 
-    def __init__(self):
-        self.video_folder = Path(r"E:\MyAutomations\ScriptAutomations\VideoFolder\SourceVideosToEdit\Libriana8")
-        self.quotes_file = Path(r"E:\MyAutomations\ScriptAutomations\VideoFolder\Quotes.txt")
-        self.output_folder = Path(r"E:\MyAutomations\ScriptAutomations\VideoFolder\FinalVideos")
+    def __init__(self, video_folder=None, quotes_file=None, output_folder=None):
+        # Use provided paths or fall back to defaults
+        self.video_folder = Path(video_folder) if video_folder else Path(r"E:\MyAutomations\ScriptAutomations\VideoFolder\SourceVideosToEdit\Libriana8")
+        self.quotes_file = Path(quotes_file) if quotes_file else Path(r"E:\MyAutomations\ScriptAutomations\VideoFolder\Quotes.txt")
+        self.output_folder = Path(output_folder) if output_folder else Path(r"E:\MyAutomations\ScriptAutomations\VideoFolder\FinalVideos")
 
         self.output_folder.mkdir(parents=True, exist_ok=True)
 
