@@ -1,0 +1,25 @@
+# ChangeGUI - Video Automation Studio
+# Python Dependencies
+
+# Core Video Processing
+moviepy>=2.0.0
+Pillow>=10.0.0
+numpy>=1.24.0
+
+# Text-to-Speech
+edge-tts>=6.1.0
+
+# Image Processing & Effects
+imageio>=2.31.0
+imageio-ffmpeg>=0.4.9
+
+# Audio Processing
+pydub>=0.25.1
+
+# Additional moviepy dependencies
+decorator>=4.4.2
+proglog>=0.1.10
+tqdm>=4.66.0
+
+# Note: tkinter is included with Python on Windows
+# On Linux, install separately: sudo apt-get install python3-tk

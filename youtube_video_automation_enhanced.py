@@ -2488,12 +2488,37 @@ class QuoteImageGenerator:
 class VideoQuoteAutomation:
     """Automate adding quotes to videos with advanced effects"""
 
-    def __init__(self):
-        self.video_folder = Path(r"E:\MyAutomations\ScriptAutomations\VideoFolder\SourceVideosToEdit\Libriana8")
-        self.quotes_file = Path(r"E:\MyAutomations\ScriptAutomations\VideoFolder\Quotes.txt")
-        self.output_folder = Path(r"E:\MyAutomations\ScriptAutomations\VideoFolder\FinalVideos")
+    def __init__(self, video_folder=None, quotes_file=None, output_folder=None):
+        """
+        Initialize VideoQuoteAutomation with folder paths.
 
-        self.output_folder.mkdir(parents=True, exist_ok=True)
+        Args:
+            video_folder: Path to folder containing source videos
+            quotes_file: Path to quotes text file
+            output_folder: Path to output folder for processed videos
+        """
+        # Use provided paths or fall back to defaults
+        if video_folder:
+            self.video_folder = Path(video_folder)
+        else:
+            self.video_folder = Path(r"E:\MyAutomations\ScriptAutomations\VideoFolder\SourceVideosToEdit\Libriana8")
+
+        if quotes_file:
+            self.quotes_file = Path(quotes_file)
+        else:
+            self.quotes_file = Path(r"E:\MyAutomations\ScriptAutomations\VideoFolder\Quotes.txt")
+
+        if output_folder:
+            self.output_folder = Path(output_folder)
+        else:
+            self.output_folder = Path(r"E:\MyAutomations\ScriptAutomations\VideoFolder\FinalVideos")
+
+        # Create output folder if it doesn't exist
+        try:
+            self.output_folder.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            print(f"[ERROR] Could not create output folder: {e}")
+            raise
 
         self.settings = self.load_settings()
 
@@ -2578,15 +2603,21 @@ class VideoQuoteAutomation:
 
     def _load_log(self) -> dict:
         """Load processing log"""
-        if self.log_file.exists():
-            with open(self.log_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
+        try:
+            if self.log_file.exists():
+                with open(self.log_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+        except Exception as e:
+            print(f"[WARNING] Could not load processing log: {e}")
         return {"processed_count": 0, "processed_videos": []}
 
     def _save_log(self):
         """Save processing log"""
-        with open(self.log_file, 'w', encoding='utf-8') as f:
-            json.dump(self.processing_log, f, indent=2, ensure_ascii=False)
+        try:
+            with open(self.log_file, 'w', encoding='utf-8') as f:
+                json.dump(self.processing_log, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            print(f"[ERROR] Could not save processing log: {e}")
 
     def hex_to_rgb(self, hex_color: str) -> tuple:
         """Convert hex color to RGB tuple"""
