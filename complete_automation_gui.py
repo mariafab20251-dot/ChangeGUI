@@ -244,6 +244,8 @@ class VideoAutomationGUI:
                 self.settings['caption_highlight_font_style'] = self.caption_highlight_font_var.get()
             if hasattr(self, 'caption_animation_var'):
                 self.settings['caption_word_animation'] = self.caption_animation_var.get()
+            if hasattr(self, 'gradient_type_var'):
+                self.settings['gradient_type'] = self.gradient_type_var.get()
 
             # Save audio paths
             if hasattr(self, 'bgm_file_var'):
@@ -724,6 +726,7 @@ class VideoAutomationGUI:
             ('vignette', '🌑 Vignette'),
             ('background_dim', '🌙 Background Dim'),
             ('film_grain', '🎞️ Film Grain'),
+            ('gradient_overlay', '🌅 Gradient Overlay'),
             ('neon_glow', '💡 Neon Glow'),
             ('drop_shadow', '👤 Drop Shadow'),
             # Particle Effects
@@ -785,6 +788,37 @@ class VideoAutomationGUI:
 
         # Glitter intensity slider
         self.create_slider_control(particle_card, 'Glitter Intensity:', 'glitter_intensity', 0.1, 1.0, 0.5, resolution=0.1)
+
+        # Gradient Overlay Settings
+        gradient_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
+        gradient_card.pack(fill='x', padx=15, pady=(15, 0))
+
+        tk.Label(gradient_card, text='🌅 Gradient Overlay',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 13, 'bold')).pack(anchor='w', pady=(0, 10))
+
+        tk.Label(gradient_card, text='ℹ️ Add cinematic gradient overlays to darken or lighten specific areas',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(0, 10))
+
+        # Gradient type
+        type_frame = tk.Frame(gradient_card, bg=AppStyles.BG_INPUT)
+        type_frame.pack(fill='x', pady=(0, 10))
+
+        tk.Label(type_frame, text='Gradient Direction:',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
+
+        self.gradient_type_var = tk.StringVar(value=self.settings.get('gradient_type', 'top_to_bottom'))
+        gradient_dropdown = ttk.Combobox(type_frame, textvariable=self.gradient_type_var,
+                                        values=['top_to_bottom', 'bottom_to_top', 'left_to_right', 'right_to_left', 'radial'],
+                                        state='readonly', width=20)
+        gradient_dropdown.pack(side='left')
+        gradient_dropdown.bind('<<ComboboxSelected>>',
+                              lambda e: self.update_setting('gradient_type', self.gradient_type_var.get()))
+
+        # Gradient intensity
+        self.create_slider_control(gradient_card, 'Gradient Intensity:', 'gradient_intensity', 0.1, 0.8, 0.3, resolution=0.1)
 
         # CTA Overlay Section
         cta_overlay_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
