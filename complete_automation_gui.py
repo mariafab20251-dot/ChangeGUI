@@ -634,9 +634,10 @@ class VideoAutomationGUI:
 
         mute_var = tk.BooleanVar(value=self.settings.get('mute_original_audio', False))
         tk.Checkbutton(original_card, text='Mute Original Audio',
-                      variable=mute_var, bg=AppStyles.BG_CARD,
+                      variable=mute_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                       font=('Segoe UI', 10, 'bold'),
                       activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
                       command=lambda: self.update_setting('mute_original_audio', mute_var.get())).pack(anchor='w', padx=20, pady=10)
 
         self.create_slider_control(original_card, 'Volume:', 'original_audio_volume', 0.0, 1.0, 0.5, resolution=0.1)
@@ -646,9 +647,10 @@ class VideoAutomationGUI:
 
         bgm_var = tk.BooleanVar(value=self.settings.get('add_custom_bgm', False))
         tk.Checkbutton(bgm_card, text='Add Background Music',
-                      variable=bgm_var, bg=AppStyles.BG_CARD,
+                      variable=bgm_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                       font=('Segoe UI', 10, 'bold'),
                       activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
                       command=lambda: self.update_setting('add_custom_bgm', bgm_var.get())).pack(anchor='w', padx=20, pady=10)
 
         # BGM File/Folder selection
@@ -689,9 +691,10 @@ class VideoAutomationGUI:
 
         vo_var = tk.BooleanVar(value=self.settings.get('add_voiceover', False))
         tk.Checkbutton(vo_card, text='Enable Voiceover',
-                      variable=vo_var, bg=AppStyles.BG_CARD,
+                      variable=vo_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                       font=('Segoe UI', 10, 'bold'),
                       activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
                       command=lambda: self.update_setting('add_voiceover', vo_var.get())).pack(anchor='w', padx=20, pady=10)
 
         # Voiceover Folder
@@ -722,9 +725,10 @@ class VideoAutomationGUI:
 
         tts_var = tk.BooleanVar(value=self.settings.get('use_tts_voiceover', True))
         tk.Checkbutton(tts_card, text='Generate Voiceover from Text (TTS)',
-                      variable=tts_var, bg=AppStyles.BG_CARD,
+                      variable=tts_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                       font=('Segoe UI', 10, 'bold'),
                       activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
                       command=lambda: self.update_setting('use_tts_voiceover', tts_var.get())).pack(anchor='w', padx=20, pady=10)
 
         # Info
@@ -988,9 +992,10 @@ class VideoAutomationGUI:
 
         caption_var = tk.BooleanVar(value=self.settings.get('enable_captions', False))
         tk.Checkbutton(cap_card, text='Enable Word-by-Word Captions (Synced with Voiceover)',
-                      variable=caption_var, bg=AppStyles.BG_CARD,
+                      variable=caption_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                       font=('Segoe UI', 10, 'bold'),
                       activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
                       command=lambda: self.update_setting('enable_captions', caption_var.get())).pack(anchor='w', padx=20, pady=10)
 
         info_frame = tk.Frame(cap_card, bg=AppStyles.BG_CARD)
@@ -1218,9 +1223,10 @@ class VideoAutomationGUI:
         # Background
         bg_enabled_var = tk.BooleanVar(value=self.settings.get('caption_bg_enabled', True))
         tk.Checkbutton(regular_card, text='Enable Caption Background',
-                      variable=bg_enabled_var, bg=AppStyles.BG_CARD,
+                      variable=bg_enabled_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                       font=('Segoe UI', 10),
                       activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
                       command=lambda: self.update_setting('caption_bg_enabled', bg_enabled_var.get())).pack(anchor='w', padx=20, pady=5)
 
         self.create_color_picker(regular_card, 'Caption Background Color:', 'caption_bg_color', '#000000')
@@ -1231,9 +1237,10 @@ class VideoAutomationGUI:
 
         highlight_var = tk.BooleanVar(value=self.settings.get('caption_highlight_enabled', False))
         tk.Checkbutton(capcut_card, text='✨ Enable Word-by-Word Highlighting (like TikTok/Instagram)',
-                      variable=highlight_var, bg=AppStyles.BG_CARD,
+                      variable=highlight_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                       font=('Segoe UI', 10, 'bold'),
                       activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
                       command=lambda: self.update_setting('caption_highlight_enabled', highlight_var.get())).pack(anchor='w', padx=20, pady=10)
 
         # Highlight font
@@ -1271,9 +1278,10 @@ class VideoAutomationGUI:
 
         stroke_var = tk.BooleanVar(value=self.settings.get('caption_stroke_enabled', False))
         tk.Checkbutton(stroke_card, text='Enable Text Stroke/Outline',
-                      variable=stroke_var, bg=AppStyles.BG_CARD,
+                      variable=stroke_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                       font=('Segoe UI', 10, 'bold'),
                       activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
                       command=lambda: self.update_setting('caption_stroke_enabled', stroke_var.get())).pack(anchor='w', padx=20, pady=10)
 
         self.create_color_picker(stroke_card, 'Active Word Stroke Color:', 'caption_active_stroke_color', '#000000')
@@ -1495,9 +1503,10 @@ class VideoAutomationGUI:
         # Enable checkbox
         enabled_var = tk.BooleanVar(value=self.settings.get(f'{prefix}_enabled', True))
         tk.Checkbutton(parent, text=f'Enable {prefix.title()}',
-                      variable=enabled_var, bg=AppStyles.BG_CARD,
+                      variable=enabled_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                       font=('Segoe UI', 10, 'bold'),
                       activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
                       command=lambda: self.update_setting(f'{prefix}_enabled', enabled_var.get())).pack(anchor='w', padx=20, pady=10)
 
         # Font Size slider
