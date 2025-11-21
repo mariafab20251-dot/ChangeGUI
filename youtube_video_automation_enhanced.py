@@ -3714,7 +3714,49 @@ class VideoQuoteAutomation:
                 except AttributeError:
                     pass  # Skip fade if not available
 
-        if self.settings.get('text_slide_up', False):
+        if self.settings.get('text_bounce', False):
+            bounce_intensity = self.settings.get('text_bounce_intensity', 1.15)
+            def bounce_scale(t):
+                if t < 0.6:
+                    # Bounce in with overshoot
+                    progress = t / 0.6
+                    if progress < 0.5:
+                        # Scale up quickly
+                        scale = progress * 2 * bounce_intensity
+                    else:
+                        # Bounce back to normal
+                        overshoot = (progress - 0.5) * 2
+                        scale = bounce_intensity - (bounce_intensity - 1.0) * overshoot
+                    return max(0.1, scale)
+                return 1.0
+
+            try:
+                txt_clip = txt_clip.resize(lambda t: bounce_scale(t))
+            except:
+                pass
+
+        elif self.settings.get('text_glitch', False):
+            # Glitch effect: quick position shifts and opacity flicker
+            def glitch_effect(get_frame, t):
+                frame = get_frame(t)
+                if t < 0.5:
+                    # Random glitch during first 0.5s
+                    if int(t * 30) % 3 == 0:  # Glitch every 3 frames
+                        # Shift frame slightly
+                        shift_x = np.random.randint(-10, 10)
+                        shift_y = np.random.randint(-5, 5)
+                        if shift_x > 0:
+                            frame = np.roll(frame, shift_x, axis=1)
+                        if shift_y > 0:
+                            frame = np.roll(frame, shift_y, axis=0)
+                return frame
+
+            try:
+                txt_clip = txt_clip.transform(glitch_effect)
+            except:
+                pass
+
+        elif self.settings.get('text_slide_up', False):
             slide_distance = self.settings.get('text_slide_distance', 50)
             def slide_position(t):
                 if t < 0.5:
@@ -3728,7 +3770,12 @@ class VideoQuoteAutomation:
                     else:
                         return ('center', video.h - txt_clip.h)
             txt_clip = set_position(txt_clip, slide_position)
-        else:
+
+        if not any([
+            self.settings.get('text_bounce', False),
+            self.settings.get('text_glitch', False),
+            self.settings.get('text_slide_up', False)
+        ]):
             if self.settings['position'] == 'top':
                 txt_clip = set_position(txt_clip, ('center', 0))
             elif self.settings['position'] == 'center':

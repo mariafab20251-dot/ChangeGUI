@@ -820,6 +820,48 @@ class VideoAutomationGUI:
         # Gradient intensity
         self.create_slider_control(gradient_card, 'Gradient Intensity:', 'gradient_intensity', 0.1, 0.8, 0.3, resolution=0.1)
 
+        # Text Glow Settings
+        glow_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
+        glow_card.pack(fill='x', padx=15, pady=(15, 0))
+
+        tk.Label(glow_card, text='✨ Text Glow & Neon Effects',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 13, 'bold')).pack(anchor='w', pady=(0, 10))
+
+        tk.Label(glow_card, text='ℹ️ Add glowing or neon effects to your text overlays for eye-catching style',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(0, 10))
+
+        # Text Glow intensity
+        self.create_slider_control(glow_card, 'Text Glow Intensity:', 'glow_intensity', 1, 20, 8)
+
+        # Glow color picker
+        self.create_color_picker(glow_card, 'Glow Color:', 'glow_color', '#ffffff')
+
+        # Neon color picker
+        self.create_color_picker(glow_card, 'Neon Glow Color:', 'neon_color', '#00ff88')
+
+        # Text Entrance Animations Settings
+        entrance_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
+        entrance_card.pack(fill='x', padx=15, pady=(15, 0))
+
+        tk.Label(entrance_card, text='💫 Text Entrance Animations',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 13, 'bold')).pack(anchor='w', pady=(0, 10))
+
+        tk.Label(entrance_card, text='ℹ️ Animate how your text overlay appears - fade in, bounce, slide, or glitch entrance',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(0, 10))
+
+        # Fade duration
+        self.create_slider_control(entrance_card, 'Fade In Duration:', 'text_fade_duration', 0.1, 2.0, 0.4, resolution=0.1, value_format=lambda v: f"{v:.1f}s")
+
+        # Slide distance
+        self.create_slider_control(entrance_card, 'Slide Distance:', 'text_slide_distance', 20, 200, 50, value_format=lambda v: f"{int(v)}px")
+
+        # Bounce intensity
+        self.create_slider_control(entrance_card, 'Bounce Intensity:', 'text_bounce_intensity', 1.0, 1.5, 1.15, resolution=0.05)
+
         # CTA Overlay Section
         cta_overlay_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
         cta_overlay_card.pack(fill='x', padx=15, pady=(15, 0))
