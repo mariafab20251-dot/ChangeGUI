@@ -3877,6 +3877,51 @@ class VideoQuoteAutomation:
                 import traceback
                 traceback.print_exc()
 
+        # Add progress bar if enabled
+        if self.settings.get('progress_bar', False):
+            try:
+                bar_height = self.settings.get('progress_bar_height', 5)
+                bar_color_hex = self.settings.get('progress_color', '#00ff40')
+                bar_position = self.settings.get('progress_bar_position', 'bottom')
+
+                # Convert hex color to RGB
+                bar_color = self.hex_to_rgb(bar_color_hex)
+
+                # Create progress bar function
+                def create_progress_bar(t):
+                    # Calculate progress (0 to 1)
+                    progress = t / final_video.duration
+
+                    # Create bar image
+                    bar_img = Image.new('RGB', (video.w, bar_height), (0, 0, 0))
+
+                    # Draw progress portion
+                    if progress > 0:
+                        bar_width = int(video.w * progress)
+                        for y in range(bar_height):
+                            for x in range(bar_width):
+                                bar_img.putpixel((x, y), bar_color)
+
+                    return np.array(bar_img)
+
+                # Create bar clip with time-varying width
+                bar_clip = ImageClip(create_progress_bar(0), duration=final_video.duration)
+                bar_clip = bar_clip.with_make_frame(lambda t: create_progress_bar(t))
+
+                # Position bar
+                if bar_position == 'top':
+                    bar_clip = bar_clip.with_position((0, 0))
+                else:  # bottom
+                    bar_clip = bar_clip.with_position((0, video.h - bar_height))
+
+                # Composite onto video
+                final_video = CompositeVideoClip([final_video, bar_clip])
+                print(f"[OK] Added progress bar ({bar_position}, {bar_height}px, {bar_color_hex})")
+            except Exception as e:
+                print(f"[WARNING] Progress bar overlay failed: {e}")
+                import traceback
+                traceback.print_exc()
+
         output_path = self.output_folder / output_filename
         counter = 1
         original_output_path = output_path
