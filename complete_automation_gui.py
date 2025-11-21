@@ -756,6 +756,7 @@ class VideoAutomationGUI:
                       variable=self.tts_engine_var, value='cloud',
                       bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
                       activebackground=AppStyles.BG_INPUT,
+                      selectcolor=AppStyles.BG_CARD,
                       font=('Segoe UI', 10, 'bold'),
                       command=self.on_tts_engine_change).pack(anchor='w')
 
@@ -777,6 +778,7 @@ class VideoAutomationGUI:
                       variable=self.tts_engine_var, value='local',
                       bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
                       activebackground=AppStyles.BG_INPUT,
+                      selectcolor=AppStyles.BG_CARD,
                       font=('Segoe UI', 10, 'bold'),
                       command=self.on_tts_engine_change).pack(anchor='w')
 
@@ -860,6 +862,7 @@ class VideoAutomationGUI:
                       variable=self.kokoro_quality_var, value='wav',
                       bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                       activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
                       font=('Segoe UI', 9),
                       command=lambda: self.update_setting('kokoro_quality', 'wav')).pack(anchor='w', pady=3)
 
@@ -867,6 +870,7 @@ class VideoAutomationGUI:
                       variable=self.kokoro_quality_var, value='mp3',
                       bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                       activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
                       font=('Segoe UI', 9),
                       command=lambda: self.update_setting('kokoro_quality', 'mp3')).pack(anchor='w', pady=3)
 
@@ -1166,12 +1170,14 @@ class VideoAutomationGUI:
                       variable=self.caption_layout_var, value='1-line',
                       bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                       activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
                       font=('Segoe UI', 9)).pack(side='left', padx=10)
 
         tk.Radiobutton(layout_opts, text='2-Lines (Split across 2 lines)',
                       variable=self.caption_layout_var, value='2-line',
                       bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                       activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
                       font=('Segoe UI', 9)).pack(side='left', padx=10)
 
         # Font size
@@ -1194,6 +1200,7 @@ class VideoAutomationGUI:
                           variable=self.caption_position_var, value=pos,
                           bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                           activebackground=AppStyles.BG_CARD,
+                          selectcolor=AppStyles.BG_INPUT,
                           font=('Segoe UI', 9)).pack(side='left', padx=15)
 
         # Words per line
