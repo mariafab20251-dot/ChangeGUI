@@ -2606,6 +2606,9 @@ class VideoQuoteAutomation:
 
         Returns list of dicts with 'subtitle' and 'voiceover' keys.
         """
+        print(f"[DEBUG] Attempting to read quotes from: {self.quotes_file}")
+        print(f"[DEBUG] File exists: {self.quotes_file.exists()}")
+
         if not self.quotes_file.exists():
             print(f"✗ Quotes file not found: {self.quotes_file}")
             return []
@@ -2614,19 +2617,32 @@ class VideoQuoteAutomation:
         with open(self.quotes_file, 'r', encoding='utf-8') as f:
             subtitle_content = f.read()
 
+        print(f"[DEBUG] File content length: {len(subtitle_content)} characters")
+        print(f"[DEBUG] First 100 chars: {subtitle_content[:100]}")
+
         subtitle_lines = []
         if re.match(r'^\s*\d+\.', subtitle_content, re.MULTILINE):
+            print(f"[DEBUG] Detected numbered format")
             parts = re.split(r'\n\s*\d+\.\s*', subtitle_content)
+            print(f"[DEBUG] Split into {len(parts)} parts")
             subtitle_lines = [q.strip() for q in parts[1:] if q.strip()]
+            print(f"[DEBUG] After filtering: {len(subtitle_lines)} lines")
         elif '\n\n' in subtitle_content:
+            print(f"[DEBUG] Detected paragraph format (\\n\\n)")
             subtitle_lines = [q.strip() for q in subtitle_content.split('\n\n') if q.strip()]
         elif '---' in subtitle_content:
+            print(f"[DEBUG] Detected dash separator format")
             subtitle_lines = [q.strip() for q in subtitle_content.split('---') if q.strip()]
         else:
+            print(f"[DEBUG] Using line-by-line format")
             subtitle_lines = [line.strip() for line in subtitle_content.split('\n') if line.strip()]
+
+        print(f"[DEBUG] Before cleaning: {len(subtitle_lines)} subtitle lines")
 
         # Clean subtitle lines
         subtitle_lines = [re.sub(r'^\d+\.\s*', '', line).strip() for line in subtitle_lines if line.strip()]
+
+        print(f"[DEBUG] After cleaning: {len(subtitle_lines)} subtitle lines")
 
         # Check for separate voiceover text file
         voiceover_text_file = self.settings.get('voiceover_text_file', '')
