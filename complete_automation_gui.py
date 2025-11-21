@@ -68,9 +68,7 @@ class AppStyles:
     TEXT_LIGHT = '#9ca3af'        # Light gray
     TEXT_WHITE = '#ffffff'        # Pure white
 
-    # Shadows and effects
-    SHADOW_LIGHT = '#00000010'    # Very light shadow
-    SHADOW_MEDIUM = '#00000020'   # Medium shadow
+    # Borders
     BORDER_LIGHT = '#e5e7eb'      # Very light border
     BORDER_MEDIUM = '#d1d5db'     # Medium border
 
@@ -1092,7 +1090,7 @@ class VideoAutomationGUI:
     def create_modern_card(self, parent, title):
         """Create a modern card with shadow and rounded corners"""
         # Outer frame for shadow effect
-        card_outer = tk.Frame(parent, bg=AppStyles.SHADOW_LIGHT, pady=2, padx=2)
+        card_outer = tk.Frame(parent, bg=AppStyles.BORDER_LIGHT, pady=2, padx=2)
         card_outer.pack(fill='x', padx=15, pady=10)
 
         # Inner card
