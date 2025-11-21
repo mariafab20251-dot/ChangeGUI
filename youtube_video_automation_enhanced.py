@@ -1494,6 +1494,71 @@ class CaptionRenderer:
             except AttributeError:
                 clip = clip.with_position(('center', y_pos))
 
+            # Apply animation effects
+            animation_style = settings.get('caption_word_animation', 'none')
+            animation_intensity = settings.get('caption_animation_intensity', 1.2)
+            anim_duration = min(0.15, word_duration * 0.5)  # Animation takes first 15% of word duration
+
+            if animation_style == 'pop':
+                # Pop effect: scale from 0 to full size quickly
+                def pop_scale(t):
+                    progress = min(1.0, t / anim_duration)
+                    # Ease-out cubic for smooth pop
+                    scale = progress ** 0.5
+                    return scale
+
+                try:
+                    clip = clip.resize(lambda t: pop_scale(t))
+                except:
+                    pass
+
+            elif animation_style == 'bounce':
+                # Bounce effect: scale up beyond size, then bounce back
+                def bounce_scale(t):
+                    if t < anim_duration:
+                        progress = t / anim_duration
+                        # Overshoot and bounce back
+                        scale = 1.0 + (animation_intensity - 1.0) * (1.0 - abs(1.0 - progress * 1.5))
+                        return max(0.5, scale)
+                    else:
+                        return 1.0
+
+                try:
+                    clip = clip.resize(lambda t: bounce_scale(t))
+                except:
+                    pass
+
+            elif animation_style == 'fade':
+                # Fade effect: fade in from transparent
+                def fade_opacity(t):
+                    if t < anim_duration:
+                        return t / anim_duration
+                    else:
+                        return 1.0
+
+                try:
+                    clip = clip.set_opacity(lambda t: fade_opacity(t))
+                except:
+                    pass
+
+            elif animation_style == 'slide':
+                # Slide effect: slide in from right
+                slide_distance = 100  # pixels
+
+                def slide_position(t):
+                    if t < anim_duration:
+                        progress = t / anim_duration
+                        # Ease-out for smooth deceleration
+                        offset = slide_distance * (1.0 - progress ** 2)
+                        return (video_width // 2 + int(offset), y_pos)
+                    else:
+                        return ('center', y_pos)
+
+                try:
+                    clip = clip.set_position(lambda t: slide_position(t))
+                except:
+                    pass
+
             caption_clips.append(clip)
             current_time += word_duration
 

@@ -242,6 +242,8 @@ class VideoAutomationGUI:
                 self.settings['caption_font_style'] = self.caption_font_var.get()
             if hasattr(self, 'caption_highlight_font_var'):
                 self.settings['caption_highlight_font_style'] = self.caption_highlight_font_var.get()
+            if hasattr(self, 'caption_animation_var'):
+                self.settings['caption_word_animation'] = self.caption_animation_var.get()
 
             # Save audio paths
             if hasattr(self, 'bgm_file_var'):
@@ -538,8 +540,52 @@ class VideoAutomationGUI:
                     bg=AppStyles.BG_INPUT, fg=AppStyles.ACCENT_PRIMARY,
                     font=('Segoe UI', 11, 'bold')).pack(anchor='w')
 
-        # ROW 3: Platform Presets (full width)
-        platform_card = self.create_grid_card(grid_container, "📱 Platform Presets", row=2, col=0, colspan=3)
+        # ROW 3: Template Manager (full width)
+        template_card = self.create_grid_card(grid_container, "💾 Templates (Save/Load Effect Combinations)", row=2, col=0, colspan=3)
+
+        template_frame = tk.Frame(template_card, bg=AppStyles.BG_CARD)
+        template_frame.pack(fill='x', padx=20, pady=10)
+
+        tk.Label(template_frame, text='ℹ️ Save your favorite effect combinations as templates for quick reuse',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(0, 10))
+
+        # Template selection and buttons
+        template_controls = tk.Frame(template_frame, bg=AppStyles.BG_CARD)
+        template_controls.pack(fill='x', pady=(0, 10))
+
+        tk.Label(template_controls, text='Template:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
+
+        self.template_var = tk.StringVar(value="")
+        self.template_dropdown = ttk.Combobox(template_controls, textvariable=self.template_var,
+                                             state='readonly', width=25)
+        self.template_dropdown.pack(side='left', padx=(0, 10))
+
+        ModernButton(template_controls, text='📥 Load',
+                    bg_color=AppStyles.ACCENT_PRIMARY,
+                    font=('Segoe UI', 9, 'bold'),
+                    padx=15, pady=6,
+                    command=self.load_template).pack(side='left', padx=2)
+
+        ModernButton(template_controls, text='💾 Save As...',
+                    bg_color=AppStyles.ACCENT_SUCCESS,
+                    font=('Segoe UI', 9, 'bold'),
+                    padx=15, pady=6,
+                    command=self.save_template).pack(side='left', padx=2)
+
+        ModernButton(template_controls, text='🗑️ Delete',
+                    bg_color=AppStyles.ACCENT_DANGER,
+                    font=('Segoe UI', 9, 'bold'),
+                    padx=15, pady=6,
+                    command=self.delete_template).pack(side='left', padx=2)
+
+        # Refresh template list on startup
+        self.refresh_template_list()
+
+        # ROW 4: Platform Presets (full width)
+        platform_card = self.create_grid_card(grid_container, "📱 Platform Presets", row=3, col=0, colspan=3)
 
         preset_frame = tk.Frame(platform_card, bg=AppStyles.BG_CARD)
         preset_frame.pack(fill='x', padx=20, pady=10)
@@ -1688,6 +1734,26 @@ class VideoAutomationGUI:
         self.create_color_picker(capcut_card, 'Active Word:', 'caption_highlight_color', '#FFD700')
         self.create_color_picker(capcut_card, 'Inactive Words:', 'caption_inactive_color', '#FFFFFF')
 
+        # Animation style
+        anim_frame = tk.Frame(capcut_card, bg=AppStyles.BG_CARD)
+        anim_frame.pack(fill='x', padx=20, pady=8)
+
+        tk.Label(anim_frame, text='Word Animation Style:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(0, 5))
+
+        animation_styles = ['none', 'pop', 'bounce', 'fade', 'slide']
+        self.caption_animation_var = tk.StringVar(value=self.settings.get('caption_word_animation', 'none'))
+        anim_combo = ttk.Combobox(anim_frame, textvariable=self.caption_animation_var,
+                                 values=animation_styles, state='readonly',
+                                 font=('Segoe UI', 9), width=30)
+        anim_combo.pack(fill='x', pady=5)
+        anim_combo.bind('<<ComboboxSelected>>',
+                       lambda e: self.update_setting('caption_word_animation', self.caption_animation_var.get()))
+
+        # Animation intensity
+        self.create_slider_control(capcut_card, 'Animation Intensity:', 'caption_animation_intensity', 1.0, 2.0, 1.2, resolution=0.1)
+
         # ROW 2: Text Stroke (full width)
         # Stroke/Outline
         stroke_card = self.create_grid_card(grid_container, "🖊️ Text Stroke/Outline", row=2, col=0, colspan=3)
@@ -2082,7 +2148,9 @@ class VideoAutomationGUI:
                 'caption_bg_opacity': 220,
                 'caption_stroke_enabled': True,
                 'caption_active_stroke_color': '#000000',
-                'caption_stroke_width': 3
+                'caption_stroke_width': 3,
+                'caption_word_animation': 'pop',
+                'caption_animation_intensity': 1.2
             },
             "💰 Alex Hormozi (Bold Red)": {
                 'caption_highlight_enabled': True,
@@ -2093,7 +2161,9 @@ class VideoAutomationGUI:
                 'caption_bg_opacity': 200,
                 'caption_stroke_enabled': True,
                 'caption_active_stroke_color': '#000000',
-                'caption_stroke_width': 4
+                'caption_stroke_width': 4,
+                'caption_word_animation': 'bounce',
+                'caption_animation_intensity': 1.3
             },
             "👑 Andrew Tate (Aggressive Red/Black)": {
                 'caption_highlight_enabled': True,
@@ -2770,6 +2840,109 @@ Need help? Check the logs or open an issue on GitHub!
 
         finally:
             self.finish_processing()
+
+    def refresh_template_list(self):
+        """Refresh the template dropdown with available templates"""
+        templates_dir = Path('templates')
+        templates_dir.mkdir(exist_ok=True)
+
+        # Get list of template files
+        templates = []
+        if templates_dir.exists():
+            for file in templates_dir.glob('*.json'):
+                templates.append(file.stem)
+
+        # Update dropdown
+        self.template_dropdown['values'] = templates
+        if templates:
+            self.template_var.set(templates[0])
+
+    def save_template(self):
+        """Save current settings as a template"""
+        from tkinter import simpledialog, messagebox
+
+        # Ask for template name
+        template_name = simpledialog.askstring("Save Template", "Enter template name:")
+
+        if template_name:
+            templates_dir = Path('templates')
+            templates_dir.mkdir(exist_ok=True)
+
+            template_file = templates_dir / f"{template_name}.json"
+
+            try:
+                # Save current settings
+                with open(template_file, 'w', encoding='utf-8') as f:
+                    json.dump(self.settings, f, indent=2, ensure_ascii=False)
+
+                messagebox.showinfo("Success", f"Template '{template_name}' saved successfully!")
+                self.refresh_template_list()
+                self.template_var.set(template_name)
+
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to save template: {str(e)}")
+
+    def load_template(self):
+        """Load a template and apply settings"""
+        from tkinter import messagebox
+
+        template_name = self.template_var.get()
+
+        if not template_name:
+            messagebox.showwarning("No Template", "Please select a template to load")
+            return
+
+        templates_dir = Path('templates')
+        template_file = templates_dir / f"{template_name}.json"
+
+        if not template_file.exists():
+            messagebox.showerror("Error", f"Template '{template_name}' not found")
+            return
+
+        try:
+            # Load template settings
+            with open(template_file, 'r', encoding='utf-8') as f:
+                template_settings = json.load(f)
+
+            # Apply settings
+            self.settings.update(template_settings)
+
+            # Save to main settings file
+            with open(self.settings_file, 'w', encoding='utf-8') as f:
+                json.dump(self.settings, f, indent=2, ensure_ascii=False)
+
+            messagebox.showinfo("Success", f"Template '{template_name}' loaded! Restart the GUI to see all changes.")
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load template: {str(e)}")
+
+    def delete_template(self):
+        """Delete selected template"""
+        from tkinter import messagebox
+
+        template_name = self.template_var.get()
+
+        if not template_name:
+            messagebox.showwarning("No Template", "Please select a template to delete")
+            return
+
+        # Confirm deletion
+        if not messagebox.askyesno("Confirm Delete", f"Are you sure you want to delete template '{template_name}'?"):
+            return
+
+        templates_dir = Path('templates')
+        template_file = templates_dir / f"{template_name}.json"
+
+        try:
+            if template_file.exists():
+                template_file.unlink()
+                messagebox.showinfo("Success", f"Template '{template_name}' deleted")
+                self.refresh_template_list()
+            else:
+                messagebox.showerror("Error", f"Template '{template_name}' not found")
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to delete template: {str(e)}")
 
     def finish_processing(self):
         """Clean up after processing"""
