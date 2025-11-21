@@ -46,31 +46,31 @@ except ImportError:
 
 
 class AppStyles:
-    """Modern Professional Styling with Gradients"""
-    # Background - Modern gradient-ready colors
-    BG_DARK = '#1a1d29'          # Deep dark blue
-    BG_GRADIENT_START = '#667eea' # Purple-blue
-    BG_GRADIENT_END = '#764ba2'   # Deep purple
-    BG_CARD = '#ffffff'           # Pure white cards
-    BG_CARD_HOVER = '#f8f9ff'     # Subtle hover
-    BG_INPUT = '#f7f8fc'          # Light input background
+    """Modern Professional Dark Theme - Easy on Eyes"""
+    # Background - Dark theme
+    BG_DARK = '#0d1117'           # Deep dark (GitHub dark)
+    BG_GRADIENT_START = '#1a1f2e' # Dark blue-gray
+    BG_GRADIENT_END = '#2d1b3d'   # Dark purple
+    BG_CARD = '#161b22'           # Dark card background
+    BG_CARD_HOVER = '#1f2937'     # Subtle hover (slightly lighter)
+    BG_INPUT = '#0d1117'          # Dark input background
 
     # Modern accent colors - Vibrant and professional
-    ACCENT_PRIMARY = '#667eea'    # Primary purple-blue
-    ACCENT_SUCCESS = '#10b981'    # Modern green
-    ACCENT_DANGER = '#ef4444'     # Modern red
-    ACCENT_WARNING = '#f59e0b'    # Modern orange
-    ACCENT_INFO = '#3b82f6'       # Modern blue
+    ACCENT_PRIMARY = '#58a6ff'    # Bright blue
+    ACCENT_SUCCESS = '#3fb950'    # Bright green
+    ACCENT_DANGER = '#f85149'     # Bright red
+    ACCENT_WARNING = '#d29922'    # Bright orange
+    ACCENT_INFO = '#58a6ff'       # Bright blue
 
-    # Text colors - Better contrast
-    TEXT_DARK = '#1f2937'         # Dark gray (almost black)
-    TEXT_MEDIUM = '#6b7280'       # Medium gray
-    TEXT_LIGHT = '#9ca3af'        # Light gray
+    # Text colors - Dark theme
+    TEXT_DARK = '#ffffff'         # White text (reversed)
+    TEXT_MEDIUM = '#8b949e'       # Medium gray
+    TEXT_LIGHT = '#6e7681'        # Light gray
     TEXT_WHITE = '#ffffff'        # Pure white
 
     # Borders
-    BORDER_LIGHT = '#e5e7eb'      # Very light border
-    BORDER_MEDIUM = '#d1d5db'     # Medium border
+    BORDER_LIGHT = '#30363d'      # Dark border
+    BORDER_MEDIUM = '#21262d'     # Darker border
 
 
 def get_windows_fonts():
@@ -309,9 +309,9 @@ class VideoAutomationGUI:
         # MODERN TAB NOTEBOOK
         # ═══════════════════════════════════════════════════════════
 
-        # Custom style for modern tabs
+        # Custom style for modern dark tabs
         style = ttk.Style()
-        style.theme_create("modern", parent="alt", settings={
+        style.theme_create("modern_dark", parent="alt", settings={
             "TNotebook": {
                 "configure": {
                     "tabmargins": [2, 5, 2, 0],
@@ -328,18 +328,18 @@ class VideoAutomationGUI:
                 },
                 "map": {
                     "background": [
-                        ("selected", AppStyles.BG_CARD),
-                        ("active", AppStyles.BG_CARD_HOVER)
+                        ("selected", AppStyles.BG_CARD_HOVER),
+                        ("active", AppStyles.BG_CARD)
                     ],
                     "foreground": [
                         ("selected", AppStyles.ACCENT_PRIMARY),
-                        ("active", AppStyles.TEXT_DARK)
+                        ("active", AppStyles.TEXT_WHITE)
                     ],
                     "expand": [("selected", [1, 1, 1, 0])]
                 }
             }
         })
-        style.theme_use("modern")
+        style.theme_use("modern_dark")
 
         # Tab container with shadow effect
         tab_container = tk.Frame(self.root, bg=AppStyles.BG_CARD)
@@ -371,12 +371,12 @@ class VideoAutomationGUI:
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                 font=('Segoe UI', 10, 'bold')).pack(anchor='w')
 
-        # Custom progress bar style
+        # Custom progress bar style for dark theme
         style.configure("Modern.Horizontal.TProgressbar",
                        troughcolor=AppStyles.BG_INPUT,
-                       background=AppStyles.ACCENT_PRIMARY,
+                       background=AppStyles.ACCENT_SUCCESS,
                        borderwidth=0,
-                       thickness=8)
+                       thickness=10)
 
         self.progress_bar = ttk.Progressbar(progress_container,
                                            mode='determinate',
@@ -524,7 +524,7 @@ class VideoAutomationGUI:
             self.create_text_controls(card, prefix)
 
     def create_effects_tab(self):
-        """Create Visual Effects tab"""
+        """Create Visual Effects tab with horizontal grid layout"""
         tab = tk.Frame(self.notebook, bg=AppStyles.BG_CARD)
         self.notebook.add(tab, text='✨ Visual Effects')
 
@@ -539,32 +539,30 @@ class VideoAutomationGUI:
         canvas.pack(side='left', fill='both', expand=True, padx=10, pady=10)
         scrollbar.pack(side='right', fill='y')
 
-        # Text Effects
-        self.create_effect_section(content, "✍️ Text Effects", [
+        # Combined effects list for horizontal grid
+        all_effects = [
+            # Text Effects
             ('text_fade_in', '💫 Fade In'),
             ('text_slide_up', '⬆️ Slide Up'),
             ('text_bounce', '🎾 Bounce'),
             ('text_kinetic', '⚡ Kinetic Typing'),
             ('text_glitch', '📺 Glitch Effect'),
-        ])
-
-        # Visual Effects
-        self.create_effect_section(content, "🌟 Visual Effects", [
+            # Visual Effects
             ('text_glow', '✨ Text Glow'),
             ('vignette', '🌑 Vignette'),
             ('background_dim', '🌙 Background Dim'),
             ('film_grain', '🎞️ Film Grain'),
             ('neon_glow', '💡 Neon Glow'),
             ('drop_shadow', '👤 Drop Shadow'),
-        ])
-
-        # Particle Effects
-        self.create_effect_section(content, "🎊 Particle Effects", [
+            # Particle Effects
             ('add_glitter', '✨ Glitter'),
             ('add_stars', '⭐ Stars'),
             ('add_hearts', '❤️ Hearts'),
             ('add_confetti', '🎉 Confetti'),
-        ])
+        ]
+
+        # Create horizontal grid layout (4 columns)
+        self.create_effect_grid(content, "🎨 Visual Effects & Enhancements", all_effects, columns=4)
 
     def create_audio_tab(self):
         """Create Audio Settings tab with ALL features"""
@@ -845,21 +843,29 @@ class VideoAutomationGUI:
             'asad', 'uzma', 'salman', 'gul', 'asad_multi', 'uzma_multi', 'faiz', 'parveen'
         ]
 
-        # Voice display names (simplified - use keys as display)
-        voice_options = [f"{key.replace('_', ' ').title()}" for key in self.tts_voice_keys]
+        # Voice display names with FULL descriptions (Professional, Deep, Poetic, etc.)
+        if TTSGenerator:
+            # Use detailed descriptions from TTSGenerator.VOICE_NAMES
+            voice_options = []
+            for key in self.tts_voice_keys:
+                display_name = TTSGenerator.VOICE_NAMES.get(key, key.replace('_', ' ').title())
+                voice_options.append(display_name)
+        else:
+            # Fallback if TTSGenerator not available
+            voice_options = [f"{key.replace('_', ' ').title()}" for key in self.tts_voice_keys]
 
         current_voice = self.settings.get('tts_voice', 'andrew_multi')
         try:
             current_index = self.tts_voice_keys.index(current_voice)
             current_display = voice_options[current_index]
         except (ValueError, IndexError):
-            current_display = voice_options[0]
+            current_display = voice_options[0] if voice_options else "Andrew Multi"
 
         self.tts_voice_var = tk.StringVar(value=current_display)
 
         voice_combo = ttk.Combobox(self.cloud_voice_frame, textvariable=self.tts_voice_var,
                                    values=voice_options, state='readonly',
-                                   font=('Segoe UI', 9), width=40)
+                                   font=('Segoe UI', 9), width=60)
         voice_combo.pack(fill='x', pady=5)
         voice_combo.bind('<<ComboboxSelected>>', self.on_tts_voice_change)
 
@@ -1194,7 +1200,7 @@ class VideoAutomationGUI:
         self.create_slider_control(stroke_card, 'Stroke Width:', 'caption_stroke_width', 1, 10, 2)
 
     def create_transitions_tab(self):
-        """Create Transitions tab"""
+        """Create Transitions tab with horizontal grid layout"""
         tab = tk.Frame(self.notebook, bg=AppStyles.BG_CARD)
         self.notebook.add(tab, text='🎬 Transitions')
 
@@ -1209,24 +1215,19 @@ class VideoAutomationGUI:
         canvas.pack(side='left', fill='both', expand=True, padx=10, pady=10)
         scrollbar.pack(side='right', fill='y')
 
-        # Fade transitions
-        self.create_effect_section(content, "🌅 Fade Transitions", [
-            ('transition_fade_in', 'Fade In'),
-            ('transition_fade_out', 'Fade Out'),
-        ])
-
-        # Zoom transitions
-        self.create_effect_section(content, "🔍 Zoom Transitions", [
-            ('transition_zoom_in', 'Zoom In'),
-            ('transition_zoom_out', 'Zoom Out'),
-        ])
-
-        # Cinematic effects
-        self.create_effect_section(content, "🎬 Cinematic Effects", [
+        # Combined transitions list for horizontal grid
+        all_transitions = [
+            ('transition_fade_in', '🌅 Fade In'),
+            ('transition_fade_out', '🌅 Fade Out'),
+            ('transition_zoom_in', '🔍 Zoom In'),
+            ('transition_zoom_out', '🔍 Zoom Out'),
             ('lens_flare_enabled', '✨ Lens Flare'),
             ('light_leak_enabled', '💡 Light Leaks'),
             ('film_burn_enabled', '🔥 Film Burn'),
-        ])
+        ]
+
+        # Create horizontal grid layout (4 columns)
+        self.create_effect_grid(content, "🎬 Transitions & Cinematic Effects", all_transitions, columns=4)
 
     # Helper methods
 
@@ -1298,6 +1299,41 @@ class VideoAutomationGUI:
                                 selectcolor=AppStyles.BG_INPUT,
                                 command=lambda k=key, v=var: self.update_setting(k, v.get()))
             chk.pack(anchor='w')
+
+    def create_effect_grid(self, parent, title, effects, columns=4):
+        """Create horizontal grid layout for effects (professional layout)"""
+        card = self.create_modern_card(parent, title)
+
+        # Create grid container
+        grid_container = tk.Frame(card, bg=AppStyles.BG_CARD)
+        grid_container.pack(fill='both', expand=True, padx=20, pady=15)
+
+        # Place effects in grid layout
+        for idx, (key, label) in enumerate(effects):
+            row = idx // columns
+            col = idx % columns
+
+            var = tk.BooleanVar(value=self.settings.get(key, False))
+
+            # Create effect cell with border and padding
+            effect_cell = tk.Frame(grid_container, bg=AppStyles.BG_INPUT,
+                                   highlightbackground=AppStyles.BORDER_LIGHT,
+                                   highlightthickness=1,
+                                   padx=15, pady=12)
+            effect_cell.grid(row=row, column=col, padx=8, pady=8, sticky='ew')
+
+            chk = tk.Checkbutton(effect_cell, text=label,
+                                variable=var, bg=AppStyles.BG_INPUT,
+                                fg=AppStyles.TEXT_DARK,
+                                font=('Segoe UI', 10, 'bold'),
+                                activebackground=AppStyles.BG_INPUT,
+                                selectcolor=AppStyles.BG_CARD,
+                                command=lambda k=key, v=var: self.update_setting(k, v.get()))
+            chk.pack(anchor='w')
+
+        # Configure grid columns to expand equally
+        for col in range(columns):
+            grid_container.columnconfigure(col, weight=1, uniform='effect_col')
 
     def create_slider_control(self, parent, label, key, from_, to, default, resolution=1):
         """Create a modern slider control"""
