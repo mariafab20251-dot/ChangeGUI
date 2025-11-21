@@ -955,17 +955,19 @@ class VideoAutomationGUI:
                 font=('Segoe UI', 9)).pack(anchor='w', pady=(0, 10))
 
         # Preview text input
-        tk.Label(preview_card, text='Test Text:',
+        tk.Label(preview_card, text='Test Text (Copy-Paste Enabled):',
                 bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
                 font=('Segoe UI', 9, 'bold')).pack(anchor='w', pady=(0, 5))
 
         default_preview_text = "Success comes from taking action every single day. Remember, you are capable of incredible things!"
-        self.preview_text_var = tk.StringVar(value=default_preview_text)
 
-        preview_entry = tk.Entry(preview_card, textvariable=self.preview_text_var,
-                                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
-                                font=('Segoe UI', 10), relief='flat', bd=2)
-        preview_entry.pack(fill='x', pady=(0, 10), ipady=8)
+        # Use Text widget for better copy-paste support
+        self.preview_text_widget = tk.Text(preview_card, height=3, wrap='word',
+                                           bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                                           font=('Segoe UI', 10), relief='flat', bd=2,
+                                           insertbackground=AppStyles.TEXT_DARK)
+        self.preview_text_widget.pack(fill='x', pady=(0, 10))
+        self.preview_text_widget.insert('1.0', default_preview_text)
 
         # Preview buttons
         preview_btn_frame = tk.Frame(preview_card, bg=AppStyles.BG_INPUT)
@@ -2020,8 +2022,8 @@ class VideoAutomationGUI:
             except (ValueError, IndexError):
                 voice_key = 'aria'
 
-        # Get test text
-        test_text = self.preview_text_var.get().strip()
+        # Get test text from Text widget
+        test_text = self.preview_text_widget.get('1.0', 'end-1c').strip()
         if not test_text:
             self.preview_status_label.config(text="⚠ Please enter test text")
             return
