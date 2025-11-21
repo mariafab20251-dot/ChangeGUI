@@ -847,6 +847,265 @@ class LightLeaksEffects:
         return clip
 
 
+class ParticleEffects:
+    """Particle effects for viral videos (glitter, stars, hearts, confetti)"""
+
+    @staticmethod
+    def create_glitter(width, height, duration, fps, intensity=0.5):
+        """Create glitter/sparkle particle effect"""
+        try:
+            from moviepy import VideoClip
+        except ImportError:
+            from moviepy.editor import VideoClip
+
+        # Number of particles based on intensity
+        num_particles = int(20 * intensity)
+
+        # Generate random particle positions and timing
+        np.random.seed(42)
+        particles = []
+        for _ in range(num_particles):
+            particles.append({
+                'x': np.random.randint(0, width),
+                'y': np.random.randint(0, height),
+                'size': np.random.randint(3, 8),
+                'phase': np.random.uniform(0, 2 * np.pi),
+                'speed': np.random.uniform(0.5, 2.0)
+            })
+
+        def make_frame(t):
+            img = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+
+            for particle in particles:
+                # Twinkling effect using sine wave
+                alpha = abs(np.sin(t * particle['speed'] + particle['phase']))
+
+                # Add some vertical drift
+                y_offset = int(t * 10) % height
+                y = (particle['y'] + y_offset) % height
+
+                # Draw sparkle (small cross shape)
+                size = particle['size']
+                x = particle['x']
+
+                particle_alpha = int(255 * alpha * intensity)
+                color = (255, 255, 255, particle_alpha)
+
+                # Center dot
+                draw.ellipse([x-size//2, y-size//2, x+size//2, y+size//2], fill=color)
+
+                # Sparkle rays
+                ray_length = size * 2
+                draw.line([x-ray_length, y, x+ray_length, y], fill=color, width=1)
+                draw.line([x, y-ray_length, x, y+ray_length], fill=color, width=1)
+
+            return np.array(img).copy()
+
+        clip = VideoClip(make_frame, duration=duration)
+        try:
+            clip = clip.with_fps(fps)
+        except:
+            clip = clip.set_fps(fps)
+
+        return clip
+
+    @staticmethod
+    def create_stars(width, height, duration, fps):
+        """Create floating star particles"""
+        try:
+            from moviepy import VideoClip
+        except ImportError:
+            from moviepy.editor import VideoClip
+
+        num_stars = 15
+
+        np.random.seed(43)
+        stars = []
+        for _ in range(num_stars):
+            stars.append({
+                'x': np.random.randint(0, width),
+                'y': np.random.randint(0, height),
+                'size': np.random.randint(15, 30),
+                'speed_x': np.random.uniform(-20, 20),
+                'speed_y': np.random.uniform(-30, -10),  # Float upward
+                'phase': np.random.uniform(0, 2 * np.pi),
+                'rotation_speed': np.random.uniform(1, 3)
+            })
+
+        def make_frame(t):
+            img = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+
+            for star in stars:
+                # Moving position
+                x = (star['x'] + int(star['speed_x'] * t)) % width
+                y = (star['y'] + int(star['speed_y'] * t)) % height
+
+                # Fade in/out
+                alpha = abs(np.sin(t * 0.5 + star['phase']))
+
+                size = star['size']
+                star_alpha = int(200 * alpha)
+
+                # Draw 5-pointed star using emoji-like shape
+                # Yellow/gold color
+                color = (255, 215, 0, star_alpha)
+
+                # Simple star using triangles
+                points = []
+                for i in range(5):
+                    angle = i * 4 * np.pi / 5 - np.pi/2 + (t * star['rotation_speed'])
+                    points.append((x + int(size * np.cos(angle)),
+                                 y + int(size * np.sin(angle))))
+
+                # Draw star outline
+                for i in range(5):
+                    j = (i + 2) % 5
+                    draw.line([points[i], points[j]], fill=color, width=2)
+
+                # Fill center
+                center_size = size // 3
+                draw.ellipse([x-center_size, y-center_size, x+center_size, y+center_size],
+                           fill=color)
+
+            return np.array(img).copy()
+
+        clip = VideoClip(make_frame, duration=duration)
+        try:
+            clip = clip.with_fps(fps)
+        except:
+            clip = clip.set_fps(fps)
+
+        return clip
+
+    @staticmethod
+    def create_hearts(width, height, duration, fps):
+        """Create floating heart particles"""
+        try:
+            from moviepy import VideoClip
+        except ImportError:
+            from moviepy.editor import VideoClip
+
+        num_hearts = 12
+
+        np.random.seed(44)
+        hearts = []
+        for _ in range(num_hearts):
+            hearts.append({
+                'x': np.random.randint(0, width),
+                'y': height + np.random.randint(0, 200),  # Start below screen
+                'size': np.random.randint(20, 40),
+                'speed_y': np.random.uniform(30, 60),  # Float upward
+                'speed_x': np.random.uniform(-10, 10),  # Slight horizontal drift
+                'phase': np.random.uniform(0, 2 * np.pi),
+                'sway': np.random.uniform(10, 30)
+            })
+
+        def make_frame(t):
+            img = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+
+            for heart in hearts:
+                # Moving position with sway
+                x = heart['x'] + int(heart['speed_x'] * t) + int(heart['sway'] * np.sin(t + heart['phase']))
+                y = (heart['y'] - int(heart['speed_y'] * t)) % (height + 200)
+
+                # Skip if off screen
+                if y > height or y < -100:
+                    continue
+
+                # Fade based on position
+                if y < 100:
+                    alpha = y / 100
+                elif y > height - 100:
+                    alpha = (height - y) / 100
+                else:
+                    alpha = 1.0
+
+                size = heart['size']
+                heart_alpha = int(220 * alpha)
+
+                # Pink/red hearts
+                colors = [(255, 20, 147, heart_alpha), (255, 105, 180, heart_alpha)]
+                color = colors[int(t * 2) % 2]
+
+                # Draw heart shape using two circles and triangle
+                half_size = size // 2
+                draw.ellipse([x-half_size, y-half_size//2, x, y+half_size//2], fill=color)
+                draw.ellipse([x, y-half_size//2, x+half_size, y+half_size//2], fill=color)
+                draw.polygon([x-half_size, y, x+half_size, y, x, y+size], fill=color)
+
+            return np.array(img).copy()
+
+        clip = VideoClip(make_frame, duration=duration)
+        try:
+            clip = clip.with_fps(fps)
+        except:
+            clip = clip.set_fps(fps)
+
+        return clip
+
+    @staticmethod
+    def create_confetti(width, height, duration, fps):
+        """Create falling confetti particles"""
+        try:
+            from moviepy import VideoClip
+        except ImportError:
+            from moviepy.editor import VideoClip
+
+        num_confetti = 30
+
+        np.random.seed(45)
+        confetti_pieces = []
+        for _ in range(num_confetti):
+            confetti_pieces.append({
+                'x': np.random.randint(0, width),
+                'y': -np.random.randint(0, 300),  # Start above screen
+                'size': np.random.randint(5, 15),
+                'speed_y': np.random.uniform(100, 200),  # Fall speed
+                'speed_x': np.random.uniform(-30, 30),
+                'rotation': np.random.uniform(0, 2 * np.pi),
+                'rotation_speed': np.random.uniform(2, 5),
+                'color': tuple(np.random.randint(0, 255, 3).tolist() + [220])
+            })
+
+        def make_frame(t):
+            img = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+
+            for confetti in confetti_pieces:
+                # Moving position
+                x = (confetti['x'] + int(confetti['speed_x'] * t)) % width
+                y = (confetti['y'] + int(confetti['speed_y'] * t)) % (height + 300)
+
+                # Skip if way off screen
+                if y < -100 or y > height + 100:
+                    continue
+
+                size = confetti['size']
+                rotation = confetti['rotation'] + t * confetti['rotation_speed']
+
+                # Draw rectangle with rotation effect (simplified)
+                # Rotate by changing width/height ratio
+                w = abs(int(size * np.cos(rotation)))
+                h = abs(int(size * np.sin(rotation)))
+                w = max(2, w)
+                h = max(2, h)
+
+                draw.rectangle([x-w, y-h, x+w, y+h], fill=confetti['color'])
+
+            return np.array(img).copy()
+
+        clip = VideoClip(make_frame, duration=duration)
+        try:
+            clip = clip.with_fps(fps)
+        except:
+            clip = clip.set_fps(fps)
+
+        return clip
+
+
 class TTSGenerator:
     """Text-to-Speech voiceover generator using Microsoft Edge TTS (natural voices)"""
 
@@ -4169,6 +4428,59 @@ class VideoQuoteAutomation:
                 print(f"[WARNING] CTA overlay failed: {e}")
                 import traceback
                 traceback.print_exc()
+
+        # Add particle effects
+        particle_layers = []
+
+        if self.settings.get('add_glitter', False):
+            try:
+                intensity = self.settings.get('glitter_intensity', 0.5)
+                glitter = ParticleEffects.create_glitter(
+                    video.w, video.h, final_video.duration, video.fps, intensity=intensity
+                )
+                particle_layers.append(glitter)
+                print(f"[OK] Added glitter particles (intensity: {intensity})")
+            except Exception as e:
+                print(f"[WARNING] Glitter effect failed: {e}")
+
+        if self.settings.get('add_stars', False):
+            try:
+                stars = ParticleEffects.create_stars(
+                    video.w, video.h, final_video.duration, video.fps
+                )
+                particle_layers.append(stars)
+                print(f"[OK] Added floating stars")
+            except Exception as e:
+                print(f"[WARNING] Stars effect failed: {e}")
+
+        if self.settings.get('add_hearts', False):
+            try:
+                hearts = ParticleEffects.create_hearts(
+                    video.w, video.h, final_video.duration, video.fps
+                )
+                particle_layers.append(hearts)
+                print(f"[OK] Added floating hearts")
+            except Exception as e:
+                print(f"[WARNING] Hearts effect failed: {e}")
+
+        if self.settings.get('add_confetti', False):
+            try:
+                confetti = ParticleEffects.create_confetti(
+                    video.w, video.h, final_video.duration, video.fps
+                )
+                particle_layers.append(confetti)
+                print(f"[OK] Added confetti particles")
+            except Exception as e:
+                print(f"[WARNING] Confetti effect failed: {e}")
+
+        # Composite particle effects if any were added
+        if particle_layers:
+            try:
+                all_layers = [final_video] + particle_layers
+                final_video = CompositeVideoClip(all_layers)
+                print(f"[OK] Composited {len(particle_layers)} particle effect(s)")
+            except Exception as e:
+                print(f"[WARNING] Particle compositing failed: {e}")
 
         output_path = self.output_folder / output_filename
         counter = 1

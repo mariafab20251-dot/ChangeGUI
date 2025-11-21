@@ -771,6 +771,21 @@ class VideoAutomationGUI:
         # Intensity slider
         self.create_slider_control(chroma_card, 'Intensity (pixel offset):', 'chromatic_intensity', 1, 20, 5, value_format=lambda v: f"{int(v)}px")
 
+        # Particle Effects Settings
+        particle_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
+        particle_card.pack(fill='x', padx=15, pady=(15, 0))
+
+        tk.Label(particle_card, text='✨ Particle Effects Settings',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 13, 'bold')).pack(anchor='w', pady=(0, 10))
+
+        tk.Label(particle_card, text='ℹ️ Add magical floating particles over your videos - perfect for celebrations, motivation, or romance',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(0, 10))
+
+        # Glitter intensity slider
+        self.create_slider_control(particle_card, 'Glitter Intensity:', 'glitter_intensity', 0.1, 1.0, 0.5, resolution=0.1)
+
         # CTA Overlay Section
         cta_overlay_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
         cta_overlay_card.pack(fill='x', padx=15, pady=(15, 0))
