@@ -197,6 +197,34 @@ class VideoAutomationGUI:
     def save_settings(self):
         """Save settings to JSON file"""
         try:
+            # Save caption layout and position if they exist
+            if hasattr(self, 'caption_layout_var'):
+                self.settings['caption_layout'] = self.caption_layout_var.get()
+            if hasattr(self, 'caption_position_var'):
+                self.settings['caption_position'] = self.caption_position_var.get()
+            if hasattr(self, 'caption_preset_var'):
+                self.settings['caption_preset'] = self.caption_preset_var.get()
+
+            # Save emoji theme
+            if hasattr(self, 'emoji_preset_var'):
+                display_value = self.emoji_preset_var.get()
+                if hasattr(self, 'emoji_preset_map') and display_value in self.emoji_preset_map:
+                    self.settings['emoji_preset_category'] = self.emoji_preset_map[display_value]
+
+            # Save caption font styles
+            if hasattr(self, 'caption_font_var'):
+                self.settings['caption_font_style'] = self.caption_font_var.get()
+            if hasattr(self, 'caption_highlight_font_var'):
+                self.settings['caption_highlight_font_style'] = self.caption_highlight_font_var.get()
+
+            # Save audio paths
+            if hasattr(self, 'bgm_file_var'):
+                self.settings['bgm_file'] = self.bgm_file_var.get()
+            if hasattr(self, 'vo_path_var'):
+                self.settings['voiceover_folder'] = self.vo_path_var.get()
+            if hasattr(self, 'voiceover_text_var'):
+                self.settings['voiceover_text_file'] = self.voiceover_text_var.get()
+
             with open('overlay_settings.json', 'w', encoding='utf-8') as f:
                 json.dump(self.settings, f, indent=2, ensure_ascii=False)
             logger.info("Settings saved successfully")
@@ -533,7 +561,7 @@ class VideoAutomationGUI:
         ])
 
     def create_audio_tab(self):
-        """Create Audio Settings tab"""
+        """Create Audio Settings tab with ALL features"""
         tab = tk.Frame(self.notebook, bg=AppStyles.BG_CARD)
         self.notebook.add(tab, text='🔊 Audio Settings')
 
@@ -548,33 +576,17 @@ class VideoAutomationGUI:
         canvas.pack(side='left', fill='both', expand=True, padx=10, pady=10)
         scrollbar.pack(side='right', fill='y')
 
-        # TTS Settings
-        tts_card = self.create_modern_card(content, "🗣️ Text-to-Speech Settings")
+        # Original Audio Settings
+        original_card = self.create_modern_card(content, "🎧 Original Audio Settings")
 
-        tts_var = tk.BooleanVar(value=self.settings.get('use_tts_voiceover', True))
-        tk.Checkbutton(tts_card, text='Enable TTS Voiceover',
-                      variable=tts_var, bg=AppStyles.BG_CARD,
+        mute_var = tk.BooleanVar(value=self.settings.get('mute_original_audio', False))
+        tk.Checkbutton(original_card, text='Mute Original Audio',
+                      variable=mute_var, bg=AppStyles.BG_CARD,
                       font=('Segoe UI', 10, 'bold'),
                       activebackground=AppStyles.BG_CARD,
-                      command=lambda: self.update_setting('use_tts_voiceover', tts_var.get())).pack(anchor='w', padx=20, pady=10)
+                      command=lambda: self.update_setting('mute_original_audio', mute_var.get())).pack(anchor='w', padx=20, pady=10)
 
-        # Voice selection
-        voice_frame = tk.Frame(tts_card, bg=AppStyles.BG_CARD)
-        voice_frame.pack(fill='x', padx=20, pady=8)
-
-        tk.Label(voice_frame, text='Voice:',
-                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 10)).pack(side='left')
-
-        voices = ['andrew_multi', 'aria_multi', 'emily_multi', 'ryan_multi']
-        voice_combo = ttk.Combobox(voice_frame, values=voices, state='readonly', width=20)
-        voice_combo.set(self.settings.get('tts_voice', 'andrew_multi'))
-        voice_combo.pack(side='left', padx=10)
-        voice_combo.bind('<<ComboboxSelected>>',
-                        lambda e: self.update_setting('tts_voice', voice_combo.get()))
-
-        # Speed slider
-        self.create_slider_control(tts_card, 'TTS Speed:', 'tts_speed', 50, 200, 144)
+        self.create_slider_control(original_card, 'Original Audio Volume:', 'original_audio_volume', 0.0, 1.0, 0.5, resolution=0.1)
 
         # BGM Settings
         bgm_card = self.create_modern_card(content, "🎵 Background Music Settings")
@@ -586,32 +598,171 @@ class VideoAutomationGUI:
                       activebackground=AppStyles.BG_CARD,
                       command=lambda: self.update_setting('add_custom_bgm', bgm_var.get())).pack(anchor='w', padx=20, pady=10)
 
-        # BGM File selection
+        # BGM File/Folder selection
         bgm_file_frame = tk.Frame(bgm_card, bg=AppStyles.BG_CARD)
         bgm_file_frame.pack(fill='x', padx=20, pady=8)
 
-        tk.Label(bgm_file_frame, text='BGM File:',
+        tk.Label(bgm_file_frame, text='BGM File or Folder:',
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                 font=('Segoe UI', 10)).pack(anchor='w', pady=(0, 5))
 
         bgm_input_frame = tk.Frame(bgm_file_frame, bg=AppStyles.BG_CARD)
         bgm_input_frame.pack(fill='x')
 
-        bgm_file_var = tk.StringVar(value=self.settings.get('bgm_file', ''))
-        bgm_entry = tk.Entry(bgm_input_frame, textvariable=bgm_file_var,
+        self.bgm_file_var = tk.StringVar(value=self.settings.get('bgm_file', ''))
+        bgm_entry = tk.Entry(bgm_input_frame, textvariable=self.bgm_file_var,
                             bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
                             font=('Segoe UI', 9), relief='flat', bd=2)
         bgm_entry.pack(side='left', fill='x', expand=True, ipady=6)
 
-        ModernButton(bgm_input_frame, text='Browse',
+        ModernButton(bgm_input_frame, text='📄 File',
                     bg_color=AppStyles.ACCENT_INFO,
-                    command=lambda: self.browse_bgm_file(bgm_file_var)).pack(side='left', padx=(5, 0))
+                    font=('Segoe UI', 9, 'bold'),
+                    padx=15, pady=6,
+                    command=self.browse_bgm_file).pack(side='left', padx=(5, 2))
+
+        ModernButton(bgm_input_frame, text='📁 Folder',
+                    bg_color=AppStyles.ACCENT_PRIMARY,
+                    font=('Segoe UI', 9, 'bold'),
+                    padx=15, pady=6,
+                    command=self.browse_bgm_folder).pack(side='left', padx=2)
 
         # Volume slider
         self.create_slider_control(bgm_card, 'BGM Volume:', 'bgm_volume', 0.0, 1.0, 0.3, resolution=0.1)
 
+        # Voiceover Settings
+        vo_card = self.create_modern_card(content, "🎙️ Voiceover Settings")
+
+        vo_var = tk.BooleanVar(value=self.settings.get('add_voiceover', False))
+        tk.Checkbutton(vo_card, text='Enable Voiceover',
+                      variable=vo_var, bg=AppStyles.BG_CARD,
+                      font=('Segoe UI', 10, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
+                      command=lambda: self.update_setting('add_voiceover', vo_var.get())).pack(anchor='w', padx=20, pady=10)
+
+        # Voiceover Folder
+        vo_folder_frame = tk.Frame(vo_card, bg=AppStyles.BG_CARD)
+        vo_folder_frame.pack(fill='x', padx=20, pady=8)
+
+        tk.Label(vo_folder_frame, text='Voiceover Folder (Files: 1.mp3, 2.mp3...):',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(0, 5))
+
+        vo_input_frame = tk.Frame(vo_folder_frame, bg=AppStyles.BG_CARD)
+        vo_input_frame.pack(fill='x')
+
+        self.vo_path_var = tk.StringVar(value=self.settings.get('voiceover_folder', ''))
+        vo_entry = tk.Entry(vo_input_frame, textvariable=self.vo_path_var,
+                           bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                           font=('Segoe UI', 9), relief='flat', bd=2)
+        vo_entry.pack(side='left', fill='x', expand=True, ipady=6)
+
+        ModernButton(vo_input_frame, text='📁 Browse',
+                    bg_color=AppStyles.ACCENT_SUCCESS,
+                    font=('Segoe UI', 9, 'bold'),
+                    padx=20, pady=6,
+                    command=self.browse_voiceover_folder).pack(side='left', padx=(5, 0))
+
+        # TTS Settings
+        tts_card = self.create_modern_card(content, "🗣️ Text-to-Speech Settings (Auto-Generate)")
+
+        tts_var = tk.BooleanVar(value=self.settings.get('use_tts_voiceover', True))
+        tk.Checkbutton(tts_card, text='Generate Voiceover from Text (TTS)',
+                      variable=tts_var, bg=AppStyles.BG_CARD,
+                      font=('Segoe UI', 10, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
+                      command=lambda: self.update_setting('use_tts_voiceover', tts_var.get())).pack(anchor='w', padx=20, pady=10)
+
+        # Info
+        info_frame = tk.Frame(tts_card, bg=AppStyles.BG_CARD)
+        info_frame.pack(fill='x', padx=20, pady=(0, 10))
+        tk.Label(info_frame, text='ℹ️ Automatically converts quote text to speech using natural AI voices.',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 9), justify='left').pack(anchor='w', padx=15, pady=5)
+
+        # Voice selection - ALL 60+ voices
+        voice_frame = tk.Frame(tts_card, bg=AppStyles.BG_CARD)
+        voice_frame.pack(fill='x', padx=20, pady=8)
+
+        tk.Label(voice_frame, text='TTS Voice:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(0, 5))
+
+        # ALL voice keys (60+)
+        self.tts_voice_keys = [
+            # PREMIUM MOTIVATIONAL VOICES
+            'steffan_multi', 'andrew_multi', 'brian_multi', 'ava_multi', 'emma_multi',
+            'alloy', 'nova', 'shimmer', 'kai', 'luna', 'jenny_multi', 'ryan_multi',
+            # US Female Deep
+            'monica', 'nancy', 'ana', 'aria', 'jenny', 'michelle', 'amber', 'ashley', 'sara', 'emma',
+            # US Male Deep
+            'andrew', 'brian', 'tony', 'jason', 'brandon', 'jacob', 'christopher', 'guy', 'davis', 'eric', 'roger', 'steffan',
+            # British
+            'thomas', 'mia', 'ryan', 'sonia', 'libby', 'alfie',
+            # Australian
+            'annette', 'natasha', 'william',
+            # Indian English
+            'neerja', 'prabhat',
+            # URDU VOICES
+            'asad', 'uzma', 'salman', 'gul', 'asad_multi', 'uzma_multi', 'faiz', 'parveen'
+        ]
+
+        # Voice display names (simplified - use keys as display)
+        voice_options = [f"{key.replace('_', ' ').title()}" for key in self.tts_voice_keys]
+
+        current_voice = self.settings.get('tts_voice', 'andrew_multi')
+        try:
+            current_index = self.tts_voice_keys.index(current_voice)
+            current_display = voice_options[current_index]
+        except (ValueError, IndexError):
+            current_display = voice_options[0]
+
+        self.tts_voice_var = tk.StringVar(value=current_display)
+
+        voice_combo = ttk.Combobox(voice_frame, textvariable=self.tts_voice_var,
+                                   values=voice_options, state='readonly',
+                                   font=('Segoe UI', 9), width=35)
+        voice_combo.pack(fill='x', pady=5)
+        voice_combo.bind('<<ComboboxSelected>>', self.on_tts_voice_change)
+
+        # Speed slider
+        self.create_slider_control(tts_card, 'Speech Speed (WPM):', 'tts_speed', 100, 250, 150)
+
+        # Voiceover Text File
+        vo_text_frame = tk.Frame(tts_card, bg=AppStyles.BG_CARD)
+        vo_text_frame.pack(fill='x', padx=20, pady=8)
+
+        tk.Label(vo_text_frame, text='Voiceover Text File (Optional - for longer narration):',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(0, 2))
+
+        tk.Label(vo_text_frame, text='ℹ️ Use a separate file for voiceover text. If not selected, Quotes.txt will be used.',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic'), justify='left').pack(anchor='w', pady=(0, 5))
+
+        vo_text_input = tk.Frame(vo_text_frame, bg=AppStyles.BG_CARD)
+        vo_text_input.pack(fill='x')
+
+        self.voiceover_text_var = tk.StringVar(value=self.settings.get('voiceover_text_file', ''))
+        vo_text_entry = tk.Entry(vo_text_input, textvariable=self.voiceover_text_var,
+                                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                                font=('Segoe UI', 9), relief='flat', bd=2)
+        vo_text_entry.pack(side='left', fill='x', expand=True, ipady=6)
+
+        ModernButton(vo_text_input, text='📄 Browse',
+                    bg_color=AppStyles.ACCENT_PRIMARY,
+                    font=('Segoe UI', 9, 'bold'),
+                    padx=15, pady=6,
+                    command=self.browse_voiceover_text).pack(side='left', padx=(5, 2))
+
+        ModernButton(vo_text_input, text='✕ Clear',
+                    bg_color=AppStyles.ACCENT_DANGER,
+                    font=('Segoe UI', 9, 'bold'),
+                    padx=15, pady=6,
+                    command=lambda: self.voiceover_text_var.set('')).pack(side='left', padx=2)
+
     def create_captions_tab(self):
-        """Create Captions tab"""
+        """Create Captions tab with ALL features"""
         tab = tk.Frame(self.notebook, bg=AppStyles.BG_CARD)
         self.notebook.add(tab, text='💬 Captions')
 
@@ -626,35 +777,280 @@ class VideoAutomationGUI:
         canvas.pack(side='left', fill='both', expand=True, padx=10, pady=10)
         scrollbar.pack(side='right', fill='y')
 
-        # Caption Settings
-        cap_card = self.create_modern_card(content, "💬 Caption Settings")
+        # Enable Captions
+        cap_card = self.create_modern_card(content, "💬 Enable Captions")
 
         caption_var = tk.BooleanVar(value=self.settings.get('enable_captions', False))
-        tk.Checkbutton(cap_card, text='Enable Captions',
+        tk.Checkbutton(cap_card, text='Enable Word-by-Word Captions (Synced with Voiceover)',
                       variable=caption_var, bg=AppStyles.BG_CARD,
                       font=('Segoe UI', 10, 'bold'),
                       activebackground=AppStyles.BG_CARD,
                       command=lambda: self.update_setting('enable_captions', caption_var.get())).pack(anchor='w', padx=20, pady=10)
 
+        info_frame = tk.Frame(cap_card, bg=AppStyles.BG_CARD)
+        info_frame.pack(fill='x', padx=20, pady=(0, 10))
+        tk.Label(info_frame, text='ℹ️ Captions appear word-by-word synchronized with TTS audio - like TikTok/YouTube auto-captions!',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 9), justify='left').pack(anchor='w', padx=15, pady=5)
+
+        # Caption Style Presets
+        preset_card = self.create_modern_card(content, "🎨 Caption Style Presets")
+
+        preset_frame = tk.Frame(preset_card, bg=AppStyles.BG_CARD)
+        preset_frame.pack(fill='x', padx=20, pady=10)
+
+        tk.Label(preset_frame, text='Caption Style Preset:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(0, 5))
+
+        self.caption_preset_var = tk.StringVar(value=self.settings.get('caption_preset', 'Custom'))
+        self.caption_presets = [
+            "Custom",
+            # VIRAL TRENDING STYLES
+            "🚀 MrBeast Style (Yellow/Black Viral)",
+            "💰 Alex Hormozi (Bold Red)",
+            "👑 Andrew Tate (Aggressive Red/Black)",
+            "🎯 Subway Surfers (Bright Colorful)",
+            "💪 Fitness Motivation (Orange Energy)",
+            "🧠 Psychology Facts (Purple Deep)",
+            "💸 Money Mindset (Green Dollar)",
+            "🎤 Podcast Clips (Navy Professional)",
+            "😂 Meme Style (Comic Sans Fun)",
+            "🌟 Instagram Viral (Gradient Pink)",
+            "⚡ High Energy Shorts (Yellow Thunder)",
+            "🔴 Breaking News Alert (Red Urgent)",
+            "💎 Luxury Brand (Gold Elegant)",
+            "🌊 Calm & Chill (Blue Peaceful)",
+            "🎨 Artistic Creative (Multi-color)",
+            # ORIGINAL STYLES
+            "🔥 Bold Impact (TikTok Style)",
+            "✨ Minimal Clean",
+            "💎 Neon Glow",
+            "🎬 Cinematic",
+            "🎮 Gaming Style",
+            "📰 News Anchor",
+            "🌅 Vintage Film",
+            "🎯 Corporate Pro",
+            "🌈 Colorful Pop",
+            "🖤 Dark Mode"
+        ]
+
+        preset_combo = ttk.Combobox(preset_frame, textvariable=self.caption_preset_var,
+                                   values=self.caption_presets, state='readonly',
+                                   font=('Segoe UI', 9), width=35)
+        preset_combo.pack(fill='x', pady=5)
+        preset_combo.bind('<<ComboboxSelected>>', lambda e: self.apply_caption_preset())
+
+        ModernButton(preset_frame, text='Apply Preset',
+                    bg_color=AppStyles.ACCENT_WARNING,
+                    font=('Segoe UI', 9, 'bold'),
+                    padx=20, pady=6,
+                    command=self.apply_caption_preset).pack(pady=5)
+
+        # Emoji Theme
+        emoji_card = self.create_modern_card(content, "😊 Emoji Theme")
+
+        emoji_frame = tk.Frame(emoji_card, bg=AppStyles.BG_CARD)
+        emoji_frame.pack(fill='x', padx=20, pady=10)
+
+        tk.Label(emoji_frame, text='Select Emoji Theme for Captions:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(0, 5))
+
+        self.emoji_categories = [
+            "🎯 General (Mixed)",
+            "💪 Motivational & Inspirational",
+            "❤️ Love & Relationships",
+            "💔 Heartbreak & Sad",
+            "🏆 Success & Achievement",
+            "💪 Fitness & Health",
+            "💼 Business & Money",
+            "🍕 Food & Cooking",
+            "✈️ Travel & Adventure",
+            "💻 Technology & Gaming",
+            "🎉 Party & Celebration",
+            "🌿 Nature & Environment",
+            "⚠️ Warning & Alert",
+            "📚 Educational & Learning",
+            "😂 Funny & Comedy",
+            "🙏 Spiritual & Mindfulness",
+            "👗 Fashion & Beauty",
+            "🐶 Animals & Pets"
+        ]
+
+        self.emoji_preset_map = {
+            "🎯 General (Mixed)": "general",
+            "💪 Motivational & Inspirational": "motivational",
+            "❤️ Love & Relationships": "love",
+            "💔 Heartbreak & Sad": "heartbreak",
+            "🏆 Success & Achievement": "success",
+            "💪 Fitness & Health": "fitness",
+            "💼 Business & Money": "business",
+            "🍕 Food & Cooking": "food",
+            "✈️ Travel & Adventure": "travel",
+            "💻 Technology & Gaming": "tech",
+            "🎉 Party & Celebration": "party",
+            "🌿 Nature & Environment": "nature",
+            "⚠️ Warning & Alert": "warning",
+            "📚 Educational & Learning": "educational",
+            "😂 Funny & Comedy": "funny",
+            "🙏 Spiritual & Mindfulness": "spiritual",
+            "👗 Fashion & Beauty": "fashion",
+            "🐶 Animals & Pets": "animals"
+        }
+
+        saved_key = self.settings.get('emoji_preset_category', 'general')
+        emoji_reverse_map = {v: k for k, v in self.emoji_preset_map.items()}
+        current_emoji = emoji_reverse_map.get(saved_key, self.emoji_categories[0])
+
+        self.emoji_preset_var = tk.StringVar(value=current_emoji)
+        emoji_combo = ttk.Combobox(emoji_frame, textvariable=self.emoji_preset_var,
+                                  values=self.emoji_categories, state='readonly',
+                                  font=('Segoe UI', 9), width=35)
+        emoji_combo.pack(fill='x', pady=5)
+
+        emoji_info = tk.Frame(emoji_card, bg=AppStyles.BG_CARD)
+        emoji_info.pack(fill='x', padx=20, pady=(0, 10))
+        tk.Label(emoji_info, text='ℹ️ Emoji theme determines which emojis appear above captions.',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic'), justify='left').pack(anchor='w', padx=10, pady=5)
+
+        # Global Settings
+        global_card = self.create_modern_card(content, "🌍 Global Settings (All Caption Styles)")
+
+        # Caption Layout
+        layout_frame = tk.Frame(global_card, bg=AppStyles.BG_CARD)
+        layout_frame.pack(fill='x', padx=20, pady=8)
+
+        tk.Label(layout_frame, text='Caption Layout:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(0, 5))
+
+        self.caption_layout_var = tk.StringVar(value=self.settings.get('caption_layout', '2-line'))
+        layout_opts = tk.Frame(layout_frame, bg=AppStyles.BG_CARD)
+        layout_opts.pack(fill='x')
+
+        tk.Radiobutton(layout_opts, text='1-Line (All words on ONE line)',
+                      variable=self.caption_layout_var, value='1-line',
+                      bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      activebackground=AppStyles.BG_CARD,
+                      font=('Segoe UI', 9)).pack(side='left', padx=10)
+
+        tk.Radiobutton(layout_opts, text='2-Lines (Split across 2 lines)',
+                      variable=self.caption_layout_var, value='2-line',
+                      bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      activebackground=AppStyles.BG_CARD,
+                      font=('Segoe UI', 9)).pack(side='left', padx=10)
+
         # Font size
-        self.create_slider_control(cap_card, 'Font Size:', 'caption_font_size', 20, 100, 55)
+        self.create_slider_control(global_card, 'Caption Font Size:', 'caption_font_size', 30, 100, 60)
 
-        # Highlighting options
-        highlight_card = self.create_modern_card(content, "🖍️ Word Highlighting")
+        # Position
+        pos_frame = tk.Frame(global_card, bg=AppStyles.BG_CARD)
+        pos_frame.pack(fill='x', padx=20, pady=8)
 
-        highlight_var = tk.BooleanVar(value=self.settings.get('caption_highlight_enabled', True))
-        tk.Checkbutton(highlight_card, text='Enable Word Highlighting',
+        tk.Label(pos_frame, text='Caption Position:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(0, 5))
+
+        self.caption_position_var = tk.StringVar(value=self.settings.get('caption_position', 'bottom'))
+        pos_opts = tk.Frame(pos_frame, bg=AppStyles.BG_CARD)
+        pos_opts.pack(fill='x')
+
+        for pos in ['top', 'center', 'bottom']:
+            tk.Radiobutton(pos_opts, text=pos.capitalize(),
+                          variable=self.caption_position_var, value=pos,
+                          bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                          activebackground=AppStyles.BG_CARD,
+                          font=('Segoe UI', 9)).pack(side='left', padx=15)
+
+        # Words per line
+        self.create_slider_control(global_card, 'Words Per Caption Line (Regular Captions Only):', 'caption_words_per_line', 1, 5, 3)
+
+        # Regular Caption Settings
+        regular_card = self.create_modern_card(content, "📝 Regular Caption Settings")
+
+        # Font style
+        font_frame = tk.Frame(regular_card, bg=AppStyles.BG_CARD)
+        font_frame.pack(fill='x', padx=20, pady=8)
+
+        tk.Label(font_frame, text='Caption Font Style:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(0, 5))
+
+        available_fonts = get_windows_fonts()
+        self.caption_font_var = tk.StringVar(value=self.settings.get('caption_font_style', 'arialbd.ttf'))
+        font_combo = ttk.Combobox(font_frame, textvariable=self.caption_font_var,
+                                 values=available_fonts, state='readonly',
+                                 font=('Segoe UI', 9), width=30)
+        font_combo.pack(fill='x', pady=5)
+
+        # Text color
+        self.create_color_picker(regular_card, 'Caption Text Color:', 'caption_text_color', '#FFFFFF')
+
+        # Background
+        bg_enabled_var = tk.BooleanVar(value=self.settings.get('caption_bg_enabled', True))
+        tk.Checkbutton(regular_card, text='Enable Caption Background',
+                      variable=bg_enabled_var, bg=AppStyles.BG_CARD,
+                      font=('Segoe UI', 10),
+                      activebackground=AppStyles.BG_CARD,
+                      command=lambda: self.update_setting('caption_bg_enabled', bg_enabled_var.get())).pack(anchor='w', padx=20, pady=5)
+
+        self.create_color_picker(regular_card, 'Caption Background Color:', 'caption_bg_color', '#000000')
+        self.create_slider_control(regular_card, 'Background Opacity:', 'caption_bg_opacity', 0, 255, 180)
+
+        # CapCut-Style Highlighting
+        capcut_card = self.create_modern_card(content, "✨ CapCut-Style Highlighted Captions")
+
+        highlight_var = tk.BooleanVar(value=self.settings.get('caption_highlight_enabled', False))
+        tk.Checkbutton(capcut_card, text='✨ Enable Word-by-Word Highlighting (like TikTok/Instagram)',
                       variable=highlight_var, bg=AppStyles.BG_CARD,
-                      font=('Segoe UI', 10),
+                      font=('Segoe UI', 10, 'bold'),
                       activebackground=AppStyles.BG_CARD,
-                      command=lambda: self.update_setting('caption_highlight_enabled', highlight_var.get())).pack(anchor='w', padx=20, pady=5)
+                      command=lambda: self.update_setting('caption_highlight_enabled', highlight_var.get())).pack(anchor='w', padx=20, pady=10)
 
-        emoji_var = tk.BooleanVar(value=self.settings.get('emoji_in_captions', True))
-        tk.Checkbutton(highlight_card, text='Include Emojis in Captions',
-                      variable=emoji_var, bg=AppStyles.BG_CARD,
-                      font=('Segoe UI', 10),
+        # Highlight font
+        hl_font_frame = tk.Frame(capcut_card, bg=AppStyles.BG_CARD)
+        hl_font_frame.pack(fill='x', padx=20, pady=8)
+
+        tk.Label(hl_font_frame, text='Highlight Font Style:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(0, 5))
+
+        highlight_fonts = [
+            'Segoe UI Bold', 'Arial Bold', 'Arial', 'Arial Black', 'Impact',
+            'Montserrat Bold', 'Bebas Neue', 'Poppins Bold', 'Roboto Bold',
+            'Times New Roman Bold', 'Times New Roman', 'Verdana Bold', 'Verdana',
+            'Calibri Bold', 'Calibri', 'Comic Sans MS Bold', 'Comic Sans MS',
+            'Georgia Bold', 'Georgia', 'Courier New Bold', 'Courier New',
+            'Tahoma Bold', 'Tahoma', 'Trebuchet MS Bold', 'Trebuchet MS'
+        ]
+        self.caption_highlight_font_var = tk.StringVar(value=self.settings.get('caption_highlight_font_style', 'Segoe UI Bold'))
+        hl_font_combo = ttk.Combobox(hl_font_frame, textvariable=self.caption_highlight_font_var,
+                                    values=highlight_fonts, state='readonly',
+                                    font=('Segoe UI', 9), width=30)
+        hl_font_combo.pack(fill='x', pady=5)
+
+        # Highlight font size
+        self.create_slider_control(capcut_card, 'Highlight Font Size:', 'caption_highlight_font_size', 20, 80, 60)
+
+        # Active/Inactive colors
+        self.create_color_picker(capcut_card, 'Active Word Color (Highlight):', 'caption_highlight_color', '#FFD700')
+        self.create_color_picker(capcut_card, 'Inactive Words Color:', 'caption_inactive_color', '#FFFFFF')
+
+        # Stroke/Outline
+        stroke_card = self.create_modern_card(content, "🖊️ Text Stroke/Outline (CapCut Captions)")
+
+        stroke_var = tk.BooleanVar(value=self.settings.get('caption_stroke_enabled', False))
+        tk.Checkbutton(stroke_card, text='Enable Text Stroke/Outline',
+                      variable=stroke_var, bg=AppStyles.BG_CARD,
+                      font=('Segoe UI', 10, 'bold'),
                       activebackground=AppStyles.BG_CARD,
-                      command=lambda: self.update_setting('emoji_in_captions', emoji_var.get())).pack(anchor='w', padx=20, pady=5)
+                      command=lambda: self.update_setting('caption_stroke_enabled', stroke_var.get())).pack(anchor='w', padx=20, pady=10)
+
+        self.create_color_picker(stroke_card, 'Active Word Stroke Color:', 'caption_active_stroke_color', '#000000')
+        self.create_color_picker(stroke_card, 'Inactive Words Stroke Color:', 'caption_inactive_stroke_color', '#000000')
+        self.create_slider_control(stroke_card, 'Stroke Width:', 'caption_stroke_width', 1, 10, 2)
 
     def create_transitions_tab(self):
         """Create Transitions tab"""
@@ -842,6 +1238,131 @@ class VideoAutomationGUI:
             preview_frame.config(bg=color[1])
             self.update_setting(f'{prefix}_text_color', color[1])
 
+    def create_color_picker(self, parent, label_text, setting_key, default_color):
+        """Create a modern color picker control"""
+        color_frame = tk.Frame(parent, bg=AppStyles.BG_CARD)
+        color_frame.pack(fill='x', padx=20, pady=8)
+
+        tk.Label(color_frame, text=label_text,
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(0, 5))
+
+        input_frame = tk.Frame(color_frame, bg=AppStyles.BG_CARD)
+        input_frame.pack(fill='x')
+
+        color_var = tk.StringVar(value=self.settings.get(setting_key, default_color))
+
+        # Color preview
+        color_preview = tk.Frame(input_frame, bg=color_var.get(), width=40, height=25,
+                                relief='solid', borderwidth=1)
+        color_preview.pack(side='left', padx=(0, 10))
+
+        # Entry
+        tk.Entry(input_frame, textvariable=color_var, width=10,
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9), relief='flat').pack(side='left', padx=5)
+
+        # Pick button
+        ModernButton(input_frame, text='Choose Color',
+                    bg_color=AppStyles.ACCENT_INFO,
+                    font=('Segoe UI', 9, 'bold'),
+                    padx=15, pady=6,
+                    command=lambda: self.pick_setting_color(setting_key, color_var, color_preview)).pack(side='left', padx=5)
+
+    def pick_setting_color(self, setting_key, var, preview_frame):
+        """Open color picker for a setting"""
+        color = colorchooser.askcolor(title=f"Choose color for {setting_key}")
+        if color[1]:
+            var.set(color[1])
+            preview_frame.config(bg=color[1])
+            self.update_setting(setting_key, color[1])
+
+    def apply_caption_preset(self):
+        """Apply selected caption preset"""
+        preset = self.caption_preset_var.get()
+        logger.info(f"Applying caption preset: {preset}")
+
+        # Preset configurations (simplified versions - user can customize further)
+        preset_configs = {
+            "🚀 MrBeast Style (Yellow/Black Viral)": {
+                'caption_highlight_enabled': True,
+                'caption_highlight_color': '#FFD700',
+                'caption_inactive_color': '#FFFFFF',
+                'caption_bg_enabled': True,
+                'caption_bg_color': '#000000',
+                'caption_bg_opacity': 220,
+                'caption_stroke_enabled': True,
+                'caption_active_stroke_color': '#000000',
+                'caption_stroke_width': 3
+            },
+            "💰 Alex Hormozi (Bold Red)": {
+                'caption_highlight_enabled': True,
+                'caption_highlight_color': '#FF0000',
+                'caption_inactive_color': '#FFFFFF',
+                'caption_bg_enabled': True,
+                'caption_bg_color': '#000000',
+                'caption_bg_opacity': 200,
+                'caption_stroke_enabled': True,
+                'caption_active_stroke_color': '#000000',
+                'caption_stroke_width': 4
+            },
+            "👑 Andrew Tate (Aggressive Red/Black)": {
+                'caption_highlight_enabled': True,
+                'caption_highlight_color': '#DC143C',
+                'caption_inactive_color': '#808080',
+                'caption_bg_enabled': True,
+                'caption_bg_color': '#000000',
+                'caption_bg_opacity': 230,
+                'caption_stroke_enabled': True,
+                'caption_active_stroke_color': '#000000',
+                'caption_stroke_width': 4
+            },
+            "🎯 Subway Surfers (Bright Colorful)": {
+                'caption_highlight_enabled': True,
+                'caption_highlight_color': '#00FF00',
+                'caption_inactive_color': '#FFFF00',
+                'caption_bg_enabled': True,
+                'caption_bg_color': '#FF00FF',
+                'caption_bg_opacity': 180,
+                'caption_stroke_enabled': True,
+                'caption_active_stroke_color': '#0000FF',
+                'caption_stroke_width': 2
+            },
+            "💪 Fitness Motivation (Orange Energy)": {
+                'caption_highlight_enabled': True,
+                'caption_highlight_color': '#FF8800',
+                'caption_inactive_color': '#FFFFFF',
+                'caption_bg_enabled': True,
+                'caption_bg_color': '#000000',
+                'caption_bg_opacity': 200,
+                'caption_stroke_enabled': True,
+                'caption_active_stroke_color': '#000000',
+                'caption_stroke_width': 3
+            },
+            "🧠 Psychology Facts (Purple Deep)": {
+                'caption_highlight_enabled': True,
+                'caption_highlight_color': '#9370DB',
+                'caption_inactive_color': '#E6E6FA',
+                'caption_bg_enabled': True,
+                'caption_bg_color': '#1a1a2e',
+                'caption_bg_opacity': 210,
+                'caption_stroke_enabled': True,
+                'caption_active_stroke_color': '#000000',
+                'caption_stroke_width': 2
+            }
+        }
+
+        if preset in preset_configs:
+            config = preset_configs[preset]
+            for key, value in config.items():
+                self.update_setting(key, value)
+            messagebox.showinfo("Preset Applied", f"Applied preset: {preset}\n\nYou can further customize the settings below.")
+            logger.info(f"Preset {preset} applied successfully")
+        elif preset != "Custom":
+            # For presets without full config, just notify
+            messagebox.showinfo("Preset Selected", f"Selected: {preset}\n\nConfigure the caption settings below to match this style.")
+            logger.info(f"Preset {preset} selected (no auto-config available)")
+
     def browse_video_folder(self):
         """Browse for video folder"""
         folder = filedialog.askdirectory(title="Select Video Folder")
@@ -867,14 +1388,51 @@ class VideoAutomationGUI:
             self.save_paths()
             logger.info(f"Output folder selected: {folder}")
 
-    def browse_bgm_file(self, var):
+    def browse_bgm_file(self):
         """Browse for BGM file"""
         file = filedialog.askopenfilename(title="Select Background Music",
-                                         filetypes=[("Audio Files", "*.mp3 *.wav *.ogg"), ("All Files", "*.*")])
+                                         filetypes=[("Audio Files", "*.mp3 *.wav *.ogg *.m4a *.aac"), ("All Files", "*.*")])
         if file:
-            var.set(file)
+            self.bgm_file_var.set(file)
             self.update_setting('bgm_file', file)
             logger.info(f"BGM file selected: {file}")
+
+    def browse_bgm_folder(self):
+        """Browse for BGM folder"""
+        folder = filedialog.askdirectory(title="Select BGM Folder")
+        if folder:
+            self.bgm_file_var.set(folder)
+            self.update_setting('bgm_file', folder)
+            logger.info(f"BGM folder selected: {folder}")
+
+    def browse_voiceover_folder(self):
+        """Browse for voiceover folder"""
+        folder = filedialog.askdirectory(title="Select Voiceover Folder")
+        if folder:
+            self.vo_path_var.set(folder)
+            self.update_setting('voiceover_folder', folder)
+            logger.info(f"Voiceover folder selected: {folder}")
+
+    def browse_voiceover_text(self):
+        """Browse for voiceover text file"""
+        file = filedialog.askopenfilename(title="Select Voiceover Text File",
+                                         filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
+        if file:
+            self.voiceover_text_var.set(file)
+            self.update_setting('voiceover_text_file', file)
+            logger.info(f"Voiceover text file selected: {file}")
+
+    def on_tts_voice_change(self, event=None):
+        """Handle TTS voice selection change"""
+        display_name = self.tts_voice_var.get()
+        voice_options = [f"{key.replace('_', ' ').title()}" for key in self.tts_voice_keys]
+        try:
+            voice_index = voice_options.index(display_name)
+            voice_key = self.tts_voice_keys[voice_index]
+            self.update_setting('tts_voice', voice_key)
+            logger.info(f"TTS voice changed to: {voice_key}")
+        except (ValueError, IndexError):
+            logger.warning(f"Could not find voice key for: {display_name}")
 
     def count_videos(self):
         """Count videos in video folder"""
