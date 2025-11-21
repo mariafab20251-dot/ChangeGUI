@@ -3145,6 +3145,70 @@ class VideoQuoteAutomation:
 
         video = VideoFileClip(str(video_path))
 
+        # Apply chromatic aberration if enabled (apply to base video first)
+        if self.settings.get('chromatic_aberration', False):
+            try:
+                intensity = self.settings.get('chromatic_intensity', 5)
+                direction = self.settings.get('chromatic_direction', 'horizontal')
+
+                print(f"\n[CHROMATIC] Applying RGB glitch effect...")
+                print(f"[CHROMATIC] Intensity: {intensity}px, Direction: {direction}")
+
+                def apply_chromatic(get_frame, t):
+                    frame = get_frame(t)
+
+                    # Separate RGB channels
+                    r_channel = frame[:, :, 0].copy()
+                    g_channel = frame[:, :, 1].copy()
+                    b_channel = frame[:, :, 2].copy()
+
+                    # Create shifted channels
+                    h, w = frame.shape[:2]
+
+                    if direction == 'horizontal' or direction == 'both':
+                        # Shift red left, blue right
+                        r_shifted = np.zeros_like(r_channel)
+                        b_shifted = np.zeros_like(b_channel)
+
+                        if intensity < w:
+                            r_shifted[:, intensity:] = r_channel[:, :-intensity]
+                            b_shifted[:, :-intensity] = b_channel[:, intensity:]
+                        else:
+                            r_shifted = r_channel
+                            b_shifted = b_channel
+
+                        r_channel = r_shifted
+                        b_channel = b_shifted
+
+                    if direction == 'vertical' or direction == 'both':
+                        # Shift red up, blue down
+                        r_shifted = np.zeros_like(r_channel)
+                        b_shifted = np.zeros_like(b_channel)
+
+                        if intensity < h:
+                            r_shifted[intensity:, :] = r_channel[:-intensity, :]
+                            b_shifted[:-intensity, :] = b_channel[intensity:, :]
+                        else:
+                            r_shifted = r_channel
+                            b_shifted = b_channel
+
+                        r_channel = r_shifted
+                        b_channel = b_shifted
+
+                    # Recombine channels
+                    result = frame.copy()
+                    result[:, :, 0] = r_channel
+                    result[:, :, 2] = b_channel
+
+                    return result
+
+                video = video.transform(lambda gf, t: apply_chromatic(gf, t))
+                print(f"[OK] Applied chromatic aberration ({direction}, {intensity}px offset)")
+            except Exception as e:
+                print(f"[WARNING] Chromatic aberration failed: {e}")
+                import traceback
+                traceback.print_exc()
+
         # Apply platform preset if enabled
         if self.settings.get('enable_platform_preset', False):
             platform = self.settings.get('platform_preset', 'none')
