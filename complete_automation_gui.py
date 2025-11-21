@@ -223,6 +223,14 @@ class VideoAutomationGUI:
             if hasattr(self, 'voiceover_text_var'):
                 self.settings['voiceover_text_file'] = self.voiceover_text_var.get()
 
+            # Save TTS engine preferences (Cloud vs Local Kokoro)
+            if hasattr(self, 'tts_engine_var'):
+                self.settings['tts_engine'] = self.tts_engine_var.get()
+            if hasattr(self, 'kokoro_voice_var'):
+                self.settings['kokoro_voice'] = self.kokoro_voice_var.get()
+            if hasattr(self, 'kokoro_quality_var'):
+                self.settings['kokoro_quality'] = self.kokoro_quality_var.get()
+
             with open('overlay_settings.json', 'w', encoding='utf-8') as f:
                 json.dump(self.settings, f, indent=2, ensure_ascii=False)
             logger.info("Settings saved successfully")
@@ -678,13 +686,145 @@ class VideoAutomationGUI:
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
                 font=('Segoe UI', 9), justify='left').pack(anchor='w', padx=15, pady=5)
 
-        # Voice selection - ALL 60+ voices
-        voice_frame = tk.Frame(tts_card, bg=AppStyles.BG_CARD)
-        voice_frame.pack(fill='x', padx=20, pady=8)
+        # TTS Engine Selection
+        engine_frame = tk.Frame(tts_card, bg=AppStyles.BG_INPUT, pady=15, padx=20)
+        engine_frame.pack(fill='x', padx=15, pady=(5, 15))
 
-        tk.Label(voice_frame, text='TTS Voice:',
+        tk.Label(engine_frame, text='🎛️ TTS Engine:',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 11, 'bold')).pack(anchor='w', pady=(0, 10))
+
+        self.tts_engine_var = tk.StringVar(value=self.settings.get('tts_engine', 'cloud'))
+
+        # Cloud TTS option
+        cloud_frame = tk.Frame(engine_frame, bg=AppStyles.BG_INPUT)
+        cloud_frame.pack(fill='x', pady=5)
+
+        tk.Radiobutton(cloud_frame, text='☁️ Cloud TTS (Edge-TTS)',
+                      variable=self.tts_engine_var, value='cloud',
+                      bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                      activebackground=AppStyles.BG_INPUT,
+                      font=('Segoe UI', 10, 'bold'),
+                      command=self.on_tts_engine_change).pack(anchor='w')
+
+        tk.Label(cloud_frame, text='   • 60+ premium voices (Microsoft Edge TTS)',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8)).pack(anchor='w', padx=20)
+        tk.Label(cloud_frame, text='   • Requires internet connection',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8)).pack(anchor='w', padx=20)
+        tk.Label(cloud_frame, text='   • Fast processing, high quality',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8)).pack(anchor='w', padx=20)
+
+        # Local TTS option (Kokoro)
+        local_frame = tk.Frame(engine_frame, bg=AppStyles.BG_INPUT)
+        local_frame.pack(fill='x', pady=(10, 5))
+
+        tk.Radiobutton(local_frame, text='💻 Local TTS (Kokoro - FREE & Offline)',
+                      variable=self.tts_engine_var, value='local',
+                      bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                      activebackground=AppStyles.BG_INPUT,
+                      font=('Segoe UI', 10, 'bold'),
+                      command=self.on_tts_engine_change).pack(anchor='w')
+
+        tk.Label(local_frame, text='   • 100% FREE - No subscriptions, no character limits',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.ACCENT_SUCCESS,
+                font=('Segoe UI', 8, 'bold')).pack(anchor='w', padx=20)
+        tk.Label(local_frame, text='   • Works completely offline (no internet needed)',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8)).pack(anchor='w', padx=20)
+        tk.Label(local_frame, text='   • Studio-quality voices, faster than cloud',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8)).pack(anchor='w', padx=20)
+        tk.Label(local_frame, text='   • Runs on modest hardware (8GB RAM recommended)',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8)).pack(anchor='w', padx=20)
+
+        # Kokoro TTS Settings (shown when Local TTS is selected)
+        self.kokoro_settings_frame = tk.Frame(tts_card, bg=AppStyles.BG_CARD)
+        self.kokoro_settings_frame.pack(fill='x', padx=20, pady=8)
+
+        # Installation status
+        kokoro_status_frame = tk.Frame(self.kokoro_settings_frame, bg=AppStyles.BG_INPUT, pady=10, padx=15)
+        kokoro_status_frame.pack(fill='x', pady=(0, 10))
+
+        self.kokoro_status_label = tk.Label(kokoro_status_frame, text='⚠️ Kokoro TTS: Not Installed',
+                                            bg=AppStyles.BG_INPUT, fg=AppStyles.ACCENT_WARNING,
+                                            font=('Segoe UI', 9, 'bold'))
+        self.kokoro_status_label.pack(anchor='w')
+
+        tk.Label(kokoro_status_frame, text='Installation Guide: pip install kokoro-onnx',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(3, 0))
+
+        ModernButton(kokoro_status_frame, text='📖 Setup Instructions',
+                    bg_color=AppStyles.ACCENT_INFO,
+                    font=('Segoe UI', 8, 'bold'),
+                    padx=15, pady=4,
+                    command=self.show_kokoro_setup).pack(anchor='w', pady=(5, 0))
+
+        # Kokoro Voice Selection
+        kokoro_voice_frame = tk.Frame(self.kokoro_settings_frame, bg=AppStyles.BG_CARD)
+        kokoro_voice_frame.pack(fill='x', pady=8)
+
+        tk.Label(kokoro_voice_frame, text='Kokoro Voice:',
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 10)).pack(anchor='w', pady=(0, 5))
+                font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(0, 5))
+
+        self.kokoro_voices = [
+            'af - Male 1 (American, Deep)',
+            'af_bella - Female 1 (American, Warm)',
+            'af_sarah - Female 2 (American, Clear)',
+            'am_adam - Male 2 (American, Professional)',
+            'am_michael - Male 3 (American, Energetic)',
+            'bf_emma - Female 3 (British, Elegant)',
+            'bf_isabella - Female 4 (British, Sophisticated)',
+            'bm_george - Male 4 (British, Distinguished)',
+            'bm_lewis - Male 5 (British, Authoritative)'
+        ]
+
+        self.kokoro_voice_var = tk.StringVar(value=self.settings.get('kokoro_voice', self.kokoro_voices[0]))
+        kokoro_voice_combo = ttk.Combobox(kokoro_voice_frame, textvariable=self.kokoro_voice_var,
+                                          values=self.kokoro_voices, state='readonly',
+                                          font=('Segoe UI', 9), width=40)
+        kokoro_voice_combo.pack(fill='x', pady=5)
+        kokoro_voice_combo.bind('<<ComboboxSelected>>', lambda e: self.update_setting('kokoro_voice', self.kokoro_voice_var.get()))
+
+        # Quality Selection
+        kokoro_quality_frame = tk.Frame(self.kokoro_settings_frame, bg=AppStyles.BG_CARD)
+        kokoro_quality_frame.pack(fill='x', pady=8)
+
+        tk.Label(kokoro_quality_frame, text='Audio Quality:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(0, 5))
+
+        self.kokoro_quality_var = tk.StringVar(value=self.settings.get('kokoro_quality', 'wav'))
+
+        quality_opts = tk.Frame(kokoro_quality_frame, bg=AppStyles.BG_CARD)
+        quality_opts.pack(fill='x')
+
+        tk.Radiobutton(quality_opts, text='🎵 WAV (Studio Quality - Uncompressed)',
+                      variable=self.kokoro_quality_var, value='wav',
+                      bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      activebackground=AppStyles.BG_CARD,
+                      font=('Segoe UI', 9),
+                      command=lambda: self.update_setting('kokoro_quality', 'wav')).pack(anchor='w', pady=3)
+
+        tk.Radiobutton(quality_opts, text='🎧 MP3 (Compressed - Smaller file size)',
+                      variable=self.kokoro_quality_var, value='mp3',
+                      bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      activebackground=AppStyles.BG_CARD,
+                      font=('Segoe UI', 9),
+                      command=lambda: self.update_setting('kokoro_quality', 'mp3')).pack(anchor='w', pady=3)
+
+        # Cloud TTS Voice Selection (shown when Cloud TTS is selected)
+        self.cloud_voice_frame = tk.Frame(tts_card, bg=AppStyles.BG_CARD)
+        self.cloud_voice_frame.pack(fill='x', padx=20, pady=8)
+
+        tk.Label(self.cloud_voice_frame, text='Cloud TTS Voice:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(0, 5))
 
         # ALL voice keys (60+)
         self.tts_voice_keys = [
@@ -717,9 +857,9 @@ class VideoAutomationGUI:
 
         self.tts_voice_var = tk.StringVar(value=current_display)
 
-        voice_combo = ttk.Combobox(voice_frame, textvariable=self.tts_voice_var,
+        voice_combo = ttk.Combobox(self.cloud_voice_frame, textvariable=self.tts_voice_var,
                                    values=voice_options, state='readonly',
-                                   font=('Segoe UI', 9), width=35)
+                                   font=('Segoe UI', 9), width=40)
         voice_combo.pack(fill='x', pady=5)
         voice_combo.bind('<<ComboboxSelected>>', self.on_tts_voice_change)
 
@@ -758,6 +898,9 @@ class VideoAutomationGUI:
                     font=('Segoe UI', 9, 'bold'),
                     padx=15, pady=6,
                     command=lambda: self.voiceover_text_var.set('')).pack(side='left', padx=2)
+
+        # Initialize frame visibility based on selected engine
+        self.on_tts_engine_change()
 
     def create_captions_tab(self):
         """Create Captions tab with ALL features"""
@@ -1431,6 +1574,133 @@ class VideoAutomationGUI:
             logger.info(f"TTS voice changed to: {voice_key}")
         except (ValueError, IndexError):
             logger.warning(f"Could not find voice key for: {display_name}")
+
+    def on_tts_engine_change(self):
+        """Handle TTS engine selection change (Cloud vs Local)"""
+        engine = self.tts_engine_var.get()
+        self.update_setting('tts_engine', engine)
+        logger.info(f"TTS engine changed to: {engine}")
+
+        # Toggle visibility of Cloud vs Kokoro settings
+        if engine == 'cloud':
+            self.cloud_voice_frame.pack(fill='x', padx=20, pady=8)
+            self.kokoro_settings_frame.pack_forget()
+        else:  # local (Kokoro)
+            self.cloud_voice_frame.pack_forget()
+            self.kokoro_settings_frame.pack(fill='x', padx=20, pady=8)
+            # Check Kokoro installation
+            self.check_kokoro_installation()
+
+    def check_kokoro_installation(self):
+        """Check if Kokoro TTS is installed"""
+        try:
+            import importlib.util
+            spec = importlib.util.find_spec("kokoro_onnx")
+            if spec is not None:
+                self.kokoro_status_label.config(
+                    text='✅ Kokoro TTS: Installed & Ready',
+                    fg=AppStyles.ACCENT_SUCCESS
+                )
+                logger.info("Kokoro TTS is installed")
+                return True
+            else:
+                self.kokoro_status_label.config(
+                    text='⚠️ Kokoro TTS: Not Installed',
+                    fg=AppStyles.ACCENT_WARNING
+                )
+                logger.warning("Kokoro TTS is not installed")
+                return False
+        except Exception as e:
+            self.kokoro_status_label.config(
+                text='❌ Kokoro TTS: Error Checking Installation',
+                fg=AppStyles.ACCENT_DANGER
+            )
+            logger.error(f"Error checking Kokoro installation: {e}")
+            return False
+
+    def show_kokoro_setup(self):
+        """Show Kokoro TTS setup instructions"""
+        setup_text = """
+🎙️ KOKORO TTS - FREE LOCAL TEXT-TO-SPEECH SETUP GUIDE
+
+📦 INSTALLATION:
+
+1. Install Kokoro TTS package:
+   pip install kokoro-onnx
+
+2. Download voice models (first use):
+   The models will auto-download on first use (~100-200MB each)
+
+   Available voices:
+   - af (Male 1 - American, Deep)
+   - af_bella (Female 1 - American, Warm)
+   - af_sarah (Female 2 - American, Clear)
+   - am_adam (Male 2 - American, Professional)
+   - am_michael (Male 3 - American, Energetic)
+   - bf_emma (Female 3 - British, Elegant)
+   - bf_isabella (Female 4 - British, Sophisticated)
+   - bm_george (Male 4 - British, Distinguished)
+   - bm_lewis (Male 5 - British, Authoritative)
+
+✨ BENEFITS:
+• 100% FREE - No subscriptions, no API costs, no character limits
+• Works OFFLINE - No internet connection required after installation
+• Studio Quality - WAV output with professional sound
+• FAST - Faster than cloud TTS services
+• Privacy - All processing happens on YOUR computer
+• Unlimited - Generate as many voiceovers as you want
+
+💻 SYSTEM REQUIREMENTS:
+• 8GB RAM recommended (4GB minimum)
+• Works on Windows, Mac, Linux
+• Python 3.8+ required
+• ~500MB disk space for models
+
+🚀 FIRST TIME USE:
+1. Select "Local TTS (Kokoro)" option
+2. Choose your preferred voice
+3. Select quality (WAV for best, MP3 for smaller files)
+4. Click "Process Videos" - models will auto-download
+5. Enjoy FREE unlimited voiceovers!
+
+📚 More Info: https://github.com/thewh1teagle/kokoro-onnx
+
+Need help? Check the logs or open an issue on GitHub!
+"""
+
+        # Create a popup window with scrollable text
+        popup = tk.Toplevel(self.root)
+        popup.title("Kokoro TTS Setup Guide")
+        popup.geometry("700x600")
+        popup.configure(bg=AppStyles.BG_CARD)
+
+        # Header
+        header = tk.Frame(popup, bg=AppStyles.BG_GRADIENT_START, height=60)
+        header.pack(fill='x')
+        header.pack_propagate(False)
+
+        tk.Label(header, text="🎙️ Kokoro TTS - Setup Guide",
+                bg=AppStyles.BG_GRADIENT_START, fg=AppStyles.TEXT_WHITE,
+                font=('Segoe UI', 16, 'bold')).pack(pady=15)
+
+        # Scrollable text area
+        text_frame = tk.Frame(popup, bg=AppStyles.BG_CARD)
+        text_frame.pack(fill='both', expand=True, padx=20, pady=20)
+
+        text_widget = scrolledtext.ScrolledText(text_frame,
+                                               wrap=tk.WORD,
+                                               bg=AppStyles.BG_INPUT,
+                                               fg=AppStyles.TEXT_DARK,
+                                               font=('Consolas', 9),
+                                               padx=15, pady=15)
+        text_widget.pack(fill='both', expand=True)
+        text_widget.insert('1.0', setup_text)
+        text_widget.config(state='disabled')
+
+        # Close button
+        ModernButton(popup, text='Close',
+                    bg_color=AppStyles.ACCENT_PRIMARY,
+                    command=popup.destroy).pack(pady=10)
 
     def count_videos(self):
         """Count videos in video folder"""

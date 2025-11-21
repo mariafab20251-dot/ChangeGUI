@@ -1104,16 +1104,29 @@ class TTSGenerator:
 
     @staticmethod
     def generate_voiceover(text: str, output_path: Path, settings: dict = None):
-        """Generate natural-sounding voiceover from text using Microsoft Edge TTS
+        """Generate natural-sounding voiceover from text using Cloud TTS or Local Kokoro TTS
         Returns: (success: bool, word_timings: list)
         """
+        settings = settings or {}
+
+        # Check TTS engine preference (cloud or local)
+        tts_engine = settings.get('tts_engine', 'cloud')
+
+        if tts_engine == 'local':
+            # Use Kokoro TTS (Local, Offline, FREE)
+            return TTSGenerator._generate_kokoro_voiceover(text, output_path, settings)
+        else:
+            # Use Cloud TTS (Edge-TTS)
+            return TTSGenerator._generate_cloud_voiceover(text, output_path, settings)
+
+    @staticmethod
+    def _generate_cloud_voiceover(text: str, output_path: Path, settings: dict):
+        """Generate voiceover using Cloud TTS (Edge-TTS)"""
         if not TTS_AVAILABLE:
-            print("[WARNING] TTS not available - skipping voiceover generation")
+            print("[WARNING] Cloud TTS not available - skipping voiceover generation")
             return False, []
 
         try:
-            settings = settings or {}
-
             # Select voice based on preference (defaults to 'aria')
             voice_key = settings.get('tts_voice', 'aria').lower()
             voice = TTSGenerator.VOICES.get(voice_key, TTSGenerator.VOICES['aria'])
@@ -1171,8 +1184,94 @@ class TTSGenerator:
                 return False, []
 
         except Exception as e:
-            print(f"[WARNING] TTS generation failed: {e}")
+            print(f"[WARNING] Cloud TTS generation failed: {e}")
             return False, []
+
+    @staticmethod
+    def _generate_kokoro_voiceover(text: str, output_path: Path, settings: dict):
+        """Generate voiceover using Local Kokoro TTS (FREE, Offline)"""
+        try:
+            # Import Kokoro TTS helper
+            from kokoro_tts_helper import KokoroTTSGenerator
+
+            # Get Kokoro settings
+            kokoro_voice = settings.get('kokoro_voice', 'af - Male 1 (American, Deep)')
+            kokoro_quality = settings.get('kokoro_quality', 'wav')
+
+            # Calculate speed multiplier (convert from GUI range 100-250 to 0.5-2.0)
+            gui_speed = settings.get('tts_speed', 150)
+            speed_multiplier = gui_speed / 150.0  # 100->0.67, 150->1.0, 250->1.67
+
+            # Clean text for TTS (remove emojis)
+            clean_text = re.sub(r'[\U0001F300-\U0001F9FF\U0001F600-\U0001F64F\U0001F680-\U0001F6FF\U00002600-\U000027BF\U0001F1E0-\U0001F1FF]+', '', text)
+            clean_text = clean_text.strip()
+
+            if not clean_text:
+                print("[WARNING] No text to convert after cleaning")
+                return False, []
+
+            print(f"[INFO] Generating Kokoro TTS: voice={kokoro_voice}, quality={kokoro_quality}, speed={speed_multiplier:.2f}x")
+
+            # Generate voiceover
+            generator = KokoroTTSGenerator()
+            audio_path = generator.generate_voice(
+                text=clean_text,
+                output_path=str(output_path),
+                voice=kokoro_voice,
+                speed=speed_multiplier,
+                quality=kokoro_quality
+            )
+
+            if audio_path and Path(audio_path).exists():
+                print(f"[OK] Generated Kokoro TTS voiceover: {Path(audio_path).name}")
+
+                # For Kokoro, we don't have word-level timing yet
+                # Generate simple word timings based on audio duration
+                try:
+                    from moviepy import AudioFileClip
+                    audio_clip = AudioFileClip(audio_path)
+                    audio_duration = audio_clip.duration
+                    audio_clip.close()
+
+                    # Split text into words
+                    words = clean_text.split()
+                    if words:
+                        # Simple equal distribution of time
+                        time_per_word = audio_duration / len(words)
+                        word_timings = [
+                            {
+                                'word': word,
+                                'start': i * time_per_word,
+                                'end': (i + 1) * time_per_word,
+                                'duration': time_per_word
+                            }
+                            for i, word in enumerate(words)
+                        ]
+                        print(f"  Generated {len(word_timings)} word timings (estimated)")
+                    else:
+                        word_timings = []
+
+                except Exception as e:
+                    print(f"[WARNING] Could not generate word timings: {e}")
+                    word_timings = []
+
+                return True, word_timings
+            else:
+                print("[WARNING] Kokoro TTS generation failed")
+                return False, []
+
+        except ImportError:
+            print("[WARNING] Kokoro TTS not installed. Install with: pip install kokoro-onnx scipy numpy")
+            print("  Falling back to Cloud TTS...")
+            # Fallback to cloud TTS
+            return TTSGenerator._generate_cloud_voiceover(text, output_path, settings)
+        except Exception as e:
+            print(f"[WARNING] Kokoro TTS generation error: {e}")
+            import traceback
+            traceback.print_exc()
+            print("  Falling back to Cloud TTS...")
+            # Fallback to cloud TTS
+            return TTSGenerator._generate_cloud_voiceover(text, output_path, settings)
 
 
 class CaptionRenderer:
