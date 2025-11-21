@@ -166,10 +166,14 @@ class VideoAutomationGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Video Automation Studio - Professional Edition")
-        self.root.geometry("1100x800")
+        self.root.geometry("1280x900")  # Larger default size
         self.root.configure(bg=AppStyles.BG_CARD)
         self.root.resizable(True, True)
-        self.root.minsize(1000, 700)
+        self.root.minsize(1100, 800)  # Increased minimum size
+
+        # Make window expand with content
+        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
 
         # Load settings
         self.settings = self.load_settings()
@@ -1000,29 +1004,29 @@ class VideoAutomationGUI:
         # Enable Captions
         cap_card = self.create_grid_card(grid_container, "💬 Enable Captions", row=0, col=0)
 
-        caption_var = tk.BooleanVar(value=self.settings.get('enable_captions', False))
-        tk.Checkbutton(cap_card, text='Enable Word-by-Word Captions (Synced with Voiceover)',
+        caption_var = tk.BooleanVar(value=self.settings.get('enable_captions', True))
+        tk.Checkbutton(cap_card, text='Enable Word-by-Word Captions',
                       variable=caption_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
-                      font=('Segoe UI', 10, 'bold'),
+                      font=('Segoe UI', 9, 'bold'),
                       activebackground=AppStyles.BG_CARD,
                       selectcolor=AppStyles.BG_INPUT,
-                      command=lambda: self.update_setting('enable_captions', caption_var.get())).pack(anchor='w', padx=20, pady=10)
+                      command=lambda: self.update_setting('enable_captions', caption_var.get())).pack(anchor='w', padx=12, pady=6)
 
         info_frame = tk.Frame(cap_card, bg=AppStyles.BG_CARD)
-        info_frame.pack(fill='x', padx=20, pady=(0, 10))
-        tk.Label(info_frame, text='ℹ️ Captions appear word-by-word synchronized with TTS audio - like TikTok/YouTube auto-captions!',
+        info_frame.pack(fill='x', padx=12, pady=(0, 6))
+        tk.Label(info_frame, text='ℹ️ Synced with TTS like TikTok/YouTube',
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 9), justify='left').pack(anchor='w', padx=15, pady=5)
+                font=('Segoe UI', 8), justify='left').pack(anchor='w', padx=10, pady=3)
 
         # Caption Style Presets
         preset_card = self.create_grid_card(grid_container, "🎨 Presets", row=0, col=1)
 
         preset_frame = tk.Frame(preset_card, bg=AppStyles.BG_CARD)
-        preset_frame.pack(fill='x', padx=20, pady=10)
+        preset_frame.pack(fill='x', padx=12, pady=6)
 
-        tk.Label(preset_frame, text='Caption Style Preset:',
+        tk.Label(preset_frame, text='Style Preset:',
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 10)).pack(anchor='w', pady=(0, 5))
+                font=('Segoe UI', 9)).pack(anchor='w', pady=(0, 3))
 
         self.caption_preset_var = tk.StringVar(value=self.settings.get('caption_preset', 'Custom'))
         self.caption_presets = [
@@ -1078,25 +1082,25 @@ class VideoAutomationGUI:
 
         preset_combo = ttk.Combobox(preset_frame, textvariable=self.caption_preset_var,
                                    values=self.caption_presets, state='readonly',
-                                   font=('Segoe UI', 9), width=35)
-        preset_combo.pack(fill='x', pady=5)
+                                   font=('Segoe UI', 8), width=32)
+        preset_combo.pack(fill='x', pady=3)
         preset_combo.bind('<<ComboboxSelected>>', lambda e: self.apply_caption_preset())
 
         ModernButton(preset_frame, text='Apply Preset',
                     bg_color=AppStyles.ACCENT_WARNING,
-                    font=('Segoe UI', 9, 'bold'),
-                    padx=20, pady=6,
-                    command=self.apply_caption_preset).pack(pady=5)
+                    font=('Segoe UI', 8, 'bold'),
+                    padx=15, pady=4,
+                    command=self.apply_caption_preset).pack(pady=3)
 
         # Emoji Theme
         emoji_card = self.create_grid_card(grid_container, "😊 Emoji", row=0, col=2)
 
         emoji_frame = tk.Frame(emoji_card, bg=AppStyles.BG_CARD)
-        emoji_frame.pack(fill='x', padx=20, pady=10)
+        emoji_frame.pack(fill='x', padx=12, pady=6)
 
-        tk.Label(emoji_frame, text='Select Emoji Theme for Captions:',
+        tk.Label(emoji_frame, text='Emoji Theme:',
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(0, 5))
+                font=('Segoe UI', 9)).pack(anchor='w', pady=(0, 3))
 
         self.emoji_categories = [
             "🎯 General (Mixed)",
@@ -1355,23 +1359,23 @@ class VideoAutomationGUI:
         return card
 
     def create_grid_card(self, parent, title, row, col, colspan=1):
-        """Create a card in a grid layout"""
+        """Create a compact card in a grid layout"""
         # Outer frame for shadow effect
-        card_outer = tk.Frame(parent, bg=AppStyles.BORDER_LIGHT, pady=2, padx=2)
-        card_outer.grid(row=row, column=col, columnspan=colspan, padx=8, pady=8, sticky='nsew')
+        card_outer = tk.Frame(parent, bg=AppStyles.BORDER_LIGHT, pady=1, padx=1)
+        card_outer.grid(row=row, column=col, columnspan=colspan, padx=5, pady=5, sticky='nsew')
 
         # Inner card
         card = tk.Frame(card_outer, bg=AppStyles.BG_CARD, relief='flat')
         card.pack(fill='both', expand=True)
 
-        # Card header
-        header = tk.Frame(card, bg=AppStyles.BG_INPUT, height=40)
+        # Compact card header
+        header = tk.Frame(card, bg=AppStyles.BG_INPUT, height=32)
         header.pack(fill='x')
         header.pack_propagate(False)
 
         tk.Label(header, text=title,
                 bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 11, 'bold')).pack(anchor='w', padx=15, pady=8)
+                font=('Segoe UI', 10, 'bold')).pack(anchor='w', padx=12, pady=5)
 
         return card
 
