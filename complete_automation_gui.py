@@ -614,6 +614,81 @@ class VideoAutomationGUI:
         # Create horizontal grid layout (4 columns)
         self.create_effect_grid(content, "🎨 Visual Effects & Enhancements", all_effects, columns=4)
 
+        # Watermark/Logo Section
+        watermark_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
+        watermark_card.pack(fill='x', padx=15, pady=(15, 0))
+
+        tk.Label(watermark_card, text='🏷️ Watermark / Logo',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 13, 'bold')).pack(anchor='w', pady=(0, 10))
+
+        # Enable watermark checkbox
+        watermark_var = tk.BooleanVar(value=self.settings.get('watermark_enabled', False))
+        tk.Checkbutton(watermark_card, text='Enable Watermark',
+                      variable=watermark_var, bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 10, 'bold'),
+                      activebackground=AppStyles.BG_INPUT,
+                      selectcolor=AppStyles.BG_CARD,
+                      command=lambda: self.update_setting('watermark_enabled', watermark_var.get())).pack(anchor='w', pady=(0, 10))
+
+        # Image file selection
+        file_frame = tk.Frame(watermark_card, bg=AppStyles.BG_INPUT)
+        file_frame.pack(fill='x', pady=(0, 10))
+
+        tk.Label(file_frame, text='Watermark Image (PNG recommended):',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(0, 5))
+
+        file_input_frame = tk.Frame(file_frame, bg=AppStyles.BG_INPUT)
+        file_input_frame.pack(fill='x')
+
+        self.watermark_path_var = tk.StringVar(value=self.settings.get('watermark_image_path', ''))
+        watermark_entry = tk.Entry(file_input_frame, textvariable=self.watermark_path_var,
+                                   bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                                   font=('Segoe UI', 9), relief='flat', bd=2)
+        watermark_entry.pack(side='left', fill='x', expand=True, ipady=6)
+
+        ModernButton(file_input_frame, text='📁 Browse',
+                    bg_color=AppStyles.ACCENT_PRIMARY,
+                    font=('Segoe UI', 9, 'bold'),
+                    padx=15, pady=6,
+                    command=self.browse_watermark).pack(side='left', padx=(5, 0))
+
+        # Position dropdown
+        position_frame = tk.Frame(watermark_card, bg=AppStyles.BG_INPUT)
+        position_frame.pack(fill='x', pady=(0, 10))
+
+        tk.Label(position_frame, text='Position:',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
+
+        self.watermark_position_var = tk.StringVar(value=self.settings.get('watermark_position', 'bottom-right'))
+        position_dropdown = ttk.Combobox(position_frame, textvariable=self.watermark_position_var,
+                                        values=['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center'],
+                                        state='readonly', width=15)
+        position_dropdown.pack(side='left')
+        position_dropdown.bind('<<ComboboxSelected>>',
+                              lambda e: self.update_setting('watermark_position', self.watermark_position_var.get()))
+
+        # Opacity and Scale sliders
+        self.create_slider_control(watermark_card, 'Opacity:', 'watermark_opacity', 0, 100, 70)
+        self.create_slider_control(watermark_card, 'Size (% of video width):', 'watermark_scale', 0.05, 0.5, 0.15, resolution=0.01, value_format=lambda v: f"{int(v*100)}%")
+
+    def browse_watermark(self):
+        """Browse for watermark image file"""
+        from tkinter import filedialog
+        filename = filedialog.askopenfilename(
+            title="Select Watermark Image",
+            filetypes=[
+                ("Image files", "*.png *.jpg *.jpeg *.gif *.bmp"),
+                ("PNG files", "*.png"),
+                ("All files", "*.*")
+            ]
+        )
+        if filename:
+            self.watermark_path_var.set(filename)
+            self.update_setting('watermark_image_path', filename)
+
     def create_audio_tab(self):
         """Create Audio Settings tab with horizontal grid layout"""
         tab = tk.Frame(self.notebook, bg=AppStyles.BG_CARD)
