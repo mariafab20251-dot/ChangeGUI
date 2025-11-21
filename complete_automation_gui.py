@@ -442,7 +442,7 @@ class VideoAutomationGUI:
         return f'#{r:02x}{g:02x}{b:02x}'
 
     def create_quick_process_tab(self):
-        """Create modern Quick Process tab"""
+        """Create modern Quick Process tab with horizontal grid layout"""
         tab = tk.Frame(self.notebook, bg=AppStyles.BG_CARD)
         self.notebook.add(tab, text='⚡ Quick Process')
 
@@ -458,45 +458,54 @@ class VideoAutomationGUI:
         canvas.pack(side='left', fill='both', expand=True, padx=10, pady=10)
         scrollbar.pack(side='right', fill='y')
 
-        # Modern sections
-        self.create_modern_section(content, "📁 Input Source", [
-            ('Video Folder:', self.video_folder_var, self.browse_video_folder),
-            ('Quotes File:', self.quotes_file_var, self.browse_quotes_file),
-        ])
+        # Create horizontal grid container (3 columns for main cards)
+        grid_container = tk.Frame(content, bg=AppStyles.BG_CARD)
+        grid_container.pack(fill='both', expand=True, padx=15, pady=10)
 
-        self.create_modern_section(content, "📂 Output Settings", [
-            ('Output Folder:', self.output_folder_var, self.browse_output_folder),
-        ])
+        # Configure grid columns
+        for col in range(3):
+            grid_container.columnconfigure(col, weight=1, uniform='main_col')
 
-        # Processing options with modern checkboxes
-        proc_card = self.create_modern_card(content, "⚙️ Processing Options")
+        # ROW 1: Input Source | Output Settings | Processing Options
+
+        # Input Source Card
+        input_card = self.create_grid_card(grid_container, "📁 Input Source", row=0, col=0)
+        self.create_path_field(input_card, 'Video Folder:', self.video_folder_var, self.browse_video_folder)
+        self.create_path_field(input_card, 'Quotes File:', self.quotes_file_var, self.browse_quotes_file)
+
+        # Output Settings Card
+        output_card = self.create_grid_card(grid_container, "📂 Output Settings", row=0, col=1)
+        self.create_path_field(output_card, 'Output Folder:', self.output_folder_var, self.browse_output_folder)
+
+        # Processing Options Card
+        proc_card = self.create_grid_card(grid_container, "⚙️ Processing Options", row=0, col=2)
 
         options = [
-            ('enable_captions', '📝 Generate Captions'),
-            ('use_tts_voiceover', '🔊 Generate TTS Voiceover'),
-            ('add_custom_bgm', '🎵 Add Background Music'),
-            ('video_zoom', '🔍 Apply Video Zoom Effect'),
-            ('pulsing_cta', '💓 Pulsing Call-to-Action'),
+            ('enable_captions', '📝 Captions'),
+            ('use_tts_voiceover', '🔊 TTS Voice'),
+            ('add_custom_bgm', '🎵 BGM'),
+            ('video_zoom', '🔍 Zoom'),
+            ('pulsing_cta', '💓 Pulsing'),
         ]
 
         for key, label in options:
             var = tk.BooleanVar(value=self.settings.get(key, False))
 
             chk_frame = tk.Frame(proc_card, bg=AppStyles.BG_CARD)
-            chk_frame.pack(fill='x', padx=20, pady=8)
+            chk_frame.pack(fill='x', padx=15, pady=5)
 
             chk = tk.Checkbutton(chk_frame, text=label,
                                 variable=var, bg=AppStyles.BG_CARD,
                                 fg=AppStyles.TEXT_DARK,
-                                font=('Segoe UI', 10),
+                                font=('Segoe UI', 9),
                                 activebackground=AppStyles.BG_CARD,
                                 selectcolor=AppStyles.BG_INPUT,
                                 command=lambda k=key, v=var: self.update_setting(k, v.get()))
             chk.pack(anchor='w')
             setattr(self, f'{key}_var', var)
 
-        # Quick Stats with modern styling
-        stats_card = self.create_modern_card(content, "📊 Quick Stats")
+        # ROW 2: Quick Stats (full width)
+        stats_card = self.create_grid_card(grid_container, "📊 Quick Stats", row=1, col=0, colspan=3)
 
         stats_data = [
             ("Videos Ready", str(self.count_videos()), "🎬"),
@@ -504,20 +513,23 @@ class VideoAutomationGUI:
             ("Output Path", "✓" if self.output_folder_var.get() else "✗", "📂"),
         ]
 
+        stats_row_frame = tk.Frame(stats_card, bg=AppStyles.BG_CARD)
+        stats_row_frame.pack(fill='x', padx=20, pady=10)
+
         for label, value, icon in stats_data:
-            stat_row = tk.Frame(stats_card, bg=AppStyles.BG_CARD)
-            stat_row.pack(fill='x', padx=20, pady=8)
+            stat_cell = tk.Frame(stats_row_frame, bg=AppStyles.BG_INPUT, padx=20, pady=10)
+            stat_cell.pack(side='left', expand=True, fill='both', padx=5)
 
-            tk.Label(stat_row, text=f"{icon} {label}:",
-                    bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
-                    font=('Segoe UI', 9)).pack(side='left')
+            tk.Label(stat_cell, text=f"{icon} {label}:",
+                    bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                    font=('Segoe UI', 9)).pack(anchor='w')
 
-            tk.Label(stat_row, text=value,
-                    bg=AppStyles.BG_CARD, fg=AppStyles.ACCENT_PRIMARY,
-                    font=('Segoe UI', 9, 'bold')).pack(side='right')
+            tk.Label(stat_cell, text=value,
+                    bg=AppStyles.BG_INPUT, fg=AppStyles.ACCENT_PRIMARY,
+                    font=('Segoe UI', 11, 'bold')).pack(anchor='w')
 
     def create_text_settings_tab(self):
-        """Create Text Settings tab"""
+        """Create Text Settings tab with horizontal grid layout"""
         tab = tk.Frame(self.notebook, bg=AppStyles.BG_CARD)
         self.notebook.add(tab, text='📝 Text Settings')
 
@@ -532,13 +544,23 @@ class VideoAutomationGUI:
         canvas.pack(side='left', fill='both', expand=True, padx=10, pady=10)
         scrollbar.pack(side='right', fill='y')
 
-        # Title, Quote, CTA sections
-        for prefix, icon, title in [
-            ('title', '📌', 'Title Settings'),
-            ('quote', '💬', 'Quote Settings'),
-            ('cta', '🎯', 'Call-to-Action Settings')
-        ]:
-            card = self.create_modern_card(content, f"{icon} {title}")
+        # Create horizontal grid container (3 columns)
+        grid_container = tk.Frame(content, bg=AppStyles.BG_CARD)
+        grid_container.pack(fill='both', expand=True, padx=15, pady=10)
+
+        # Configure grid columns
+        for col in range(3):
+            grid_container.columnconfigure(col, weight=1, uniform='text_col')
+
+        # Title, Quote, CTA sections in horizontal grid
+        text_sections = [
+            ('title', '📌', 'Title Settings', 0),
+            ('quote', '💬', 'Quote Settings', 1),
+            ('cta', '🎯', 'Call-to-Action', 2)
+        ]
+
+        for prefix, icon, title, col in text_sections:
+            card = self.create_grid_card(grid_container, f"{icon} {title}", row=0, col=col)
             self.create_text_controls(card, prefix)
 
     def create_effects_tab(self):
@@ -583,7 +605,7 @@ class VideoAutomationGUI:
         self.create_effect_grid(content, "🎨 Visual Effects & Enhancements", all_effects, columns=4)
 
     def create_audio_tab(self):
-        """Create Audio Settings tab with ALL features"""
+        """Create Audio Settings tab with horizontal grid layout"""
         tab = tk.Frame(self.notebook, bg=AppStyles.BG_CARD)
         self.notebook.add(tab, text='🔊 Audio Settings')
 
@@ -598,8 +620,17 @@ class VideoAutomationGUI:
         canvas.pack(side='left', fill='both', expand=True, padx=10, pady=10)
         scrollbar.pack(side='right', fill='y')
 
+        # Create horizontal grid container (2x2 grid)
+        grid_container = tk.Frame(content, bg=AppStyles.BG_CARD)
+        grid_container.pack(fill='both', expand=True, padx=15, pady=10)
+
+        # Configure grid columns
+        for col in range(2):
+            grid_container.columnconfigure(col, weight=1, uniform='audio_col')
+
+        # ROW 0: Original Audio | BGM Settings
         # Original Audio Settings
-        original_card = self.create_modern_card(content, "🎧 Original Audio Settings")
+        original_card = self.create_grid_card(grid_container, "🎧 Original Audio", row=0, col=0)
 
         mute_var = tk.BooleanVar(value=self.settings.get('mute_original_audio', False))
         tk.Checkbutton(original_card, text='Mute Original Audio',
@@ -608,10 +639,10 @@ class VideoAutomationGUI:
                       activebackground=AppStyles.BG_CARD,
                       command=lambda: self.update_setting('mute_original_audio', mute_var.get())).pack(anchor='w', padx=20, pady=10)
 
-        self.create_slider_control(original_card, 'Original Audio Volume:', 'original_audio_volume', 0.0, 1.0, 0.5, resolution=0.1)
+        self.create_slider_control(original_card, 'Volume:', 'original_audio_volume', 0.0, 1.0, 0.5, resolution=0.1)
 
         # BGM Settings
-        bgm_card = self.create_modern_card(content, "🎵 Background Music Settings")
+        bgm_card = self.create_grid_card(grid_container, "🎵 Background Music", row=0, col=1)
 
         bgm_var = tk.BooleanVar(value=self.settings.get('add_custom_bgm', False))
         tk.Checkbutton(bgm_card, text='Add Background Music',
@@ -650,10 +681,11 @@ class VideoAutomationGUI:
                     command=self.browse_bgm_folder).pack(side='left', padx=2)
 
         # Volume slider
-        self.create_slider_control(bgm_card, 'BGM Volume:', 'bgm_volume', 0.0, 1.0, 0.3, resolution=0.1)
+        self.create_slider_control(bgm_card, 'Volume:', 'bgm_volume', 0.0, 1.0, 0.3, resolution=0.1)
 
+        # ROW 1: Voiceover Settings | TTS Settings
         # Voiceover Settings
-        vo_card = self.create_modern_card(content, "🎙️ Voiceover Settings")
+        vo_card = self.create_grid_card(grid_container, "🎙️ Voiceover", row=1, col=0)
 
         vo_var = tk.BooleanVar(value=self.settings.get('add_voiceover', False))
         tk.Checkbutton(vo_card, text='Enable Voiceover',
@@ -686,7 +718,7 @@ class VideoAutomationGUI:
                     command=self.browse_voiceover_folder).pack(side='left', padx=(5, 0))
 
         # TTS Settings
-        tts_card = self.create_modern_card(content, "🗣️ Text-to-Speech Settings (Auto-Generate)")
+        tts_card = self.create_grid_card(grid_container, "🗣️ TTS Settings", row=1, col=1)
 
         tts_var = tk.BooleanVar(value=self.settings.get('use_tts_voiceover', True))
         tk.Checkbutton(tts_card, text='Generate Voiceover from Text (TTS)',
@@ -927,7 +959,7 @@ class VideoAutomationGUI:
         self.on_tts_engine_change()
 
     def create_captions_tab(self):
-        """Create Captions tab with ALL features"""
+        """Create Captions tab with horizontal grid layout"""
         tab = tk.Frame(self.notebook, bg=AppStyles.BG_CARD)
         self.notebook.add(tab, text='💬 Captions')
 
@@ -942,8 +974,17 @@ class VideoAutomationGUI:
         canvas.pack(side='left', fill='both', expand=True, padx=10, pady=10)
         scrollbar.pack(side='right', fill='y')
 
+        # Create horizontal grid container (3 columns)
+        grid_container = tk.Frame(content, bg=AppStyles.BG_CARD)
+        grid_container.pack(fill='both', expand=True, padx=15, pady=10)
+
+        # Configure grid columns
+        for col in range(3):
+            grid_container.columnconfigure(col, weight=1, uniform='caption_col')
+
+        # ROW 0: Enable Captions | Preset | Emoji Theme
         # Enable Captions
-        cap_card = self.create_modern_card(content, "💬 Enable Captions")
+        cap_card = self.create_grid_card(grid_container, "💬 Enable Captions", row=0, col=0)
 
         caption_var = tk.BooleanVar(value=self.settings.get('enable_captions', False))
         tk.Checkbutton(cap_card, text='Enable Word-by-Word Captions (Synced with Voiceover)',
@@ -959,7 +1000,7 @@ class VideoAutomationGUI:
                 font=('Segoe UI', 9), justify='left').pack(anchor='w', padx=15, pady=5)
 
         # Caption Style Presets
-        preset_card = self.create_modern_card(content, "🎨 Caption Style Presets")
+        preset_card = self.create_grid_card(grid_container, "🎨 Presets", row=0, col=1)
 
         preset_frame = tk.Frame(preset_card, bg=AppStyles.BG_CARD)
         preset_frame.pack(fill='x', padx=20, pady=10)
@@ -1033,7 +1074,7 @@ class VideoAutomationGUI:
                     command=self.apply_caption_preset).pack(pady=5)
 
         # Emoji Theme
-        emoji_card = self.create_modern_card(content, "😊 Emoji Theme")
+        emoji_card = self.create_grid_card(grid_container, "😊 Emoji", row=0, col=2)
 
         emoji_frame = tk.Frame(emoji_card, bg=AppStyles.BG_CARD)
         emoji_frame.pack(fill='x', padx=20, pady=10)
@@ -1100,8 +1141,9 @@ class VideoAutomationGUI:
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
                 font=('Segoe UI', 8, 'italic'), justify='left').pack(anchor='w', padx=10, pady=5)
 
+        # ROW 1: Global Settings | Regular Captions | CapCut Highlighted
         # Global Settings
-        global_card = self.create_modern_card(content, "🌍 Global Settings (All Caption Styles)")
+        global_card = self.create_grid_card(grid_container, "🌍 Global Settings", row=1, col=0)
 
         # Caption Layout
         layout_frame = tk.Frame(global_card, bg=AppStyles.BG_CARD)
@@ -1150,10 +1192,10 @@ class VideoAutomationGUI:
                           font=('Segoe UI', 9)).pack(side='left', padx=15)
 
         # Words per line
-        self.create_slider_control(global_card, 'Words Per Caption Line (Regular Captions Only):', 'caption_words_per_line', 1, 5, 3)
+        self.create_slider_control(global_card, 'Words Per Caption:', 'caption_words_per_line', 1, 5, 3)
 
         # Regular Caption Settings
-        regular_card = self.create_modern_card(content, "📝 Regular Caption Settings")
+        regular_card = self.create_grid_card(grid_container, "📝 Regular Captions", row=1, col=1)
 
         # Font style
         font_frame = tk.Frame(regular_card, bg=AppStyles.BG_CARD)
@@ -1182,10 +1224,10 @@ class VideoAutomationGUI:
                       command=lambda: self.update_setting('caption_bg_enabled', bg_enabled_var.get())).pack(anchor='w', padx=20, pady=5)
 
         self.create_color_picker(regular_card, 'Caption Background Color:', 'caption_bg_color', '#000000')
-        self.create_slider_control(regular_card, 'Background Opacity:', 'caption_bg_opacity', 0, 255, 180)
+        self.create_slider_control(regular_card, 'Opacity:', 'caption_bg_opacity', 0, 255, 180)
 
         # CapCut-Style Highlighting
-        capcut_card = self.create_modern_card(content, "✨ CapCut-Style Highlighted Captions")
+        capcut_card = self.create_grid_card(grid_container, "✨ CapCut Highlighting", row=1, col=2)
 
         highlight_var = tk.BooleanVar(value=self.settings.get('caption_highlight_enabled', False))
         tk.Checkbutton(capcut_card, text='✨ Enable Word-by-Word Highlighting (like TikTok/Instagram)',
@@ -1220,11 +1262,12 @@ class VideoAutomationGUI:
         self.create_slider_control(capcut_card, 'Highlight Font Size:', 'caption_highlight_font_size', 20, 80, 60)
 
         # Active/Inactive colors
-        self.create_color_picker(capcut_card, 'Active Word Color (Highlight):', 'caption_highlight_color', '#FFD700')
-        self.create_color_picker(capcut_card, 'Inactive Words Color:', 'caption_inactive_color', '#FFFFFF')
+        self.create_color_picker(capcut_card, 'Active Word:', 'caption_highlight_color', '#FFD700')
+        self.create_color_picker(capcut_card, 'Inactive Words:', 'caption_inactive_color', '#FFFFFF')
 
+        # ROW 2: Text Stroke (full width)
         # Stroke/Outline
-        stroke_card = self.create_modern_card(content, "🖊️ Text Stroke/Outline (CapCut Captions)")
+        stroke_card = self.create_grid_card(grid_container, "🖊️ Text Stroke/Outline", row=2, col=0, colspan=3)
 
         stroke_var = tk.BooleanVar(value=self.settings.get('caption_stroke_enabled', False))
         tk.Checkbutton(stroke_card, text='Enable Text Stroke/Outline',
@@ -1289,6 +1332,50 @@ class VideoAutomationGUI:
                 font=('Segoe UI', 12, 'bold')).pack(anchor='w', padx=20, pady=10)
 
         return card
+
+    def create_grid_card(self, parent, title, row, col, colspan=1):
+        """Create a card in a grid layout"""
+        # Outer frame for shadow effect
+        card_outer = tk.Frame(parent, bg=AppStyles.BORDER_LIGHT, pady=2, padx=2)
+        card_outer.grid(row=row, column=col, columnspan=colspan, padx=8, pady=8, sticky='nsew')
+
+        # Inner card
+        card = tk.Frame(card_outer, bg=AppStyles.BG_CARD, relief='flat')
+        card.pack(fill='both', expand=True)
+
+        # Card header
+        header = tk.Frame(card, bg=AppStyles.BG_INPUT, height=40)
+        header.pack(fill='x')
+        header.pack_propagate(False)
+
+        tk.Label(header, text=title,
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 11, 'bold')).pack(anchor='w', padx=15, pady=8)
+
+        return card
+
+    def create_path_field(self, parent, label_text, var, browse_cmd):
+        """Create a path field with browse button"""
+        field_container = tk.Frame(parent, bg=AppStyles.BG_CARD)
+        field_container.pack(fill='x', padx=15, pady=8)
+
+        tk.Label(field_container, text=label_text,
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 9)).pack(anchor='w', pady=(0, 5))
+
+        path_row = tk.Frame(field_container, bg=AppStyles.BG_CARD)
+        path_row.pack(fill='x')
+
+        entry = tk.Entry(path_row, textvariable=var,
+                        bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                        font=('Segoe UI', 8), relief='flat', width=20)
+        entry.pack(side='left', fill='x', expand=True, padx=(0, 5))
+
+        ModernButton(path_row, text='Browse',
+                    bg_color=AppStyles.ACCENT_INFO,
+                    font=('Segoe UI', 8, 'bold'),
+                    padx=10, pady=4,
+                    command=browse_cmd).pack(side='right')
 
     def create_modern_section(self, parent, title, fields):
         """Create a modern section with input fields"""
