@@ -689,6 +689,61 @@ class VideoAutomationGUI:
         # Create horizontal grid layout (4 columns)
         self.create_effect_grid(content, "🎨 Visual Effects & Enhancements", all_effects, columns=4)
 
+        # Progress Bar Section
+        progress_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
+        progress_card.pack(fill='x', padx=15, pady=(15, 0))
+
+        tk.Label(progress_card, text='📊 Progress Bar',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 13, 'bold')).pack(anchor='w', pady=(0, 10))
+
+        # Enable progress bar
+        progress_var = tk.BooleanVar(value=self.settings.get('progress_bar', False))
+        tk.Checkbutton(progress_card, text='Show Progress Bar',
+                      variable=progress_var, bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 10, 'bold'),
+                      activebackground=AppStyles.BG_INPUT,
+                      selectcolor=AppStyles.BG_CARD,
+                      command=lambda: self.update_setting('progress_bar', progress_var.get())).pack(anchor='w', pady=(0, 10))
+
+        tk.Label(progress_card, text='ℹ️ Shows video progress (popular on social media shorts)',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(0, 10))
+
+        # Position
+        pos_frame = tk.Frame(progress_card, bg=AppStyles.BG_INPUT)
+        pos_frame.pack(fill='x', pady=(0, 10))
+
+        tk.Label(pos_frame, text='Position:',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
+
+        self.progress_position_var = tk.StringVar(value=self.settings.get('progress_bar_position', 'bottom'))
+        progress_pos_dropdown = ttk.Combobox(pos_frame, textvariable=self.progress_position_var,
+                                            values=['top', 'bottom'],
+                                            state='readonly', width=15)
+        progress_pos_dropdown.pack(side='left')
+        progress_pos_dropdown.bind('<<ComboboxSelected>>',
+                                  lambda e: self.update_setting('progress_bar_position', self.progress_position_var.get()))
+
+        # Color picker button
+        color_frame = tk.Frame(progress_card, bg=AppStyles.BG_INPUT)
+        color_frame.pack(fill='x', pady=(0, 10))
+
+        tk.Label(color_frame, text='Color:',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
+
+        self.progress_color_var = tk.StringVar(value=self.settings.get('progress_color', '#00ff40'))
+        color_entry = tk.Entry(color_frame, textvariable=self.progress_color_var,
+                              bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                              font=('Segoe UI', 9), width=10)
+        color_entry.pack(side='left')
+        color_entry.bind('<FocusOut>', lambda e: self.update_setting('progress_color', self.progress_color_var.get()))
+
+        # Height slider
+        self.create_slider_control(progress_card, 'Bar Height:', 'progress_bar_height', 2, 15, 5, value_format=lambda v: f"{int(v)}px")
+
         # Watermark/Logo Section
         watermark_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
         watermark_card.pack(fill='x', padx=15, pady=(15, 0))

@@ -81,6 +81,8 @@
   "emoji_pop_delay": 0.2,
   "progress_bar": false,
   "progress_color": "#00ff40",
+  "progress_bar_height": 5,
+  "progress_bar_position": "bottom",
   "_comment_audio": "AUDIO SETTINGS",
   "audio_normalize": false,
   "audio_target_level": -20,
