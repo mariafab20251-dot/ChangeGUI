@@ -969,6 +969,26 @@ class VideoAutomationGUI:
             "💎 Luxury Brand (Gold Elegant)",
             "🌊 Calm & Chill (Blue Peaceful)",
             "🎨 Artistic Creative (Multi-color)",
+            # NEW CAPCUT TRENDING STYLES 2025
+            "🎪 Carnival Pop (Rainbow Bounce)",
+            "🌈 Pride Rainbow (Smooth Transition)",
+            "⚡ Neon Thunder (Electric Glow Pulse)",
+            "🎯 Target Lock (Red Laser Focus)",
+            "💥 Comic Boom (Explosion Style)",
+            "🌙 Midnight Dream (Dark Purple Stars)",
+            "🔮 Crystal Glow (Translucent Effect)",
+            "🎆 Firework Burst (Color Splash)",
+            "🌺 Tropical Vibe (Beach Gradient)",
+            "⚙️ Tech Glitch (Cyberpunk Style)",
+            "🏔️ Ice Cold (Frozen Blue Frost)",
+            "🔥 Fire Blaze (Orange Red Flame)",
+            "🌸 Cherry Blossom (Soft Pink Japan)",
+            "⭐ Star Power (Golden Shine)",
+            "🎵 Music Beat (Sound Wave Pulse)",
+            # URDU & ARABIC STYLES
+            "📖 Urdu Poetry (شاعری - Nastaliq)",
+            "🕌 Islamic Quotes (اسلامی - Calligraphy)",
+            "🎭 Drama Serial (ڈرامہ - Pakistani Style)",
             # ORIGINAL STYLES
             "🔥 Bold Impact (TikTok Style)",
             "✨ Minimal Clean",
@@ -1526,6 +1546,208 @@ class VideoAutomationGUI:
                 'caption_stroke_enabled': True,
                 'caption_active_stroke_color': '#000000',
                 'caption_stroke_width': 2
+            },
+            # NEW CAPCUT TRENDING STYLES 2025
+            "🎪 Carnival Pop (Rainbow Bounce)": {
+                'caption_highlight_enabled': True,
+                'caption_highlight_color': '#FF1493',
+                'caption_inactive_color': '#FFD700',
+                'caption_bg_enabled': True,
+                'caption_bg_color': '#FF69B4',
+                'caption_bg_opacity': 180,
+                'caption_stroke_enabled': True,
+                'caption_active_stroke_color': '#FFD700',
+                'caption_stroke_width': 3
+            },
+            "🌈 Pride Rainbow (Smooth Transition)": {
+                'caption_highlight_enabled': True,
+                'caption_highlight_color': '#FF0080',
+                'caption_inactive_color': '#00D4FF',
+                'caption_bg_enabled': False,
+                'caption_stroke_enabled': True,
+                'caption_active_stroke_color': '#FFD700',
+                'caption_stroke_width': 4
+            },
+            "⚡ Neon Thunder (Electric Glow Pulse)": {
+                'caption_highlight_enabled': True,
+                'caption_highlight_color': '#00FFFF',
+                'caption_inactive_color': '#FFFFFF',
+                'caption_bg_enabled': True,
+                'caption_bg_color': '#000033',
+                'caption_bg_opacity': 200,
+                'caption_stroke_enabled': True,
+                'caption_active_stroke_color': '#FF00FF',
+                'caption_stroke_width': 3
+            },
+            "🎯 Target Lock (Red Laser Focus)": {
+                'caption_highlight_enabled': True,
+                'caption_highlight_color': '#FF0000',
+                'caption_inactive_color': '#666666',
+                'caption_bg_enabled': True,
+                'caption_bg_color': '#000000',
+                'caption_bg_opacity': 240,
+                'caption_stroke_enabled': True,
+                'caption_active_stroke_color': '#FFFF00',
+                'caption_stroke_width': 2
+            },
+            "💥 Comic Boom (Explosion Style)": {
+                'caption_highlight_enabled': True,
+                'caption_highlight_color': '#FFFF00',
+                'caption_inactive_color': '#FFFFFF',
+                'caption_bg_enabled': True,
+                'caption_bg_color': '#FF4500',
+                'caption_bg_opacity': 200,
+                'caption_stroke_enabled': True,
+                'caption_active_stroke_color': '#000000',
+                'caption_stroke_width': 5
+            },
+            "🌙 Midnight Dream (Dark Purple Stars)": {
+                'caption_highlight_enabled': True,
+                'caption_highlight_color': '#9370DB',
+                'caption_inactive_color': '#C8A2C8',
+                'caption_bg_enabled': True,
+                'caption_bg_color': '#191970',
+                'caption_bg_opacity': 220,
+                'caption_stroke_enabled': True,
+                'caption_active_stroke_color': '#FFD700',
+                'caption_stroke_width': 2
+            },
+            "🔮 Crystal Glow (Translucent Effect)": {
+                'caption_highlight_enabled': True,
+                'caption_highlight_color': '#E0FFFF',
+                'caption_inactive_color': '#B0E0E6',
+                'caption_bg_enabled': True,
+                'caption_bg_color': '#483D8B',
+                'caption_bg_opacity': 150,
+                'caption_stroke_enabled': True,
+                'caption_active_stroke_color': '#FFFFFF',
+                'caption_stroke_width': 2
+            },
+            "🎆 Firework Burst (Color Splash)": {
+                'caption_highlight_enabled': True,
+                'caption_highlight_color': '#FFD700',
+                'caption_inactive_color': '#FF69B4',
+                'caption_bg_enabled': False,
+                'caption_stroke_enabled': True,
+                'caption_active_stroke_color': '#FF4500',
+                'caption_stroke_width': 4
+            },
+            "🌺 Tropical Vibe (Beach Gradient)": {
+                'caption_highlight_enabled': True,
+                'caption_highlight_color': '#FF6347',
+                'caption_inactive_color': '#20B2AA',
+                'caption_bg_enabled': True,
+                'caption_bg_color': '#FFE4B5',
+                'caption_bg_opacity': 180,
+                'caption_stroke_enabled': True,
+                'caption_active_stroke_color': '#FF1493',
+                'caption_stroke_width': 2
+            },
+            "⚙️ Tech Glitch (Cyberpunk Style)": {
+                'caption_highlight_enabled': True,
+                'caption_highlight_color': '#00FFFF',
+                'caption_inactive_color': '#FF00FF',
+                'caption_bg_enabled': True,
+                'caption_bg_color': '#000000',
+                'caption_bg_opacity': 230,
+                'caption_stroke_enabled': True,
+                'caption_active_stroke_color': '#00FF00',
+                'caption_stroke_width': 2
+            },
+            "🏔️ Ice Cold (Frozen Blue Frost)": {
+                'caption_highlight_enabled': True,
+                'caption_highlight_color': '#00CED1',
+                'caption_inactive_color': '#E0FFFF',
+                'caption_bg_enabled': True,
+                'caption_bg_color': '#000080',
+                'caption_bg_opacity': 190,
+                'caption_stroke_enabled': True,
+                'caption_active_stroke_color': '#FFFFFF',
+                'caption_stroke_width': 3
+            },
+            "🔥 Fire Blaze (Orange Red Flame)": {
+                'caption_highlight_enabled': True,
+                'caption_highlight_color': '#FF4500',
+                'caption_inactive_color': '#FFD700',
+                'caption_bg_enabled': True,
+                'caption_bg_color': '#8B0000',
+                'caption_bg_opacity': 200,
+                'caption_stroke_enabled': True,
+                'caption_active_stroke_color': '#000000',
+                'caption_stroke_width': 3
+            },
+            "🌸 Cherry Blossom (Soft Pink Japan)": {
+                'caption_highlight_enabled': True,
+                'caption_highlight_color': '#FFB7C5',
+                'caption_inactive_color': '#FFFFFF',
+                'caption_bg_enabled': True,
+                'caption_bg_color': '#FFC0CB',
+                'caption_bg_opacity': 170,
+                'caption_stroke_enabled': True,
+                'caption_active_stroke_color': '#FF1493',
+                'caption_stroke_width': 2
+            },
+            "⭐ Star Power (Golden Shine)": {
+                'caption_highlight_enabled': True,
+                'caption_highlight_color': '#FFD700',
+                'caption_inactive_color': '#FFA500',
+                'caption_bg_enabled': True,
+                'caption_bg_color': '#4B0082',
+                'caption_bg_opacity': 200,
+                'caption_stroke_enabled': True,
+                'caption_active_stroke_color': '#FFFFFF',
+                'caption_stroke_width': 3
+            },
+            "🎵 Music Beat (Sound Wave Pulse)": {
+                'caption_highlight_enabled': True,
+                'caption_highlight_color': '#00FF00',
+                'caption_inactive_color': '#ADFF2F',
+                'caption_bg_enabled': True,
+                'caption_bg_color': '#1C1C1C',
+                'caption_bg_opacity': 210,
+                'caption_stroke_enabled': True,
+                'caption_active_stroke_color': '#00FFFF',
+                'caption_stroke_width': 2
+            },
+            # URDU & ARABIC STYLES
+            "📖 Urdu Poetry (شاعری - Nastaliq)": {
+                'caption_highlight_enabled': True,
+                'caption_highlight_color': '#8B4513',
+                'caption_inactive_color': '#F5DEB3',
+                'caption_bg_enabled': True,
+                'caption_bg_color': '#2F4F4F',
+                'caption_bg_opacity': 200,
+                'caption_stroke_enabled': True,
+                'caption_active_stroke_color': '#FFD700',
+                'caption_stroke_width': 2,
+                'caption_font_style': 'Jameel Noori Nastaleeq',  # Urdu font
+                'text_direction': 'rtl'  # Right-to-left
+            },
+            "🕌 Islamic Quotes (اسلامی - Calligraphy)": {
+                'caption_highlight_enabled': True,
+                'caption_highlight_color': '#228B22',
+                'caption_inactive_color': '#F0E68C',
+                'caption_bg_enabled': True,
+                'caption_bg_color': '#006400',
+                'caption_bg_opacity': 210,
+                'caption_stroke_enabled': True,
+                'caption_active_stroke_color': '#FFD700',
+                'caption_stroke_width': 3,
+                'caption_font_style': 'Jameel Noori Nastaleeq',
+                'text_direction': 'rtl'
+            },
+            "🎭 Drama Serial (ڈرامہ - Pakistani Style)": {
+                'caption_highlight_enabled': True,
+                'caption_highlight_color': '#FF1493',
+                'caption_inactive_color': '#FFFFFF',
+                'caption_bg_enabled': True,
+                'caption_bg_color': '#800020',
+                'caption_bg_opacity': 200,
+                'caption_stroke_enabled': True,
+                'caption_active_stroke_color': '#FFD700',
+                'caption_stroke_width': 2,
+                'caption_font_style': 'Jameel Noori Nastaleeq',
+                'text_direction': 'rtl'
             }
         }
 

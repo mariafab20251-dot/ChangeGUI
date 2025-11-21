@@ -41,6 +41,33 @@ except ImportError:
     print("[WARNING] edge-tts not available - TTS voiceover generation disabled")
     print("  Install with: pip install edge-tts")
 
+# RTL (Right-to-Left) text support for Urdu/Arabic
+try:
+    import arabic_reshaper
+    from bidi.algorithm import get_display
+    RTL_AVAILABLE = True
+    print("[OK] RTL text support available for Urdu/Arabic")
+except ImportError:
+    RTL_AVAILABLE = False
+    print("[INFO] RTL libraries not available - Urdu/Arabic text may not render correctly")
+    print("  Install with: pip install arabic-reshaper python-bidi")
+
+
+def reshape_rtl_text(text):
+    """Reshape RTL (Urdu/Arabic) text for correct display"""
+    if not RTL_AVAILABLE:
+        return text
+
+    try:
+        # Reshape Arabic/Urdu characters
+        reshaped_text = arabic_reshaper.reshape(text)
+        # Get display order (right-to-left)
+        bidi_text = get_display(reshaped_text)
+        return bidi_text
+    except Exception as e:
+        print(f"[WARNING] RTL reshaping failed: {e}, using original text")
+        return text
+
 
 def set_volume(clip, volume):
     """Compatible volume adjustment for MoviePy 1.x and 2.x"""
@@ -1375,21 +1402,54 @@ class CaptionRenderer:
             "Montserrat Bold": "arialbd.ttf",  # Fallback to Arial Bold
             "Bebas Neue": "impact.ttf",  # Fallback to Impact
             "Poppins Bold": "arialbd.ttf",  # Fallback to Arial Bold
-            "Roboto Bold": "arialbd.ttf"  # Fallback to Arial Bold
+            "Roboto Bold": "arialbd.ttf",  # Fallback to Arial Bold
+            # URDU & ARABIC FONTS
+            "Jameel Noori Nastaleeq": "NotoNastaliqUrdu-Regular.ttf",  # Urdu Nastaliq
+            "Noto Nastaliq Urdu": "NotoNastaliqUrdu-Regular.ttf",
+            "Noto Nastaliq Urdu Bold": "NotoNastaliqUrdu-Bold.ttf",
+            "Noto Naskh Arabic": "NotoNaskhArabic-Regular.ttf",
+            "Arabic": "NotoNaskhArabic-Regular.ttf"
         }
 
+        # Try to load font from multiple locations
         try:
             font_file = font_map.get(font_style, 'arialbd.ttf')
-            font_path = str(Path(r"C:\Windows\Fonts") / font_file)
-            font = ImageFont.truetype(font_path, font_size)
-            print(f"   Using font: {font_style} ({font_file}) at {font_size}px")
+
+            # Check multiple font locations (Windows system fonts, user fonts, Linux)
+            font_locations = [
+                Path(r"C:\Windows\Fonts") / font_file,  # Windows system
+                Path.home() / "AppData/Local/Microsoft/Windows/Fonts" / font_file,  # Windows user
+                Path.home() / ".fonts" / font_file,  # Linux/Mac user fonts
+                Path("/usr/share/fonts/truetype") / font_file,  # Linux system
+            ]
+
+            font_loaded = False
+            for font_path in font_locations:
+                if font_path.exists():
+                    font = ImageFont.truetype(str(font_path), font_size)
+                    print(f"   Using font: {font_style} ({font_file}) at {font_size}px from {font_path.parent}")
+                    font_loaded = True
+                    break
+
+            if not font_loaded:
+                raise FileNotFoundError(f"Font {font_file} not found in any location")
+
             # Emoji font
             emoji_font_path = str(Path(r"C:\Windows\Fonts") / 'seguiemj.ttf')
-            emoji_font = ImageFont.truetype(emoji_font_path, int(font_size * 0.8))
+            if Path(emoji_font_path).exists():
+                emoji_font = ImageFont.truetype(emoji_font_path, int(font_size * 0.8))
+            else:
+                emoji_font = font
         except Exception as e:
-            print(f"   [WARNING]️ Font loading failed: {e}, using default")
-            font = ImageFont.load_default()
-            emoji_font = font
+            print(f"   [WARNING]️ Font loading failed: {e}, using default Arial")
+            try:
+                # Fallback to Arial
+                arial_path = str(Path(r"C:\Windows\Fonts") / 'arialbd.ttf')
+                font = ImageFont.truetype(arial_path, font_size)
+                emoji_font = font
+            except:
+                font = ImageFont.load_default()
+                emoji_font = font
 
         # Timing
         speaking_rate_wpm = settings.get('tts_speed', 150)
@@ -1494,6 +1554,11 @@ class CaptionRenderer:
                 for idx, display_word in enumerate(line1_words):
                     is_active = idx == active_word_in_display
 
+                    # Apply RTL text reshaping for Urdu/Arabic if needed
+                    text_direction = settings.get('text_direction', 'ltr')
+                    if text_direction == 'rtl':
+                        display_word = reshape_rtl_text(display_word)
+
                     # Draw emoji above active word (if enabled)
                     if current_emoji and is_active:
                         word_bbox = draw.textbbox((0, 0), display_word, font=font)
@@ -1536,6 +1601,10 @@ class CaptionRenderer:
                     # Index in display_words array
                     overall_idx = words_per_line + idx
                     is_active = overall_idx == active_word_in_display
+
+                    # Apply RTL text reshaping for Urdu/Arabic if needed
+                    if text_direction == 'rtl':
+                        display_word = reshape_rtl_text(display_word)
 
                     # Draw emoji above active word (if enabled)
                     if current_emoji and is_active:
