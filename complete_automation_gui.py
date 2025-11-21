@@ -1175,6 +1175,39 @@ class VideoAutomationGUI:
                     padx=15, pady=6,
                     command=lambda: self.voiceover_text_var.set('')).pack(side='left', padx=2)
 
+        # ROW 3: Audio Enhancement (full width - colspan 2)
+        audio_enhance_card = self.create_grid_card(grid_container, "🎚️ Audio Enhancement", row=2, col=0, colspan=2)
+
+        # Audio Normalization
+        norm_var = tk.BooleanVar(value=self.settings.get('audio_normalize', False))
+        tk.Checkbutton(audio_enhance_card, text='Audio Normalization (Consistent Volume)',
+                      variable=norm_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 10, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('audio_normalize', norm_var.get())).pack(anchor='w', padx=20, pady=10)
+
+        tk.Label(audio_enhance_card, text='ℹ️ Normalizes audio to consistent volume levels across all videos',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', padx=20, pady=(0, 10))
+
+        self.create_slider_control(audio_enhance_card, 'Target Audio Level (dB):', 'audio_target_level', -30, -10, -20, value_format=lambda v: f"{int(v)} dB")
+
+        # Audio Ducking
+        duck_var = tk.BooleanVar(value=self.settings.get('audio_auto_ducking', False))
+        tk.Checkbutton(audio_enhance_card, text='Auto BGM Ducking (Lower BGM when voice speaks)',
+                      variable=duck_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 10, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('audio_auto_ducking', duck_var.get())).pack(anchor='w', padx=20, pady=10)
+
+        tk.Label(audio_enhance_card, text='ℹ️ Automatically reduces background music volume when voiceover is playing',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', padx=20, pady=(0, 10))
+
+        self.create_slider_control(audio_enhance_card, 'Ducking Amount:', 'audio_ducking_amount', 0.1, 0.8, 0.3, resolution=0.1, value_format=lambda v: f"{int(v*100)}%")
+
         # Initialize frame visibility based on selected engine
         self.on_tts_engine_change()
 

@@ -2087,6 +2087,7 @@ class AudioProcessor:
                     print(f"[WARNING] Could not load BGM: {e}")
 
         # Voiceover
+        voiceover_audio_clip = None
         if voiceover_file and voiceover_file.exists():
             try:
                 voiceover_audio = AudioFileClip(str(voiceover_file))
@@ -2102,17 +2103,90 @@ class AudioProcessor:
                     except:
                         voiceover_audio = CompositeAudioClip([silence, voiceover_audio.with_start(voiceover_delay)])
 
+                voiceover_audio_clip = voiceover_audio  # Store for ducking
                 audio_tracks.append(voiceover_audio)
                 print(f"[OK] Added voiceover: {voiceover_file.name}")
             except Exception as e:
                 print(f"[WARNING] Could not load voiceover: {e}")
 
+        # Apply BGM auto-ducking if enabled and we have both BGM and voiceover
+        if settings.get('audio_auto_ducking', False) and voiceover_audio_clip is not None and len(audio_tracks) > 1:
+            try:
+                ducking_amount = settings.get('audio_ducking_amount', 0.3)
+
+                # Find BGM track (it's the one that's not voiceover)
+                for i, track in enumerate(audio_tracks):
+                    if track != voiceover_audio_clip:
+                        # This is BGM or original audio - apply ducking during voiceover
+                        def ducking_volume(t):
+                            # Check if voiceover is playing at time t
+                            voiceover_start = 0
+                            voiceover_end = voiceover_audio_clip.duration
+                            if voiceover_start <= t < voiceover_end:
+                                # Voiceover is playing - reduce volume
+                                return ducking_amount
+                            else:
+                                # No voiceover - full volume
+                                return 1.0
+
+                        # Apply time-varying volume
+                        ducked_track = track.with_volume_scaled(lambda t: ducking_volume(t))
+                        audio_tracks[i] = ducked_track
+
+                print(f"[OK] Applied BGM auto-ducking ({int((1-ducking_amount)*100)}% reduction during voice)")
+            except Exception as e:
+                print(f"[WARNING] BGM ducking failed: {e}")
+
         # Mix all tracks
         if audio_tracks:
+            # Composite multiple tracks
             if len(audio_tracks) == 1:
-                return audio_tracks[0]
+                final_audio = audio_tracks[0]
             else:
-                return CompositeAudioClip(audio_tracks)
+                final_audio = CompositeAudioClip(audio_tracks)
+
+            # Apply audio normalization if enabled
+            if settings.get('audio_normalize', False):
+                try:
+                    target_level_db = settings.get('audio_target_level', -20)
+
+                    # Normalize audio to target level
+                    # MoviePy doesn't have built-in normalization, so we do it manually
+                    # Get max amplitude and calculate gain needed
+                    def normalize_audio(audio_clip, target_db=-20):
+                        """Normalize audio to target dB level"""
+                        try:
+                            # Get audio as numpy array
+                            audio_array = audio_clip.to_soundarray()
+
+                            # Find peak amplitude
+                            max_amplitude = np.max(np.abs(audio_array))
+
+                            if max_amplitude > 0:
+                                # Calculate current dB level
+                                current_db = 20 * np.log10(max_amplitude)
+
+                                # Calculate required gain
+                                gain_db = target_db - current_db
+                                gain_linear = 10 ** (gain_db / 20)
+
+                                # Apply gain (use volumex for smoother result)
+                                normalized = set_volume(audio_clip, gain_linear)
+
+                                print(f"[NORMALIZE] Peak: {max_amplitude:.4f} ({current_db:.1f} dB) → Target: {target_db} dB (gain: {gain_db:+.1f} dB)")
+                                return normalized
+                            else:
+                                return audio_clip
+                        except Exception as e:
+                            print(f"[WARNING] Normalization failed: {e}")
+                            return audio_clip
+
+                    final_audio = normalize_audio(final_audio, target_level_db)
+                    print(f"[OK] Applied audio normalization (target: {target_level_db} dB)")
+                except Exception as e:
+                    print(f"[WARNING] Audio normalization failed: {e}")
+
+            return final_audio
         else:
             return None
 
