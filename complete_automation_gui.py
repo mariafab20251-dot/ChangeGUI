@@ -2342,8 +2342,8 @@ Need help? Check the logs or open an issue on GitHub!
                     self.root.after(0, lambda i=i, t=total: self.progress_text.config(
                         text=f"Processing video {i+1} of {total}..."))
 
-                    # Process video
-                    automation.process_single_video(video)
+                    # Process video with index
+                    automation.process_single_video(video, video_index=i)
                     logger.info(f"Completed: {video}")
 
                 except Exception as e:

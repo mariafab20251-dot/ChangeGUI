@@ -3700,6 +3700,72 @@ class VideoQuoteAutomation:
 
         return output_path, output_filename
 
+    def process_single_video(self, video_path: Path, video_index: int = 0) -> dict:
+        """
+        Process a single video with quote overlay
+
+        Args:
+            video_path: Path to video file
+            video_index: Index used to select corresponding quote
+
+        Returns:
+            Dictionary with processing result (status, output_file, etc.)
+        """
+        try:
+            # Read quotes
+            quotes = self.read_quotes()
+
+            if not quotes:
+                raise Exception("No quotes found in quotes file")
+
+            # Get quote at index (cycle through quotes if more videos than quotes)
+            quote_index = video_index % len(quotes)
+            quote = quotes[quote_index]
+
+            print(f"\n[OK] Processing video {video_index + 1}")
+            print(f"[OK] Using quote {quote_index + 1}/{len(quotes)}")
+
+            # Process the video
+            output_path, filename = self.add_quote_to_video(video_path, quote, video_index=video_index)
+
+            # Store subtitle and voiceover separately in log
+            if isinstance(quote, dict):
+                quote_log = {
+                    'subtitle': quote['subtitle'],
+                    'voiceover': quote['voiceover']
+                }
+            else:
+                quote_log = quote
+
+            # Log the result
+            result = {
+                'index': video_index,
+                'original_video': video_path.name,
+                'quote': quote_log,
+                'output_file': filename,
+                'timestamp': datetime.now().isoformat(),
+                'status': 'success'
+            }
+
+            self.processing_log['processed_count'] += 1
+            self.processing_log['processed_videos'].append(result)
+            self._save_log()
+
+            print(f"✓ Successfully processed: {filename}")
+
+            return result
+
+        except Exception as e:
+            error_result = {
+                'index': video_index,
+                'original_video': video_path.name,
+                'status': 'failed',
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            }
+            print(f"✗ Error processing video: {str(e)}")
+            raise  # Re-raise so GUI can handle it
+
     def process_all(self, start_from: int = 0, sort_by: str = 'created', skip_processed: bool = False):
         """Process all videos with enhanced effects"""
         videos = self.get_video_files(sort_by=sort_by)
