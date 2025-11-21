@@ -2046,7 +2046,7 @@ class VideoAutomationGUI:
 
                 # Get voice mapping
                 if TTSGenerator:
-                    voice_id = TTSGenerator.VOICE_MAP.get(voice_key, 'en-US-AriaNeural')
+                    voice_id = TTSGenerator.VOICES.get(voice_key, 'en-US-AriaNeural')
                 else:
                     voice_id = 'en-US-AriaNeural'
 
