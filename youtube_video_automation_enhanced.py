@@ -3986,6 +3986,125 @@ class VideoQuoteAutomation:
                 import traceback
                 traceback.print_exc()
 
+        # Add CTA overlay if enabled
+        if self.settings.get('cta_overlay_enabled', False):
+            try:
+                cta_text = self.settings.get('cta_overlay_text', 'Follow for more! 👉')
+                position = self.settings.get('cta_overlay_position', 'bottom-center')
+                animation = self.settings.get('cta_overlay_animation', 'bounce')
+                start_time = self.settings.get('cta_overlay_start_time', 3.0)
+                duration = self.settings.get('cta_overlay_duration', 3.0)
+
+                print(f"\n[CTA] Adding call-to-action overlay...")
+                print(f"[CTA] Text: {cta_text}")
+                print(f"[CTA] Position: {position}, Animation: {animation}")
+                print(f"[CTA] Timing: {start_time}s - {start_time + duration}s")
+
+                # Create CTA text image
+                from PIL import ImageFont, ImageDraw
+
+                # Use a large bold font
+                try:
+                    font = ImageFont.truetype("C:\\Windows\\Fonts\\arialbd.ttf", 60)
+                except:
+                    font = ImageFont.load_default()
+
+                # Calculate text size
+                temp_img = Image.new('RGBA', (1, 1))
+                draw = ImageDraw.Draw(temp_img)
+                bbox = draw.textbbox((0, 0), cta_text, font=font)
+                text_width = bbox[2] - bbox[0]
+                text_height = bbox[3] - bbox[1]
+
+                # Add padding
+                padding = 30
+                img_width = text_width + padding * 2
+                img_height = text_height + padding * 2
+
+                # Create text image with background
+                cta_img = Image.new('RGBA', (img_width, img_height), (0, 0, 0, 0))
+                draw = ImageDraw.Draw(cta_img)
+
+                # Draw rounded rectangle background
+                bg_color = (220, 38, 38, 230)  # Red with transparency
+                draw.rounded_rectangle([(0, 0), (img_width, img_height)], radius=20, fill=bg_color)
+
+                # Draw text
+                draw.text((padding, padding), cta_text, font=font, fill=(255, 255, 255, 255))
+
+                # Convert to array
+                cta_array = np.array(cta_img)
+
+                # Calculate position
+                if position == 'top-left':
+                    pos_x, pos_y = 30, 30
+                elif position == 'top-center':
+                    pos_x = (video.w - img_width) // 2
+                    pos_y = 30
+                elif position == 'top-right':
+                    pos_x = video.w - img_width - 30
+                    pos_y = 30
+                elif position == 'bottom-left':
+                    pos_x = 30
+                    pos_y = video.h - img_height - 30
+                elif position == 'bottom-center':
+                    pos_x = (video.w - img_width) // 2
+                    pos_y = video.h - img_height - 30
+                else:  # bottom-right
+                    pos_x = video.w - img_width - 30
+                    pos_y = video.h - img_height - 30
+
+                # Create text clip
+                cta_clip = ImageClip(cta_array).with_duration(duration)
+                cta_clip = cta_clip.with_start(start_time).with_position((pos_x, pos_y))
+
+                # Apply animation
+                if animation == 'bounce':
+                    # Bounce in animation
+                    def bounce_effect(t):
+                        if t < 0.5:
+                            # Bounce in
+                            scale = 0.5 + 0.5 * (1 - (1 - t/0.5) ** 2)
+                            return scale
+                        else:
+                            return 1.0
+
+                    cta_clip = cta_clip.resize(lambda t: bounce_effect(t))
+
+                elif animation == 'pulse':
+                    # Pulsing animation
+                    def pulse_effect(t):
+                        return 1.0 + 0.1 * np.sin(t * 3 * np.pi)
+
+                    cta_clip = cta_clip.resize(lambda t: pulse_effect(t))
+
+                elif animation == 'slide-in':
+                    # Slide in from bottom
+                    def slide_pos(t):
+                        if t < 0.5:
+                            offset = int((1 - t/0.5) * 100)
+                            return (pos_x, pos_y + offset)
+                        return (pos_x, pos_y)
+
+                    cta_clip = cta_clip.with_position(slide_pos)
+
+                elif animation == 'fade-in':
+                    # Fade in
+                    def fade_opacity(t):
+                        if t < 0.5:
+                            return t / 0.5
+                        return 1.0
+
+                    cta_clip = cta_clip.with_opacity(fade_opacity)
+
+                # Composite CTA onto video
+                final_video = CompositeVideoClip([final_video, cta_clip])
+                print(f"[OK] Added CTA overlay ({animation} animation, {duration}s duration)")
+            except Exception as e:
+                print(f"[WARNING] CTA overlay failed: {e}")
+                import traceback
+                traceback.print_exc()
+
         output_path = self.output_folder / output_filename
         counter = 1
         original_output_path = output_path

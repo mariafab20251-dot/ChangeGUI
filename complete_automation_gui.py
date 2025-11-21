@@ -725,6 +725,79 @@ class VideoAutomationGUI:
         # Intensity slider
         self.create_slider_control(chroma_card, 'Intensity (pixel offset):', 'chromatic_intensity', 1, 20, 5, value_format=lambda v: f"{int(v)}px")
 
+        # CTA Overlay Section
+        cta_overlay_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
+        cta_overlay_card.pack(fill='x', padx=15, pady=(15, 0))
+
+        tk.Label(cta_overlay_card, text='💬 CTA Overlay (Call-to-Action)',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 13, 'bold')).pack(anchor='w', pady=(0, 10))
+
+        # Enable CTA
+        cta_var = tk.BooleanVar(value=self.settings.get('cta_overlay_enabled', False))
+        tk.Checkbutton(cta_overlay_card, text='Show CTA Overlay',
+                      variable=cta_var, bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 10, 'bold'),
+                      activebackground=AppStyles.BG_INPUT,
+                      selectcolor=AppStyles.BG_CARD,
+                      command=lambda: self.update_setting('cta_overlay_enabled', cta_var.get())).pack(anchor='w', pady=(0, 10))
+
+        tk.Label(cta_overlay_card, text='ℹ️ Add animated "Follow for more", "Like & Subscribe" style overlays',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(0, 10))
+
+        # CTA Text
+        text_frame = tk.Frame(cta_overlay_card, bg=AppStyles.BG_INPUT)
+        text_frame.pack(fill='x', pady=(0, 10))
+
+        tk.Label(text_frame, text='CTA Text:',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(0, 5))
+
+        self.cta_text_var = tk.StringVar(value=self.settings.get('cta_overlay_text', 'Follow for more! 👉'))
+        cta_text_entry = tk.Entry(text_frame, textvariable=self.cta_text_var,
+                                  bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                                  font=('Segoe UI', 10))
+        cta_text_entry.pack(fill='x')
+        cta_text_entry.bind('<FocusOut>', lambda e: self.update_setting('cta_overlay_text', self.cta_text_var.get()))
+
+        # Position
+        pos_frame = tk.Frame(cta_overlay_card, bg=AppStyles.BG_INPUT)
+        pos_frame.pack(fill='x', pady=(0, 10))
+
+        tk.Label(pos_frame, text='Position:',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
+
+        self.cta_position_var = tk.StringVar(value=self.settings.get('cta_overlay_position', 'bottom-center'))
+        cta_pos_dropdown = ttk.Combobox(pos_frame, textvariable=self.cta_position_var,
+                                       values=['top-left', 'top-center', 'top-right',
+                                              'bottom-left', 'bottom-center', 'bottom-right'],
+                                       state='readonly', width=15)
+        cta_pos_dropdown.pack(side='left')
+        cta_pos_dropdown.bind('<<ComboboxSelected>>',
+                             lambda e: self.update_setting('cta_overlay_position', self.cta_position_var.get()))
+
+        # Animation
+        anim_frame = tk.Frame(cta_overlay_card, bg=AppStyles.BG_INPUT)
+        anim_frame.pack(fill='x', pady=(0, 10))
+
+        tk.Label(anim_frame, text='Animation:',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
+
+        self.cta_animation_var = tk.StringVar(value=self.settings.get('cta_overlay_animation', 'bounce'))
+        cta_anim_dropdown = ttk.Combobox(anim_frame, textvariable=self.cta_animation_var,
+                                        values=['none', 'bounce', 'pulse', 'slide-in', 'fade-in'],
+                                        state='readonly', width=15)
+        cta_anim_dropdown.pack(side='left')
+        cta_anim_dropdown.bind('<<ComboboxSelected>>',
+                              lambda e: self.update_setting('cta_overlay_animation', self.cta_animation_var.get()))
+
+        # Timing sliders
+        self.create_slider_control(cta_overlay_card, 'Start Time:', 'cta_overlay_start_time', 0, 10, 3.0, resolution=0.5, value_format=lambda v: f"{v:.1f}s")
+        self.create_slider_control(cta_overlay_card, 'Duration:', 'cta_overlay_duration', 1, 10, 3.0, resolution=0.5, value_format=lambda v: f"{v:.1f}s")
+
         # Progress Bar Section
         progress_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
         progress_card.pack(fill='x', padx=15, pady=(15, 0))
