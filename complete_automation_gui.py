@@ -272,23 +272,23 @@ class VideoAutomationGUI:
                                            AppStyles.BG_GRADIENT_END, ratio))
 
         # Header content on top of gradient
-        header_content = tk.Frame(gradient_canvas, bg='', height=80)
+        header_content = tk.Frame(gradient_canvas, bg=AppStyles.BG_GRADIENT_START, height=80)
         gradient_canvas.create_window(0, 0, window=header_content, anchor='nw', width=1200)
 
         # Left side - Logo and title
-        left_header = tk.Frame(header_content, bg='')
+        left_header = tk.Frame(header_content, bg=AppStyles.BG_GRADIENT_START)
         left_header.pack(side='left', padx=30, pady=15)
 
         tk.Label(left_header, text="🎬 Video Automation Studio",
-                bg='', fg=AppStyles.TEXT_WHITE,
+                bg=AppStyles.BG_GRADIENT_START, fg=AppStyles.TEXT_WHITE,
                 font=('Segoe UI', 22, 'bold')).pack(anchor='w')
 
         tk.Label(left_header, text="Create stunning videos with AI-powered automation",
-                bg='', fg=AppStyles.TEXT_WHITE,
+                bg=AppStyles.BG_GRADIENT_START, fg=AppStyles.TEXT_WHITE,
                 font=('Segoe UI', 9)).pack(anchor='w', pady=(3,0))
 
         # Right side - Status
-        right_header = tk.Frame(header_content, bg='')
+        right_header = tk.Frame(header_content, bg=AppStyles.BG_GRADIENT_START)
         right_header.pack(side='right', padx=30, pady=15)
 
         status_badge = tk.Frame(right_header, bg=AppStyles.ACCENT_SUCCESS, padx=15, pady=8)
