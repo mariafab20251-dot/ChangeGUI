@@ -2103,7 +2103,7 @@ class VideoAutomationGUI:
         for col in range(columns):
             grid_container.columnconfigure(col, weight=1, uniform='effect_col')
 
-    def create_slider_control(self, parent, label, key, from_, to, default, resolution=1):
+    def create_slider_control(self, parent, label, key, from_, to, default, resolution=1, value_format=None):
         """Create a modern slider control"""
         slider_frame = tk.Frame(parent, bg=AppStyles.BG_CARD)
         slider_frame.pack(fill='x', padx=20, pady=8)
@@ -2114,9 +2114,15 @@ class VideoAutomationGUI:
 
         var = tk.DoubleVar(value=self.settings.get(key, default))
 
-        value_label = tk.Label(slider_frame, text=str(var.get()),
+        # Format initial value
+        if value_format:
+            display_value = value_format(var.get())
+        else:
+            display_value = str(var.get())
+
+        value_label = tk.Label(slider_frame, text=display_value,
                               bg=AppStyles.BG_CARD, fg=AppStyles.ACCENT_PRIMARY,
-                              font=('Segoe UI', 9, 'bold'), width=6)
+                              font=('Segoe UI', 9, 'bold'), width=8)
         value_label.pack(side='right')
 
         scale = tk.Scale(slider_frame, from_=from_, to=to, resolution=resolution,
@@ -2124,13 +2130,20 @@ class VideoAutomationGUI:
                         bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                         highlightthickness=0, troughcolor=AppStyles.BG_INPUT,
                         showvalue=False,
-                        command=lambda v, k=key, vl=value_label: self.on_slider_change(k, v, vl))
+                        command=lambda v, k=key, vl=value_label, fmt=value_format: self.on_slider_change(k, v, vl, fmt))
         scale.pack(side='left', fill='x', expand=True, padx=10)
 
-    def on_slider_change(self, key, value, value_label):
+    def on_slider_change(self, key, value, value_label, value_format=None):
         """Handle slider value change"""
         val = float(value)
-        value_label.config(text=f"{val:.2f}" if val < 10 else str(int(val)))
+
+        # Format display value
+        if value_format:
+            display_value = value_format(val)
+        else:
+            display_value = f"{val:.2f}" if val < 10 else str(int(val))
+
+        value_label.config(text=display_value)
         self.update_setting(key, val if val < 10 else int(val))
 
     def create_text_controls(self, parent, prefix):
