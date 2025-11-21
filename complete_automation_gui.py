@@ -32,6 +32,15 @@ except ImportError:
     TTSGenerator = None
     print("⚠ Could not import VideoQuoteAutomation - processing will not be available")
 
+# Import NeuTTS voice cloning helper
+try:
+    from neutts_helper import AsyncNeuTTSHelper
+    NEUTTS_AVAILABLE = True
+except ImportError:
+    AsyncNeuTTSHelper = None
+    NEUTTS_AVAILABLE = False
+    print("⚠ Could not import NeuTTS Helper - Voice cloning will not be available")
+
 
 class ModernStyles:
     """Ultra-Professional Dark Theme with Gradients"""
@@ -3023,6 +3032,455 @@ class ProcessingPopup:
         messagebox.showinfo("Saved", "Processing paths saved successfully!")
 
 
+class VoiceCloningPopup:
+    """Popup for NeuTTS Voice Cloning"""
+
+    def __init__(self, parent, settings, on_save):
+        self.settings = settings.copy()
+        self.on_save = on_save
+
+        # Initialize NeuTTS helper
+        if NEUTTS_AVAILABLE:
+            server_url = self.settings.get('neutts_server_url', 'http://localhost:5000')
+            self.neutts = AsyncNeuTTSHelper(server_url)
+            # Load saved voices library
+            self.neutts.helper.load_voice_library()
+        else:
+            self.neutts = None
+
+        self.window = tk.Toplevel(parent)
+        self.window.title("🎙️ Voice Cloning - NeuTTS")
+        self.window.geometry("850x750")
+        self.window.configure(bg=ModernStyles.BG_PRIMARY)
+
+        self.setup_ui()
+
+        # Check server status on startup
+        if self.neutts:
+            self.check_server_status()
+
+    def setup_ui(self):
+        # Header
+        header = tk.Frame(self.window, bg=ModernStyles.ACCENT_PINK, height=60)
+        header.pack(fill='x')
+        header.pack_propagate(False)
+
+        tk.Label(header, text="🎙️ Voice Cloning - NeuTTS",
+                bg=ModernStyles.ACCENT_PINK, fg='white',
+                font=('Segoe UI', 16, 'bold')).pack(side='left', padx=20, pady=15)
+
+        # Server Status Indicator (top right of header)
+        status_frame = tk.Frame(header, bg=ModernStyles.ACCENT_PINK)
+        status_frame.pack(side='right', padx=20)
+
+        self.status_label = tk.Label(status_frame, text="⚫ Checking...",
+                                     bg=ModernStyles.ACCENT_PINK, fg='white',
+                                     font=('Segoe UI', 10, 'bold'))
+        self.status_label.pack(side='left', padx=5)
+
+        tk.Button(status_frame, text="🔄 Refresh", command=self.check_server_status,
+                 bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_PRIMARY,
+                 font=('Segoe UI', 9, 'bold'), relief='flat',
+                 padx=15, pady=5, cursor='hand2').pack(side='left', padx=5)
+
+        # Bottom buttons
+        btn_frame = tk.Frame(self.window, bg=ModernStyles.BG_PRIMARY, height=70)
+        btn_frame.pack(fill='x', side='bottom')
+        btn_frame.pack_propagate(False)
+
+        buttons = tk.Frame(btn_frame, bg=ModernStyles.BG_PRIMARY)
+        buttons.pack(expand=True)
+
+        tk.Button(buttons, text="💾  Save Settings", command=self.save_settings,
+                 bg=ModernStyles.ACCENT_PINK, fg='white', font=('Segoe UI', 11, 'bold'),
+                 relief='flat', padx=30, pady=12, cursor='hand2').pack(side='left', padx=5)
+
+        tk.Button(buttons, text="✕  Close", command=self.window.destroy,
+                 bg=ModernStyles.ACCENT_RED, fg='white', font=('Segoe UI', 11, 'bold'),
+                 relief='flat', padx=30, pady=12, cursor='hand2').pack(side='left', padx=5)
+
+        # Scrollable content
+        canvas = tk.Canvas(self.window, bg=ModernStyles.BG_PRIMARY, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(self.window, orient="vertical", command=canvas.yview)
+        content = tk.Frame(canvas, bg=ModernStyles.BG_PRIMARY)
+
+        canvas.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True, padx=20, pady=20)
+        canvas.create_window((0, 0), window=content, anchor="nw")
+        content.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+
+        # ═══════════════════════════════════════════════════════════
+        # SECTION 1: Server Configuration
+        # ═══════════════════════════════════════════════════════════
+        section1 = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        section1.pack(fill='x', pady=(0,15))
+
+        tk.Label(section1, text="⚙️ Server Configuration",
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_PRIMARY,
+                font=('Segoe UI', 12, 'bold')).pack(anchor='w', padx=20, pady=(15,10))
+
+        # Server URL
+        url_frame = tk.Frame(section1, bg=ModernStyles.BG_CARD)
+        url_frame.pack(fill='x', padx=20, pady=5)
+
+        tk.Label(url_frame, text="Server URL:",
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_SECONDARY,
+                font=('Segoe UI', 10)).pack(side='left')
+
+        self.server_url_var = tk.StringVar(value=self.settings.get('neutts_server_url', 'http://localhost:5000'))
+        tk.Entry(url_frame, textvariable=self.server_url_var, width=40,
+                bg=ModernStyles.BG_PRIMARY, fg=ModernStyles.TEXT_PRIMARY,
+                font=('Segoe UI', 10), relief='flat',
+                insertbackground=ModernStyles.TEXT_PRIMARY).pack(side='left', padx=10)
+
+        # Instructions
+        tk.Label(section1, text="💡 Run 'run_new_tts.bat' to start the NeuTTS server",
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_MUTED,
+                font=('Segoe UI', 9, 'italic')).pack(anchor='w', padx=20, pady=(5,15))
+
+        # ═══════════════════════════════════════════════════════════
+        # SECTION 2: Clone New Voice
+        # ═══════════════════════════════════════════════════════════
+        section2 = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        section2.pack(fill='x', pady=(0,15))
+
+        tk.Label(section2, text="➕ Clone New Voice",
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_PRIMARY,
+                font=('Segoe UI', 12, 'bold')).pack(anchor='w', padx=20, pady=(15,10))
+
+        # Voice Name
+        name_frame = tk.Frame(section2, bg=ModernStyles.BG_CARD)
+        name_frame.pack(fill='x', padx=20, pady=5)
+
+        tk.Label(name_frame, text="Voice Name:",
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_SECONDARY,
+                font=('Segoe UI', 10), width=15, anchor='w').pack(side='left')
+
+        self.voice_name_var = tk.StringVar()
+        tk.Entry(name_frame, textvariable=self.voice_name_var, width=40,
+                bg=ModernStyles.BG_PRIMARY, fg=ModernStyles.TEXT_PRIMARY,
+                font=('Segoe UI', 10), relief='flat',
+                insertbackground=ModernStyles.TEXT_PRIMARY).pack(side='left', padx=10)
+
+        # Audio File
+        audio_frame = tk.Frame(section2, bg=ModernStyles.BG_CARD)
+        audio_frame.pack(fill='x', padx=20, pady=5)
+
+        tk.Label(audio_frame, text="Audio Sample:",
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_SECONDARY,
+                font=('Segoe UI', 10), width=15, anchor='w').pack(side='left')
+
+        self.audio_file_var = tk.StringVar()
+        tk.Entry(audio_frame, textvariable=self.audio_file_var, width=30,
+                bg=ModernStyles.BG_PRIMARY, fg=ModernStyles.TEXT_PRIMARY,
+                font=('Segoe UI', 10), relief='flat',
+                insertbackground=ModernStyles.TEXT_PRIMARY).pack(side='left', padx=10)
+
+        tk.Button(audio_frame, text="📁 Browse", command=self.browse_audio_file,
+                 bg=ModernStyles.ACCENT_BLUE, fg='white', font=('Segoe UI', 9, 'bold'),
+                 relief='flat', padx=15, pady=5, cursor='hand2').pack(side='left', padx=5)
+
+        # Reference Text
+        ref_frame = tk.Frame(section2, bg=ModernStyles.BG_CARD)
+        ref_frame.pack(fill='x', padx=20, pady=5)
+
+        tk.Label(ref_frame, text="Reference Text:",
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_SECONDARY,
+                font=('Segoe UI', 10)).pack(anchor='w')
+
+        self.ref_text_widget = scrolledtext.ScrolledText(ref_frame, height=4, width=70,
+                                                         bg=ModernStyles.BG_PRIMARY,
+                                                         fg=ModernStyles.TEXT_PRIMARY,
+                                                         font=('Segoe UI', 10),
+                                                         relief='flat', wrap=tk.WORD,
+                                                         insertbackground=ModernStyles.TEXT_PRIMARY)
+        self.ref_text_widget.pack(fill='x', pady=5)
+
+        tk.Label(section2, text="💡 Provide 10-30 seconds of clear audio with the matching text",
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_MUTED,
+                font=('Segoe UI', 9, 'italic')).pack(anchor='w', padx=20, pady=(0,5))
+
+        # Language
+        lang_frame = tk.Frame(section2, bg=ModernStyles.BG_CARD)
+        lang_frame.pack(fill='x', padx=20, pady=5)
+
+        tk.Label(lang_frame, text="Language:",
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_SECONDARY,
+                font=('Segoe UI', 10), width=15, anchor='w').pack(side='left')
+
+        self.language_var = tk.StringVar(value='en')
+        lang_combo = ttk.Combobox(lang_frame, textvariable=self.language_var,
+                                  values=['en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'zh', 'ja', 'ko'],
+                                  width=15, state='readonly')
+        lang_combo.pack(side='left', padx=10)
+
+        # Clone Button
+        clone_btn_frame = tk.Frame(section2, bg=ModernStyles.BG_CARD)
+        clone_btn_frame.pack(pady=10)
+
+        tk.Button(clone_btn_frame, text="🎤 Clone Voice", command=self.clone_voice,
+                 bg=ModernStyles.ACCENT_PINK, fg='white', font=('Segoe UI', 11, 'bold'),
+                 relief='flat', padx=40, pady=12, cursor='hand2').pack()
+
+        # Status message
+        self.clone_status_label = tk.Label(section2, text="",
+                                           bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_SECONDARY,
+                                           font=('Segoe UI', 9))
+        self.clone_status_label.pack(pady=(0,15))
+
+        # ═══════════════════════════════════════════════════════════
+        # SECTION 3: Voice Selection & Testing
+        # ═══════════════════════════════════════════════════════════
+        section3 = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        section3.pack(fill='x', pady=(0,15))
+
+        tk.Label(section3, text="🎯 Voice Selection & Testing",
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_PRIMARY,
+                font=('Segoe UI', 12, 'bold')).pack(anchor='w', padx=20, pady=(15,10))
+
+        # Voice Selection Dropdown
+        voice_frame = tk.Frame(section3, bg=ModernStyles.BG_CARD)
+        voice_frame.pack(fill='x', padx=20, pady=5)
+
+        tk.Label(voice_frame, text="Select Voice:",
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_SECONDARY,
+                font=('Segoe UI', 10), width=15, anchor='w').pack(side='left')
+
+        self.selected_voice_var = tk.StringVar()
+        self.voice_combo = ttk.Combobox(voice_frame, textvariable=self.selected_voice_var,
+                                        width=30, state='readonly')
+        self.voice_combo.pack(side='left', padx=10)
+
+        tk.Button(voice_frame, text="🔄", command=self.refresh_voices,
+                 bg=ModernStyles.ACCENT_BLUE, fg='white', font=('Segoe UI', 9, 'bold'),
+                 relief='flat', padx=10, pady=5, cursor='hand2').pack(side='left', padx=5)
+
+        # Test Text
+        test_frame = tk.Frame(section3, bg=ModernStyles.BG_CARD)
+        test_frame.pack(fill='x', padx=20, pady=5)
+
+        tk.Label(test_frame, text="Test Text:",
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_SECONDARY,
+                font=('Segoe UI', 10)).pack(anchor='w')
+
+        self.test_text_var = tk.StringVar(value="Hello! This is a test of my cloned voice. How does it sound?")
+        tk.Entry(test_frame, textvariable=self.test_text_var, width=70,
+                bg=ModernStyles.BG_PRIMARY, fg=ModernStyles.TEXT_PRIMARY,
+                font=('Segoe UI', 10), relief='flat',
+                insertbackground=ModernStyles.TEXT_PRIMARY).pack(fill='x', pady=5)
+
+        # Test Generation Button
+        test_btn_frame = tk.Frame(section3, bg=ModernStyles.BG_CARD)
+        test_btn_frame.pack(pady=10)
+
+        tk.Button(test_btn_frame, text="▶ Generate Test Audio", command=self.test_voice,
+                 bg=ModernStyles.ACCENT_GREEN, fg='white', font=('Segoe UI', 11, 'bold'),
+                 relief='flat', padx=40, pady=12, cursor='hand2').pack()
+
+        # Test status message
+        self.test_status_label = tk.Label(section3, text="",
+                                         bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_SECONDARY,
+                                         font=('Segoe UI', 9))
+        self.test_status_label.pack(pady=(0,15))
+
+        # ═══════════════════════════════════════════════════════════
+        # SECTION 4: Voice Library Management
+        # ═══════════════════════════════════════════════════════════
+        section4 = tk.Frame(content, bg=ModernStyles.BG_CARD)
+        section4.pack(fill='x', pady=(0,15))
+
+        tk.Label(section4, text="📚 Voice Library",
+                bg=ModernStyles.BG_CARD, fg=ModernStyles.TEXT_PRIMARY,
+                font=('Segoe UI', 12, 'bold')).pack(anchor='w', padx=20, pady=(15,10))
+
+        # Voice list with scrollbar
+        list_frame = tk.Frame(section4, bg=ModernStyles.BG_CARD)
+        list_frame.pack(fill='both', padx=20, pady=5)
+
+        list_scroll = ttk.Scrollbar(list_frame)
+        list_scroll.pack(side='right', fill='y')
+
+        self.voice_listbox = tk.Listbox(list_frame, height=6,
+                                        bg=ModernStyles.BG_PRIMARY,
+                                        fg=ModernStyles.TEXT_PRIMARY,
+                                        font=('Segoe UI', 10),
+                                        relief='flat',
+                                        yscrollcommand=list_scroll.set)
+        self.voice_listbox.pack(side='left', fill='both', expand=True)
+        list_scroll.config(command=self.voice_listbox.yview)
+
+        # Library buttons
+        lib_btn_frame = tk.Frame(section4, bg=ModernStyles.BG_CARD)
+        lib_btn_frame.pack(pady=10, padx=20)
+
+        tk.Button(lib_btn_frame, text="🗑️ Delete Voice", command=self.delete_voice,
+                 bg=ModernStyles.ACCENT_RED, fg='white', font=('Segoe UI', 9, 'bold'),
+                 relief='flat', padx=20, pady=8, cursor='hand2').pack(side='left', padx=5)
+
+        tk.Button(lib_btn_frame, text="💾 Save Library", command=self.save_library,
+                 bg=ModernStyles.ACCENT_BLUE, fg='white', font=('Segoe UI', 9, 'bold'),
+                 relief='flat', padx=20, pady=8, cursor='hand2').pack(side='left', padx=5)
+
+        tk.Label(section4, text="",
+                bg=ModernStyles.BG_CARD).pack(pady=5)
+
+        # Initial refresh
+        self.refresh_voices()
+
+    def check_server_status(self):
+        """Check if NeuTTS server is running"""
+        if not self.neutts:
+            self.status_label.config(text="⚠️ NeuTTS Not Installed", fg='orange')
+            return
+
+        def callback(result):
+            is_running, status = result
+            if is_running:
+                self.status_label.config(text="✅ " + status, fg='#10b981')
+            else:
+                self.status_label.config(text="❌ " + status, fg='#ef4444')
+
+        self.neutts.check_status_async(callback)
+
+    def browse_audio_file(self):
+        """Browse for audio file"""
+        filepath = filedialog.askopenfilename(
+            title="Select Audio Sample",
+            filetypes=[("Audio Files", "*.wav *.mp3 *.ogg *.flac"), ("All Files", "*.*")]
+        )
+        if filepath:
+            self.audio_file_var.set(filepath)
+
+    def clone_voice(self):
+        """Clone a new voice"""
+        if not self.neutts:
+            messagebox.showerror("Error", "NeuTTS Helper not available!")
+            return
+
+        voice_name = self.voice_name_var.get().strip()
+        audio_file = self.audio_file_var.get().strip()
+        ref_text = self.ref_text_widget.get('1.0', 'end').strip()
+        language = self.language_var.get()
+
+        if not voice_name:
+            messagebox.showwarning("Warning", "Please enter a voice name!")
+            return
+        if not audio_file:
+            messagebox.showwarning("Warning", "Please select an audio file!")
+            return
+        if not ref_text:
+            messagebox.showwarning("Warning", "Please enter reference text!")
+            return
+
+        self.clone_status_label.config(text="🔄 Cloning voice... Please wait...", fg=ModernStyles.ACCENT_ORANGE)
+        self.window.update()
+
+        def callback(result):
+            success, message = result
+            if success:
+                self.clone_status_label.config(text=message, fg=ModernStyles.ACCENT_GREEN)
+                self.refresh_voices()
+                # Clear inputs
+                self.voice_name_var.set("")
+                self.audio_file_var.set("")
+                self.ref_text_widget.delete('1.0', 'end')
+            else:
+                self.clone_status_label.config(text=message, fg=ModernStyles.ACCENT_RED)
+
+        self.neutts.clone_voice_async(voice_name, audio_file, ref_text, language, callback)
+
+    def refresh_voices(self):
+        """Refresh voice dropdown and listbox"""
+        if not self.neutts:
+            return
+
+        voices = self.neutts.helper.get_available_voices()
+        voice_names = list(voices.keys())
+
+        # Update combo
+        self.voice_combo['values'] = voice_names
+        if voice_names and not self.selected_voice_var.get():
+            self.selected_voice_var.set(voice_names[0])
+
+        # Update listbox
+        self.voice_listbox.delete(0, tk.END)
+        for name in voice_names:
+            voice_info = voices[name]
+            display_text = f"{name} ({voice_info.get('language', 'en')}) - {voice_info.get('created_at', 'N/A')}"
+            self.voice_listbox.insert(tk.END, display_text)
+
+    def test_voice(self):
+        """Test selected voice"""
+        if not self.neutts:
+            messagebox.showerror("Error", "NeuTTS Helper not available!")
+            return
+
+        voice_name = self.selected_voice_var.get()
+        test_text = self.test_text_var.get().strip()
+
+        if not voice_name:
+            messagebox.showwarning("Warning", "Please select a voice!")
+            return
+        if not test_text:
+            messagebox.showwarning("Warning", "Please enter test text!")
+            return
+
+        self.test_status_label.config(text="🔄 Generating test audio... Please wait...", fg=ModernStyles.ACCENT_ORANGE)
+        self.window.update()
+
+        def callback(result):
+            success, audio_path, message = result
+            if success:
+                self.test_status_label.config(text=f"✅ {message}\n📁 Saved: {audio_path}", fg=ModernStyles.ACCENT_GREEN)
+                messagebox.showinfo("Success", f"Test audio generated!\n\nFile: {audio_path}\n\nCheck the audio in your media player.")
+            else:
+                self.test_status_label.config(text=f"❌ {message}", fg=ModernStyles.ACCENT_RED)
+
+        self.neutts.test_voice_async(voice_name, test_text, callback)
+
+    def delete_voice(self):
+        """Delete selected voice from library"""
+        if not self.neutts:
+            return
+
+        selection = self.voice_listbox.curselection()
+        if not selection:
+            messagebox.showwarning("Warning", "Please select a voice to delete!")
+            return
+
+        voice_display = self.voice_listbox.get(selection[0])
+        voice_name = voice_display.split(' (')[0]
+
+        if messagebox.askyesno("Confirm Delete", f"Delete voice '{voice_name}'?"):
+            success, message = self.neutts.helper.delete_voice(voice_name)
+            if success:
+                messagebox.showinfo("Success", message)
+                self.refresh_voices()
+            else:
+                messagebox.showerror("Error", message)
+
+    def save_library(self):
+        """Save voice library to file"""
+        if not self.neutts:
+            return
+
+        success, message = self.neutts.helper.save_voice_library()
+        if success:
+            messagebox.showinfo("Success", message)
+        else:
+            messagebox.showerror("Error", message)
+
+    def save_settings(self):
+        """Save NeuTTS settings"""
+        self.settings['neutts_server_url'] = self.server_url_var.get()
+        self.settings['neutts_enabled'] = True
+        self.settings['neutts_selected_voice'] = self.selected_voice_var.get()
+
+        self.on_save(self.settings)
+        messagebox.showinfo("Success", "NeuTTS settings saved!")
+
+
 class DashboardGUI:
     """Main dashboard interface"""
 
@@ -3193,6 +3651,22 @@ class DashboardGUI:
                                 "Word-by-word captions, CapCut-style highlighting, and emoji themes",
                                 ModernStyles.ACCENT_CYAN, lambda: self.open_captions_settings())
         card6.grid(row=0, column=1, sticky='nsew', padx=(10,0))
+
+        # Row 4 - Voice Cloning (NEW!)
+        row4 = tk.Frame(cards_container, bg=ModernStyles.BG_PRIMARY)
+        row4.pack(fill='both', expand=True, pady=(12,0))
+
+        row4.grid_columnconfigure(0, weight=1)
+        row4.grid_columnconfigure(1, weight=1)
+        row4.grid_rowconfigure(0, weight=1)
+
+        card7 = self.create_modern_card(row4, "🎙️", "Voice Cloning",
+                                "Clone voices with NeuTTS AI - Natural, human-like voice synthesis",
+                                ModernStyles.ACCENT_PINK, lambda: self.open_voice_cloning())
+        card7.grid(row=0, column=0, sticky='nsew', padx=(0,10))
+
+        # Placeholder for future feature (or leave empty for cleaner look)
+        # card8 can be added here in the future
 
         # ═══════════════════════════════════════════════════════════
         # BOTTOM ACTION BAR with Modern Buttons
@@ -3393,6 +3867,15 @@ class DashboardGUI:
 
     def open_captions_settings(self):
         CaptionsPopup(self.root, self.settings, self.update_settings)
+
+    def open_voice_cloning(self):
+        """Open Voice Cloning popup"""
+        if NEUTTS_AVAILABLE:
+            VoiceCloningPopup(self.root, self.settings, self.update_settings)
+        else:
+            messagebox.showwarning("NeuTTS Not Available",
+                                 "NeuTTS Helper is not installed!\n\n"
+                                 "Please ensure neutts_helper.py is in the same folder.")
 
     def show_processing(self):
         """Open processing popup"""
