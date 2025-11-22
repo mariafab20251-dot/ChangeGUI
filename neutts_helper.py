@@ -208,11 +208,24 @@ class NeuTTSHelper:
                     api_name="/generate_speech"
                 )
 
-                # Result is typically a file path
-                if result and isinstance(result, str):
-                    import shutil
-                    shutil.copy(result, output_path)
+                # Handle different result types
+                import shutil
+                audio_file = None
+
+                # Result could be string, tuple, or list
+                if isinstance(result, str):
+                    audio_file = result
+                elif isinstance(result, (tuple, list)) and len(result) > 0:
+                    audio_file = result[0]
+                elif isinstance(result, dict) and 'path' in result:
+                    audio_file = result['path']
+
+                if audio_file and isinstance(audio_file, str):
+                    # Copy the generated audio to output path
+                    shutil.copy(audio_file, output_path)
                     return True, f"✓ Speech generated: {output_path}"
+                else:
+                    print(f"Unexpected result type from gradio_client: {type(result)} = {result}")
 
             except ImportError:
                 # gradio_client not installed, try requests
