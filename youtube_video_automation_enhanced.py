@@ -1390,66 +1390,94 @@ class TTSGenerator:
             # Initialize Kokoro - try package defaults first, then manual paths
             kokoro = None
             try:
-                # First, try initializing without paths (uses package defaults)
+                import os
+
+                # Build comprehensive list of paths to search
+                possible_paths = []
+
+                # Try to find kokoro-onnx package location first
                 try:
-                    kokoro = Kokoro()
-                    print("[OK] Kokoro initialized with package defaults")
-                except TypeError:
-                    # Kokoro requires paths - try to find them
-                    import os
+                    import kokoro_onnx
+                    pkg_dir = os.path.dirname(kokoro_onnx.__file__)
+                    possible_paths.extend([
+                        pkg_dir,
+                        os.path.join(pkg_dir, 'models'),
+                    ])
+                except:
+                    pass
 
-                    # Common locations for Kokoro models
-                    possible_paths = [
-                        # Package installation path
-                        os.path.join(os.path.dirname(Kokoro.__module__.__file__ if hasattr(Kokoro, '__module__') else ''), 'models'),
-                        # User home
-                        os.path.expanduser("~/.kokoro"),
-                        os.path.expanduser("~/kokoro"),
-                        # Current directory
-                        os.path.join(os.getcwd(), "kokoro_models"),
-                        # Settings paths
-                        settings.get('kokoro_model_path', ''),
-                    ]
+                # Additional common locations
+                possible_paths.extend([
+                    # Settings path (user configured)
+                    settings.get('kokoro_model_path', ''),
+                    # Project directory
+                    os.path.dirname(os.path.abspath(__file__)),
+                    os.path.join(os.path.dirname(os.path.abspath(__file__)), 'kokoro_models'),
+                    os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models'),
+                    # Current working directory
+                    os.getcwd(),
+                    os.path.join(os.getcwd(), "kokoro_models"),
+                    os.path.join(os.getcwd(), "models"),
+                    # User home directories
+                    os.path.expanduser("~/.kokoro"),
+                    os.path.expanduser("~/kokoro"),
+                    os.path.expanduser("~/.cache/kokoro"),
+                    os.path.expanduser("~/.local/share/kokoro"),
+                    # Common data directories
+                    "/usr/share/kokoro",
+                    "/usr/local/share/kokoro",
+                ])
 
-                    model_path = None
-                    voices_path = None
+                print(f"[DEBUG] Searching for Kokoro models in {len(possible_paths)} locations...")
 
-                    # Try to find kokoro-onnx package location
-                    try:
-                        import kokoro_onnx
-                        pkg_dir = os.path.dirname(kokoro_onnx.__file__)
-                        possible_paths.insert(0, pkg_dir)
-                        possible_paths.insert(0, os.path.join(pkg_dir, 'models'))
-                    except:
-                        pass
+                model_path = None
+                voices_path = None
 
-                    # Search for model files
-                    for base_path in possible_paths:
-                        if not base_path or not os.path.exists(base_path):
-                            continue
+                # Search for model files
+                for base_path in possible_paths:
+                    if not base_path or not os.path.exists(base_path):
+                        continue
 
-                        # Check for model file
-                        for model_name in ['kokoro-v0_19.onnx', 'kokoro.onnx', 'model.onnx']:
-                            test_model = os.path.join(base_path, model_name)
-                            if os.path.exists(test_model):
-                                model_path = test_model
-                                break
+                    # Check for model file
+                    for model_name in ['kokoro-v0_19.onnx', 'kokoro-v0_19-half.onnx', 'kokoro.onnx', 'model.onnx']:
+                        test_model = os.path.join(base_path, model_name)
+                        if os.path.exists(test_model):
+                            model_path = test_model
+                            print(f"[DEBUG] Found model: {model_path}")
+                            break
 
-                        # Check for voices file
-                        for voices_name in ['voices.json', 'voices.bin']:
-                            test_voices = os.path.join(base_path, voices_name)
-                            if os.path.exists(test_voices):
-                                voices_path = test_voices
-                                break
-
-                        if model_path and voices_path:
+                    # Check for voices file
+                    for voices_name in ['voices.json', 'voices.bin', 'voices-v0_19.bin']:
+                        test_voices = os.path.join(base_path, voices_name)
+                        if os.path.exists(test_voices):
+                            voices_path = test_voices
+                            print(f"[DEBUG] Found voices: {voices_path}")
                             break
 
                     if model_path and voices_path:
-                        print(f"[INFO] Found Kokoro model at: {model_path}")
-                        kokoro = Kokoro(model_path, voices_path)
-                    else:
-                        raise FileNotFoundError(f"Kokoro model files not found in: {possible_paths}")
+                        break
+                    elif model_path or voices_path:
+                        # Reset if we only found one file
+                        model_path = None
+                        voices_path = None
+
+                if model_path and voices_path:
+                    print(f"[OK] Initializing Kokoro with model: {model_path}")
+                    kokoro = Kokoro(model_path, voices_path)
+                else:
+                    # Try initializing without paths (uses package defaults)
+                    try:
+                        kokoro = Kokoro()
+                        print("[OK] Kokoro initialized with package defaults")
+                    except (TypeError, Exception) as e:
+                        searched = [p for p in possible_paths if p and os.path.exists(p)]
+                        not_found = [p for p in possible_paths if p and not os.path.exists(p)]
+                        print(f"[ERROR] Kokoro model files not found!")
+                        print(f"[ERROR] Searched existing paths: {searched}")
+                        print(f"[ERROR] Non-existing paths: {not_found[:5]}")
+                        print(f"[ERROR] Please download Kokoro models and place them in one of these locations")
+                        print(f"[ERROR] Or set 'kokoro_model_path' in settings to point to the models directory")
+                        raise FileNotFoundError(f"Kokoro model files not found")
 
             except Exception as init_error:
                 print(f"[ERROR] Failed to initialize Kokoro: {init_error}")

@@ -1335,6 +1335,41 @@ class VideoAutomationGUI:
                       font=('Segoe UI', 9),
                       command=lambda: self.update_setting('kokoro_quality', 'mp3')).pack(anchor='w', pady=3)
 
+        # Model Path (optional - for custom installations)
+        model_path_frame = tk.Frame(self.kokoro_settings_frame, bg=AppStyles.BG_CARD)
+        model_path_frame.pack(fill='x', pady=8)
+
+        tk.Label(model_path_frame, text='Model Path (Optional):',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(0, 5))
+
+        tk.Label(model_path_frame, text='Leave empty to auto-detect. Set path if models are in custom location.',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(0, 5))
+
+        model_path_row = tk.Frame(model_path_frame, bg=AppStyles.BG_CARD)
+        model_path_row.pack(fill='x')
+
+        self.kokoro_model_path_var = tk.StringVar(value=self.settings.get('kokoro_model_path', ''))
+        model_path_entry = tk.Entry(model_path_row, textvariable=self.kokoro_model_path_var,
+                                    bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                                    font=('Segoe UI', 9), relief='flat')
+        model_path_entry.pack(side='left', fill='x', expand=True, padx=(0, 5))
+        model_path_entry.bind('<FocusOut>', lambda e: self.update_setting('kokoro_model_path', self.kokoro_model_path_var.get()))
+
+        def browse_kokoro_models():
+            from tkinter import filedialog
+            folder = filedialog.askdirectory(title="Select Kokoro Models Folder")
+            if folder:
+                self.kokoro_model_path_var.set(folder)
+                self.update_setting('kokoro_model_path', folder)
+
+        ModernButton(model_path_row, text='Browse',
+                    bg_color=AppStyles.ACCENT_INFO,
+                    font=('Segoe UI', 8, 'bold'),
+                    padx=10, pady=4,
+                    command=browse_kokoro_models).pack(side='right')
+
         # Cloud TTS Voice Selection (shown when Cloud TTS is selected)
         self.cloud_voice_frame = tk.Frame(tts_card, bg=AppStyles.BG_CARD)
         self.cloud_voice_frame.pack(fill='x', padx=20, pady=8)
@@ -1952,6 +1987,67 @@ class VideoAutomationGUI:
         self.create_slider_control(settings_card, 'Zoom Scale:', 'transition_zoom_scale', 1.1, 2.0, 1.3, resolution=0.1, value_format=lambda v: f"{v:.1f}x")
         self.create_slider_control(settings_card, 'Blur Amount:', 'transition_blur_amount', 5, 30, 15, value_format=lambda v: f"{int(v)}px")
         self.create_slider_control(settings_card, 'Glitch Intensity:', 'transition_glitch_intensity', 0.1, 1.0, 0.5, resolution=0.1, value_format=lambda v: f"{int(v*100)}%")
+
+        # Cinematic Effects Settings (Lens Flare, Light Leaks, Film Burn repeats)
+        cinematic_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
+        cinematic_card.pack(fill='x', padx=15, pady=(15, 0))
+
+        tk.Label(cinematic_card, text='✨ Cinematic Effects Settings',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 13, 'bold')).pack(anchor='w', pady=(0, 10))
+
+        # Lens Flare Repeat Control
+        flare_repeat_frame = tk.Frame(cinematic_card, bg=AppStyles.BG_INPUT)
+        flare_repeat_frame.pack(fill='x', pady=(0, 10))
+
+        self.lens_flare_repeat_var = tk.BooleanVar(value=self.settings.get('lens_flare_repeat_enabled', False))
+        flare_repeat_cb = tk.Checkbutton(flare_repeat_frame, text='🔄 Repeat Lens Flare',
+                                         variable=self.lens_flare_repeat_var,
+                                         bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                                         selectcolor=AppStyles.BG_CARD,
+                                         activebackground=AppStyles.BG_INPUT,
+                                         font=('Segoe UI', 10),
+                                         command=lambda: self.update_setting('lens_flare_repeat_enabled', self.lens_flare_repeat_var.get()))
+        flare_repeat_cb.pack(side='left')
+
+        tk.Label(flare_repeat_frame, text='(Shows lens flare multiple times during video)',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(side='left', padx=(10, 0))
+
+        self.create_slider_control(cinematic_card, 'Lens Flare Interval:', 'lens_flare_repeat_interval', 2.0, 15.0, 5.0, resolution=0.5, value_format=lambda v: f"{v:.1f}s")
+        self.create_slider_control(cinematic_card, 'Lens Flare Intensity:', 'lens_flare_intensity', 0.1, 1.0, 0.5, resolution=0.1, value_format=lambda v: f"{int(v*100)}%")
+
+        # Light Leak Repeat Control
+        leak_repeat_frame = tk.Frame(cinematic_card, bg=AppStyles.BG_INPUT)
+        leak_repeat_frame.pack(fill='x', pady=(10, 10))
+
+        self.light_leak_repeat_var = tk.BooleanVar(value=self.settings.get('light_leak_repeat_enabled', False))
+        leak_repeat_cb = tk.Checkbutton(leak_repeat_frame, text='🔄 Repeat Light Leaks',
+                                        variable=self.light_leak_repeat_var,
+                                        bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                                        selectcolor=AppStyles.BG_CARD,
+                                        activebackground=AppStyles.BG_INPUT,
+                                        font=('Segoe UI', 10),
+                                        command=lambda: self.update_setting('light_leak_repeat_enabled', self.light_leak_repeat_var.get()))
+        leak_repeat_cb.pack(side='left')
+
+        self.create_slider_control(cinematic_card, 'Light Leak Interval:', 'light_leak_repeat_interval', 3.0, 20.0, 8.0, resolution=1.0, value_format=lambda v: f"{v:.0f}s")
+
+        # Film Burn Repeat Control
+        burn_repeat_frame = tk.Frame(cinematic_card, bg=AppStyles.BG_INPUT)
+        burn_repeat_frame.pack(fill='x', pady=(10, 10))
+
+        self.film_burn_repeat_var = tk.BooleanVar(value=self.settings.get('film_burn_repeat_enabled', False))
+        burn_repeat_cb = tk.Checkbutton(burn_repeat_frame, text='🔄 Repeat Film Burn',
+                                        variable=self.film_burn_repeat_var,
+                                        bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                                        selectcolor=AppStyles.BG_CARD,
+                                        activebackground=AppStyles.BG_INPUT,
+                                        font=('Segoe UI', 10),
+                                        command=lambda: self.update_setting('film_burn_repeat_enabled', self.film_burn_repeat_var.get()))
+        burn_repeat_cb.pack(side='left')
+
+        self.create_slider_control(cinematic_card, 'Film Burn Interval:', 'film_burn_repeat_interval', 5.0, 30.0, 10.0, resolution=1.0, value_format=lambda v: f"{v:.0f}s")
 
     # Helper methods
 
