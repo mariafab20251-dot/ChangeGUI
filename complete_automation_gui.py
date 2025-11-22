@@ -1650,6 +1650,30 @@ class VideoAutomationGUI:
                     padx=10, pady=4,
                     command=self.refresh_neutts_voices).pack(anchor='w')
 
+        # NeuTTS Speed Control
+        neutts_speed_frame = tk.Frame(self.neutts_settings_frame, bg=AppStyles.BG_CARD)
+        neutts_speed_frame.pack(fill='x', pady=8)
+
+        tk.Label(neutts_speed_frame, text='NeuTTS Speed:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(0, 5))
+
+        speed_slider_frame = tk.Frame(neutts_speed_frame, bg=AppStyles.BG_CARD)
+        speed_slider_frame.pack(fill='x')
+
+        self.neutts_speed_var = tk.DoubleVar(value=self.settings.get('neutts_speed', 1.0))
+        neutts_speed_slider = tk.Scale(speed_slider_frame, from_=0.5, to=2.0,
+                                       resolution=0.1, orient='horizontal',
+                                       variable=self.neutts_speed_var,
+                                       bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                                       highlightthickness=0, troughcolor=AppStyles.BG_INPUT,
+                                       command=lambda v: self.update_setting('neutts_speed', float(v)))
+        neutts_speed_slider.pack(side='left', fill='x', expand=True)
+
+        tk.Label(speed_slider_frame, text='0.5=Slow  1.0=Normal  2.0=Fast',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8)).pack(side='left', padx=(10, 0))
+
         # Speed slider
         self.create_slider_control(tts_card, 'Speech Speed (WPM):', 'tts_speed', 100, 250, 150)
 
