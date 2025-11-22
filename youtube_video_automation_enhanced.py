@@ -3856,6 +3856,7 @@ class VideoQuoteAutomation:
         # ========== FIX: Check TTS duration FIRST and loop video if needed ==========
         # This prevents frame reading errors when TTS audio is longer than source video
         target_duration = video.duration
+        original_video_duration = video.duration
 
         if self.settings.get('use_tts_voiceover', False) and TTS_AVAILABLE:
             # Pre-calculate TTS duration to know if we need to loop the video
@@ -3875,21 +3876,33 @@ class VideoQuoteAutomation:
                 loops_needed = int(np.ceil(target_duration / video.duration))
                 print(f"[OK] Looping video {loops_needed}x to match TTS duration ({target_duration:.1f}s)")
 
-                # Create looped video by concatenating
-                try:
-                    from moviepy import concatenate_videoclips
-                except ImportError:
-                    from moviepy.editor import concatenate_videoclips
+                # Use time-based looping that wraps around - this actually creates new frames
+                # instead of referencing the original file beyond its duration
+                original_duration = video.duration
 
-                video_clips = [video] * loops_needed
-                video = concatenate_videoclips(video_clips, method="compose")
-                video = set_duration(video, target_duration)
+                def loop_time(get_frame, t):
+                    """Loop video by wrapping time back to start"""
+                    looped_t = t % original_duration
+                    return get_frame(looped_t)
+
+                try:
+                    # MoviePy 2.x
+                    video = video.transform(loop_time)
+                    video = video.with_duration(target_duration)
+                except AttributeError:
+                    # MoviePy 1.x
+                    video = video.fl(loop_time)
+                    video = video.set_duration(target_duration)
 
                 # Update txt_clip duration to match
                 txt_clip = set_duration(txt_clip, target_duration)
 
+                print(f"[OK] Video looped to {target_duration:.1f}s using frame wrapping")
+
             except Exception as e:
                 print(f"[WARNING] Could not loop video: {e}")
+                import traceback
+                traceback.print_exc()
 
         # Start with video and static text overlay
         layers = [video, txt_clip]
