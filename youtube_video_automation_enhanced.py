@@ -1553,6 +1553,108 @@ class TTSGenerator:
             return False, []
 
     @staticmethod
+    def _generate_neutts_voiceover(text: str, output_path: Path, settings: dict):
+        """Generate voiceover using NeuTTS (voice cloning)
+        Returns: (success: bool, word_timings: list)
+        """
+        try:
+            # Import NeuTTS helper
+            try:
+                from neutts_helper import NeuTTSHelper
+            except ImportError:
+                print("[ERROR] NeuTTS helper not available")
+                print("  Falling back to Cloud TTS...")
+                settings['tts_engine'] = 'cloud'
+                return TTSGenerator.generate_voiceover(text, output_path, settings)
+
+            # Get NeuTTS settings
+            server_url = settings.get('neutts_server_url', 'http://localhost:5000')
+            voice_name = settings.get('neutts_voice', '')
+            speed = float(settings.get('tts_speed', 150)) / 150.0  # Convert WPM to multiplier
+
+            if not voice_name:
+                print("[ERROR] No NeuTTS voice selected")
+                print("  Please clone a voice first or select an existing one")
+                return False, []
+
+            # Create helper
+            helper = NeuTTSHelper(server_url)
+
+            # Check server
+            is_running, status_msg = helper.check_server_status()
+            if not is_running:
+                print(f"[ERROR] NeuTTS server not available: {status_msg}")
+                print("  Please start the NeuTTS server (run_new_tts.bat)")
+                return False, []
+
+            # Load voice library
+            success, msg = helper.load_voice_library()
+            if not success or voice_name not in helper.get_available_voices():
+                print(f"[ERROR] Voice '{voice_name}' not found in library")
+                print("  Available voices:", list(helper.get_available_voices().keys()))
+                return False, []
+
+            # Clean text for TTS
+            clean_text = re.sub(r'[\U0001F300-\U0001F9FF\U0001F600-\U0001F64F\U0001F680-\U0001F6FF\U00002600-\U000027BF\U0001F1E0-\U0001F1FF]+', '', text)
+            clean_text = clean_text.strip()
+
+            if not clean_text:
+                print("[WARNING] No text to convert after cleaning")
+                return False, []
+
+            print(f"[TTS] Generating NeuTTS voiceover with voice: {voice_name}")
+
+            # Generate speech
+            success, message = helper.generate_speech(
+                text=clean_text,
+                voice_name=voice_name,
+                output_path=str(output_path),
+                speed=speed
+            )
+
+            if not success:
+                print(f"[ERROR] NeuTTS generation failed: {message}")
+                return False, []
+
+            # Generate word timings (estimated based on text)
+            words = clean_text.split()
+            word_timings = []
+
+            # Try to get audio duration
+            try:
+                import soundfile as sf
+                data, sample_rate = sf.read(str(output_path))
+                audio_duration = len(data) / sample_rate
+            except Exception:
+                # Estimate based on speed and word count
+                wpm = settings.get('tts_speed', 150)
+                audio_duration = (len(words) / wpm) * 60
+
+            # Use character-weighted timing
+            word_lengths = [max(2, len(w)) for w in words]
+            total_chars = sum(word_lengths)
+
+            current_time = 0.0
+            for i, word in enumerate(words):
+                word_duration = (word_lengths[i] / total_chars) * audio_duration
+                word_timings.append({
+                    'word': word,
+                    'offset': current_time,
+                    'duration': word_duration
+                })
+                current_time += word_duration
+
+            print(f"[OK] Generated NeuTTS voiceover: {output_path.name}")
+            print(f"  {len(word_timings)} words, {audio_duration:.2f}s duration")
+            return True, word_timings
+
+        except Exception as e:
+            print(f"[ERROR] NeuTTS generation failed: {e}")
+            import traceback
+            traceback.print_exc()
+            return False, []
+
+    @staticmethod
     def generate_voiceover(text: str, output_path: Path, settings: dict = None):
         """Generate natural-sounding voiceover from text using selected TTS engine
         Returns: (success: bool, word_timings: list)
@@ -1565,6 +1667,10 @@ class TTSGenerator:
         # Use Kokoro (local) TTS if selected
         if tts_engine == 'local':
             return TTSGenerator._generate_kokoro_voiceover(text, output_path, settings)
+
+        # Use NeuTTS (voice cloning) if selected
+        if tts_engine == 'neutts':
+            return TTSGenerator._generate_neutts_voiceover(text, output_path, settings)
 
         # Otherwise use Cloud TTS (edge-tts)
         if not TTS_AVAILABLE:

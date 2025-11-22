@@ -50,6 +50,14 @@ except ImportError:
     TTSGenerator = None
     logger.error("Could not import VideoQuoteAutomation - processing will not be available")
 
+# Import NeuTTS helper for voice cloning
+try:
+    from neutts_helper import NeuTTSHelper, AsyncNeuTTSHelper
+except ImportError:
+    NeuTTSHelper = None
+    AsyncNeuTTSHelper = None
+    logger.warning("Could not import NeuTTSHelper - voice cloning will not be available")
+
 
 class AppStyles:
     """Modern Professional Dark Theme - Easy on Eyes"""
@@ -1268,6 +1276,28 @@ class VideoAutomationGUI:
                 bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
                 font=('Segoe UI', 8)).pack(anchor='w', padx=20)
 
+        # NeuTTS option (Voice Cloning)
+        neutts_frame = tk.Frame(engine_frame, bg=AppStyles.BG_INPUT)
+        neutts_frame.pack(fill='x', pady=(10, 5))
+
+        tk.Radiobutton(neutts_frame, text='🎙️ NeuTTS (Voice Cloning)',
+                      variable=self.tts_engine_var, value='neutts',
+                      bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                      activebackground=AppStyles.BG_INPUT,
+                      selectcolor=AppStyles.BG_CARD,
+                      font=('Segoe UI', 10, 'bold'),
+                      command=self.on_tts_engine_change).pack(anchor='w')
+
+        tk.Label(neutts_frame, text='   • Clone any voice from audio sample',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.ACCENT_PRIMARY,
+                font=('Segoe UI', 8, 'bold')).pack(anchor='w', padx=20)
+        tk.Label(neutts_frame, text='   • Create custom voices from 10-30 seconds of audio',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8)).pack(anchor='w', padx=20)
+        tk.Label(neutts_frame, text='   • Requires NeuTTS server running locally',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8)).pack(anchor='w', padx=20)
+
         # Kokoro TTS Settings (shown when Local TTS is selected)
         self.kokoro_settings_frame = tk.Frame(tts_card, bg=AppStyles.BG_CARD)
         self.kokoro_settings_frame.pack(fill='x', padx=20, pady=8)
@@ -1511,6 +1541,114 @@ class VideoAutomationGUI:
                                    font=('Segoe UI', 9), width=60)
         voice_combo.pack(fill='x', pady=5)
         voice_combo.bind('<<ComboboxSelected>>', self.on_tts_voice_change)
+
+        # NeuTTS Settings (shown when NeuTTS is selected)
+        self.neutts_settings_frame = tk.Frame(tts_card, bg=AppStyles.BG_CARD)
+        self.neutts_settings_frame.pack(fill='x', padx=20, pady=8)
+
+        # Server Status
+        neutts_status_frame = tk.Frame(self.neutts_settings_frame, bg=AppStyles.BG_INPUT, pady=10, padx=15)
+        neutts_status_frame.pack(fill='x', pady=(0, 10))
+
+        self.neutts_status_label = tk.Label(neutts_status_frame, text='⚠️ NeuTTS Server: Not Connected',
+                                            bg=AppStyles.BG_INPUT, fg=AppStyles.ACCENT_WARNING,
+                                            font=('Segoe UI', 9, 'bold'))
+        self.neutts_status_label.pack(anchor='w')
+
+        # Server URL
+        url_frame = tk.Frame(self.neutts_settings_frame, bg=AppStyles.BG_CARD)
+        url_frame.pack(fill='x', pady=8)
+
+        tk.Label(url_frame, text='Server URL:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(0, 5))
+
+        self.neutts_url_var = tk.StringVar(value=self.settings.get('neutts_server_url', 'http://localhost:5000'))
+        neutts_url_entry = tk.Entry(url_frame, textvariable=self.neutts_url_var,
+                                    bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                                    font=('Segoe UI', 9), relief='flat')
+        neutts_url_entry.pack(fill='x', pady=(0, 5))
+        neutts_url_entry.bind('<FocusOut>', lambda e: self.update_setting('neutts_server_url', self.neutts_url_var.get()))
+
+        ModernButton(url_frame, text='🔄 Check Connection',
+                    bg_color=AppStyles.ACCENT_INFO,
+                    font=('Segoe UI', 9, 'bold'),
+                    padx=15, pady=6,
+                    command=self.check_neutts_connection).pack(anchor='w')
+
+        # Voice Cloning Section
+        clone_frame = tk.Frame(self.neutts_settings_frame, bg=AppStyles.BG_CARD)
+        clone_frame.pack(fill='x', pady=8)
+
+        tk.Label(clone_frame, text='🎙️ Clone New Voice:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(0, 5))
+
+        # Voice name
+        name_row = tk.Frame(clone_frame, bg=AppStyles.BG_CARD)
+        name_row.pack(fill='x', pady=2)
+        tk.Label(name_row, text='Voice Name:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 9)).pack(side='left')
+        self.neutts_voice_name_var = tk.StringVar()
+        tk.Entry(name_row, textvariable=self.neutts_voice_name_var,
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9), relief='flat', width=30).pack(side='left', padx=(5, 0))
+
+        # Audio file
+        audio_row = tk.Frame(clone_frame, bg=AppStyles.BG_CARD)
+        audio_row.pack(fill='x', pady=2)
+        tk.Label(audio_row, text='Audio Sample:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 9)).pack(side='left')
+        self.neutts_audio_var = tk.StringVar()
+        tk.Entry(audio_row, textvariable=self.neutts_audio_var,
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9), relief='flat', width=25).pack(side='left', padx=(5, 5), fill='x', expand=True)
+        ModernButton(audio_row, text='Browse',
+                    bg_color=AppStyles.ACCENT_INFO,
+                    font=('Segoe UI', 8, 'bold'),
+                    padx=8, pady=3,
+                    command=self.browse_neutts_audio).pack(side='left')
+
+        # Reference text
+        ref_row = tk.Frame(clone_frame, bg=AppStyles.BG_CARD)
+        ref_row.pack(fill='x', pady=2)
+        tk.Label(ref_row, text='Reference Text (what is said in audio):',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 9)).pack(anchor='w')
+        self.neutts_ref_text = tk.Text(clone_frame, height=3, wrap='word',
+                                       bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                                       font=('Segoe UI', 9), relief='flat')
+        self.neutts_ref_text.pack(fill='x', pady=2)
+
+        ModernButton(clone_frame, text='🎤 Clone Voice',
+                    bg_color=AppStyles.ACCENT_SUCCESS,
+                    font=('Segoe UI', 10, 'bold'),
+                    padx=20, pady=8,
+                    command=self.clone_neutts_voice).pack(anchor='w', pady=(5, 0))
+
+        # Cloned Voice Selection
+        voice_select_frame = tk.Frame(self.neutts_settings_frame, bg=AppStyles.BG_CARD)
+        voice_select_frame.pack(fill='x', pady=8)
+
+        tk.Label(voice_select_frame, text='Select Cloned Voice:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(0, 5))
+
+        self.neutts_voice_var = tk.StringVar(value=self.settings.get('neutts_voice', ''))
+        self.neutts_voice_combo = ttk.Combobox(voice_select_frame, textvariable=self.neutts_voice_var,
+                                               values=[], state='readonly',
+                                               font=('Segoe UI', 9), width=40)
+        self.neutts_voice_combo.pack(fill='x', pady=5)
+        self.neutts_voice_combo.bind('<<ComboboxSelected>>',
+                                     lambda e: self.update_setting('neutts_voice', self.neutts_voice_var.get()))
+
+        ModernButton(voice_select_frame, text='🔄 Refresh Voices',
+                    bg_color=AppStyles.ACCENT_INFO,
+                    font=('Segoe UI', 8, 'bold'),
+                    padx=10, pady=4,
+                    command=self.refresh_neutts_voices).pack(anchor='w')
 
         # Speed slider
         self.create_slider_control(tts_card, 'Speech Speed (WPM):', 'tts_speed', 100, 250, 150)
@@ -2992,20 +3130,27 @@ class VideoAutomationGUI:
             logger.warning(f"Could not find voice key for: {display_name}")
 
     def on_tts_engine_change(self):
-        """Handle TTS engine selection change (Cloud vs Local)"""
+        """Handle TTS engine selection change (Cloud vs Local vs NeuTTS)"""
         engine = self.tts_engine_var.get()
         self.update_setting('tts_engine', engine)
         logger.info(f"TTS engine changed to: {engine}")
 
-        # Toggle visibility of Cloud vs Kokoro settings
+        # Hide all settings frames first
+        self.cloud_voice_frame.pack_forget()
+        self.kokoro_settings_frame.pack_forget()
+        self.neutts_settings_frame.pack_forget()
+
+        # Show appropriate settings
         if engine == 'cloud':
             self.cloud_voice_frame.pack(fill='x', padx=20, pady=8)
-            self.kokoro_settings_frame.pack_forget()
-        else:  # local (Kokoro)
-            self.cloud_voice_frame.pack_forget()
+        elif engine == 'local':  # Kokoro
             self.kokoro_settings_frame.pack(fill='x', padx=20, pady=8)
             # Check Kokoro installation
             self.check_kokoro_installation()
+        elif engine == 'neutts':
+            self.neutts_settings_frame.pack(fill='x', padx=20, pady=8)
+            # Check NeuTTS server connection
+            self.check_neutts_connection()
 
     def check_kokoro_installation(self):
         """Check if Kokoro TTS is installed"""
@@ -3117,6 +3262,209 @@ Need help? Check the logs or open an issue on GitHub!
         ModernButton(popup, text='Close',
                     bg_color=AppStyles.ACCENT_PRIMARY,
                     command=popup.destroy).pack(pady=10)
+
+    # ═══════════════════════════════════════════════════════════
+    # NEUTTS HANDLER METHODS
+    # ═══════════════════════════════════════════════════════════
+
+    def check_neutts_connection(self):
+        """Check if NeuTTS server is running and update status"""
+        if NeuTTSHelper is None:
+            self.neutts_status_label.config(
+                text='❌ NeuTTS: Module Not Installed',
+                fg=AppStyles.ACCENT_DANGER
+            )
+            return
+
+        def check_in_thread():
+            try:
+                server_url = self.neutts_url_var.get()
+                helper = NeuTTSHelper(server_url)
+                is_running, status_msg = helper.check_server_status()
+
+                # Update UI in main thread
+                self.root.after(0, lambda: self._update_neutts_status(is_running, status_msg, helper))
+            except Exception as e:
+                self.root.after(0, lambda: self.neutts_status_label.config(
+                    text=f'❌ Error: {str(e)}',
+                    fg=AppStyles.ACCENT_DANGER
+                ))
+
+        # Run in background thread
+        thread = threading.Thread(target=check_in_thread, daemon=True)
+        thread.start()
+
+    def _update_neutts_status(self, is_running, status_msg, helper):
+        """Update NeuTTS status label and load voices if connected"""
+        if is_running:
+            self.neutts_status_label.config(
+                text=status_msg,
+                fg=AppStyles.ACCENT_SUCCESS
+            )
+            # Store helper for later use
+            self._neutts_helper = helper
+            # Load saved voice library
+            helper.load_voice_library()
+            self._populate_neutts_voices(helper)
+        else:
+            self.neutts_status_label.config(
+                text=status_msg,
+                fg=AppStyles.ACCENT_WARNING
+            )
+
+    def _populate_neutts_voices(self, helper):
+        """Populate the cloned voices dropdown"""
+        voices = helper.get_available_voices()
+        voice_names = list(voices.keys())
+        self.neutts_voice_combo['values'] = voice_names
+
+        # Select previously saved voice if available
+        saved_voice = self.settings.get('neutts_voice', '')
+        if saved_voice in voice_names:
+            self.neutts_voice_var.set(saved_voice)
+        elif voice_names:
+            self.neutts_voice_var.set(voice_names[0])
+
+    def browse_neutts_audio(self):
+        """Browse for audio sample file for voice cloning"""
+        filetypes = [
+            ('Audio Files', '*.wav *.mp3 *.flac *.m4a'),
+            ('WAV Files', '*.wav'),
+            ('MP3 Files', '*.mp3'),
+            ('All Files', '*.*')
+        ]
+        filename = filedialog.askopenfilename(
+            title='Select Voice Sample Audio',
+            filetypes=filetypes
+        )
+        if filename:
+            self.neutts_audio_var.set(filename)
+
+    def clone_neutts_voice(self):
+        """Clone a voice from the provided audio sample"""
+        if NeuTTSHelper is None:
+            messagebox.showerror("Error", "NeuTTS module is not installed")
+            return
+
+        # Get input values
+        voice_name = self.neutts_voice_name_var.get().strip()
+        audio_file = self.neutts_audio_var.get().strip()
+        ref_text = self.neutts_ref_text.get('1.0', 'end').strip()
+
+        # Validate inputs
+        if not voice_name:
+            messagebox.showerror("Error", "Please enter a voice name")
+            return
+        if not audio_file:
+            messagebox.showerror("Error", "Please select an audio sample file")
+            return
+        if not os.path.exists(audio_file):
+            messagebox.showerror("Error", f"Audio file not found: {audio_file}")
+            return
+        if not ref_text:
+            messagebox.showerror("Error", "Please enter the reference text (what is said in the audio)")
+            return
+
+        # Show progress
+        self.neutts_status_label.config(
+            text='⏳ Cloning voice...',
+            fg=AppStyles.ACCENT_WARNING
+        )
+
+        def clone_in_thread():
+            try:
+                server_url = self.neutts_url_var.get()
+                helper = NeuTTSHelper(server_url)
+
+                # Load existing library
+                helper.load_voice_library()
+
+                # Clone the voice
+                success, message = helper.clone_voice(
+                    voice_name=voice_name,
+                    audio_file_path=audio_file,
+                    reference_text=ref_text,
+                    language='en'
+                )
+
+                if success:
+                    # Save library
+                    helper.save_voice_library()
+                    self._neutts_helper = helper
+
+                # Update UI in main thread
+                self.root.after(0, lambda: self._handle_clone_result(success, message, helper))
+
+            except Exception as e:
+                self.root.after(0, lambda: messagebox.showerror("Clone Error", str(e)))
+                self.root.after(0, lambda: self.neutts_status_label.config(
+                    text='❌ Clone failed',
+                    fg=AppStyles.ACCENT_DANGER
+                ))
+
+        # Run in background thread
+        thread = threading.Thread(target=clone_in_thread, daemon=True)
+        thread.start()
+
+    def _handle_clone_result(self, success, message, helper):
+        """Handle the result of voice cloning"""
+        if success:
+            self.neutts_status_label.config(
+                text=message,
+                fg=AppStyles.ACCENT_SUCCESS
+            )
+            messagebox.showinfo("Success", message)
+            # Refresh voices list
+            self._populate_neutts_voices(helper)
+            # Clear input fields
+            self.neutts_voice_name_var.set('')
+            self.neutts_audio_var.set('')
+            self.neutts_ref_text.delete('1.0', 'end')
+        else:
+            self.neutts_status_label.config(
+                text=message,
+                fg=AppStyles.ACCENT_DANGER
+            )
+            messagebox.showerror("Clone Failed", message)
+
+    def refresh_neutts_voices(self):
+        """Refresh the list of cloned voices from the server"""
+        if NeuTTSHelper is None:
+            messagebox.showerror("Error", "NeuTTS module is not installed")
+            return
+
+        try:
+            server_url = self.neutts_url_var.get()
+            helper = NeuTTSHelper(server_url)
+
+            # Check connection first
+            is_running, status_msg = helper.check_server_status()
+            if not is_running:
+                self.neutts_status_label.config(
+                    text=status_msg,
+                    fg=AppStyles.ACCENT_WARNING
+                )
+                messagebox.showwarning("Server Offline", "NeuTTS server is not running")
+                return
+
+            # Load voice library
+            success, msg = helper.load_voice_library()
+            if success:
+                self._neutts_helper = helper
+                self._populate_neutts_voices(helper)
+                self.neutts_status_label.config(
+                    text=f'✓ Loaded {len(helper.get_available_voices())} voices',
+                    fg=AppStyles.ACCENT_SUCCESS
+                )
+            else:
+                self.neutts_status_label.config(
+                    text='No saved voices found',
+                    fg=AppStyles.TEXT_MEDIUM
+                )
+                self.neutts_voice_combo['values'] = []
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to refresh voices: {str(e)}")
 
     def count_videos(self):
         """Count videos in video folder"""
