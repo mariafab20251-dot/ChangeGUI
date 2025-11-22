@@ -1387,27 +1387,70 @@ class TTSGenerator:
 
             print(f"[INFO] Generating Kokoro TTS with voice: {voice}")
 
-            # Initialize Kokoro with model paths
-            # Kokoro requires model_path and voices_path
+            # Initialize Kokoro - try package defaults first, then manual paths
+            kokoro = None
             try:
-                import os
-                kokoro_dir = os.path.expanduser("~/.kokoro")
-                model_path = os.path.join(kokoro_dir, "kokoro-v0_19.onnx")
-                voices_path = os.path.join(kokoro_dir, "voices.json")
+                # First, try initializing without paths (uses package defaults)
+                try:
+                    kokoro = Kokoro()
+                    print("[OK] Kokoro initialized with package defaults")
+                except TypeError:
+                    # Kokoro requires paths - try to find them
+                    import os
 
-                # Check if default paths exist, try settings otherwise
-                if not os.path.exists(model_path):
-                    model_path = settings.get('kokoro_model_path', model_path)
-                if not os.path.exists(voices_path):
-                    voices_path = settings.get('kokoro_voices_path', voices_path)
+                    # Common locations for Kokoro models
+                    possible_paths = [
+                        # Package installation path
+                        os.path.join(os.path.dirname(Kokoro.__module__.__file__ if hasattr(Kokoro, '__module__') else ''), 'models'),
+                        # User home
+                        os.path.expanduser("~/.kokoro"),
+                        os.path.expanduser("~/kokoro"),
+                        # Current directory
+                        os.path.join(os.getcwd(), "kokoro_models"),
+                        # Settings paths
+                        settings.get('kokoro_model_path', ''),
+                    ]
 
-                if not os.path.exists(model_path):
-                    print(f"[ERROR] Kokoro model not found at: {model_path}")
-                    print("[INFO] Falling back to Cloud TTS...")
-                    settings['tts_engine'] = 'cloud'
-                    return TTSGenerator.generate_voiceover(text, output_path, settings)
+                    model_path = None
+                    voices_path = None
 
-                kokoro = Kokoro(model_path, voices_path)
+                    # Try to find kokoro-onnx package location
+                    try:
+                        import kokoro_onnx
+                        pkg_dir = os.path.dirname(kokoro_onnx.__file__)
+                        possible_paths.insert(0, pkg_dir)
+                        possible_paths.insert(0, os.path.join(pkg_dir, 'models'))
+                    except:
+                        pass
+
+                    # Search for model files
+                    for base_path in possible_paths:
+                        if not base_path or not os.path.exists(base_path):
+                            continue
+
+                        # Check for model file
+                        for model_name in ['kokoro-v0_19.onnx', 'kokoro.onnx', 'model.onnx']:
+                            test_model = os.path.join(base_path, model_name)
+                            if os.path.exists(test_model):
+                                model_path = test_model
+                                break
+
+                        # Check for voices file
+                        for voices_name in ['voices.json', 'voices.bin']:
+                            test_voices = os.path.join(base_path, voices_name)
+                            if os.path.exists(test_voices):
+                                voices_path = test_voices
+                                break
+
+                        if model_path and voices_path:
+                            break
+
+                    if model_path and voices_path:
+                        print(f"[INFO] Found Kokoro model at: {model_path}")
+                        kokoro = Kokoro(model_path, voices_path)
+                    else:
+                        raise FileNotFoundError(f"Kokoro model files not found in: {possible_paths}")
+
             except Exception as init_error:
                 print(f"[ERROR] Failed to initialize Kokoro: {init_error}")
                 print("[INFO] Falling back to Cloud TTS...")
