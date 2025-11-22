@@ -1387,8 +1387,32 @@ class TTSGenerator:
 
             print(f"[INFO] Generating Kokoro TTS with voice: {voice}")
 
-            # Initialize Kokoro
-            kokoro = Kokoro()
+            # Initialize Kokoro with model paths
+            # Kokoro requires model_path and voices_path
+            try:
+                import os
+                kokoro_dir = os.path.expanduser("~/.kokoro")
+                model_path = os.path.join(kokoro_dir, "kokoro-v0_19.onnx")
+                voices_path = os.path.join(kokoro_dir, "voices.json")
+
+                # Check if default paths exist, try settings otherwise
+                if not os.path.exists(model_path):
+                    model_path = settings.get('kokoro_model_path', model_path)
+                if not os.path.exists(voices_path):
+                    voices_path = settings.get('kokoro_voices_path', voices_path)
+
+                if not os.path.exists(model_path):
+                    print(f"[ERROR] Kokoro model not found at: {model_path}")
+                    print("[INFO] Falling back to Cloud TTS...")
+                    settings['tts_engine'] = 'cloud'
+                    return TTSGenerator.generate_voiceover(text, output_path, settings)
+
+                kokoro = Kokoro(model_path, voices_path)
+            except Exception as init_error:
+                print(f"[ERROR] Failed to initialize Kokoro: {init_error}")
+                print("[INFO] Falling back to Cloud TTS...")
+                settings['tts_engine'] = 'cloud'
+                return TTSGenerator.generate_voiceover(text, output_path, settings)
 
             # Generate audio
             audio, sample_rate = kokoro.create(
@@ -3991,6 +4015,29 @@ class VideoQuoteAutomation:
                     # MoviePy 1.x
                     video = video.fl(loop_time)
                     video = video.set_duration(target_duration)
+
+                # ========== FIX: Also loop the audio to match extended video ==========
+                # The audio also needs to be looped/extended, otherwise it causes errors
+                if video.audio is not None:
+                    original_audio = video.audio
+                    original_audio_duration = original_audio.duration
+
+                    def loop_audio_time(get_frame, t):
+                        """Loop audio by wrapping time back to start"""
+                        looped_t = t % original_audio_duration
+                        return get_frame(looped_t)
+
+                    try:
+                        # MoviePy 2.x
+                        looped_audio = original_audio.transform(loop_audio_time)
+                        looped_audio = looped_audio.with_duration(target_duration)
+                    except AttributeError:
+                        # MoviePy 1.x
+                        looped_audio = original_audio.fl(loop_audio_time)
+                        looped_audio = looped_audio.set_duration(target_duration)
+
+                    video = set_audio(video, looped_audio)
+                    print(f"[OK] Audio also looped to {target_duration:.1f}s")
 
                 # Update txt_clip duration to match
                 txt_clip = set_duration(txt_clip, target_duration)
