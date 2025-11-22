@@ -197,27 +197,52 @@ class NeuTTSHelper:
             if voice_name not in self.voices_library:
                 return False, f"Voice '{voice_name}' not found in library"
 
-            # Try different Gradio API endpoints
+            # Try using gradio_client first (most reliable)
+            try:
+                from gradio_client import Client
+                client = Client(self.server_url)
+                result = client.predict(
+                    text=text,
+                    voice_name=voice_name,
+                    speed=speed,
+                    api_name="/generate_speech"
+                )
+
+                # Result is typically a file path
+                if result and isinstance(result, str):
+                    import shutil
+                    shutil.copy(result, output_path)
+                    return True, f"✓ Speech generated: {output_path}"
+
+            except ImportError:
+                # gradio_client not installed, try requests
+                pass
+            except Exception as e:
+                # Log but try fallback
+                print(f"gradio_client error: {e}")
+
+            # Fallback: Use requests with the correct endpoint
+            # Format: /call/generate_speech or /api/predict with api_name
             endpoints_to_try = [
-                ("/api/predict", 0),      # fn_index for generate
-                ("/run/predict", 0),
-                ("/api/generate", None),
-                ("/run/generate", None),
-                ("/api/generate_speech", None),
-                ("/run/generate_speech", None)
+                # New Gradio 4.x format
+                ("/call/generate_speech", None),
+                # Gradio API predict with api_name
+                ("/api/predict", "/generate_speech"),
+                # Direct run endpoint
+                ("/run/generate_speech", None),
             ]
 
-            for endpoint, fn_index in endpoints_to_try:
+            for endpoint, api_name in endpoints_to_try:
                 try:
-                    # Prepare payload
-                    if fn_index is not None:
+                    # Prepare payload based on endpoint type
+                    if api_name:
                         payload = {
-                            "fn_index": fn_index,
-                            "data": [text, voice_name]
+                            "data": [text, voice_name, speed],
+                            "api_name": api_name
                         }
                     else:
                         payload = {
-                            "data": [text, voice_name]
+                            "data": [text, voice_name, speed]
                         }
 
                     response = requests.post(
@@ -243,9 +268,9 @@ class NeuTTSHelper:
                                 audio_b64 = audio_data.split(',')[1]
                                 audio_bytes = base64.b64decode(audio_b64)
                             elif isinstance(audio_data, str):
-                                # File path returned
-                                # Download the file
-                                file_response = requests.get(f"{self.server_url}/file={audio_data}")
+                                # File path returned - download it
+                                file_url = f"{self.server_url}/file={audio_data}"
+                                file_response = requests.get(file_url, timeout=30)
                                 if file_response.status_code == 200:
                                     audio_bytes = file_response.content
                                 else:
@@ -259,10 +284,10 @@ class NeuTTSHelper:
 
                             return True, f"✓ Speech generated: {output_path}"
 
-                except requests.exceptions.RequestException:
+                except requests.exceptions.RequestException as e:
                     continue
 
-            return False, "✗ Could not generate speech - API endpoint not found"
+            return False, "✗ Could not generate speech - install gradio_client: pip install gradio_client"
 
         except Exception as e:
             return False, f"✗ Exception: {str(e)}"
