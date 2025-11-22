@@ -1472,11 +1472,7 @@ class CaptionRenderer:
     def create_highlighted_word_captions(text, audio_duration, video_width, video_height, settings):
         """Create CapCut-style highlighted captions where current word is highlighted in different color"""
         import re
-        try:
-            from moviepy import ImageClip
-        except ImportError:
-            from moviepy.editor import ImageClip
-
+        # ImageClip is already imported at module level, no need to re-import
         print(f"[EFFECT] CAPCUT CAPTIONS: Creating highlighted captions")
         print(f"   Text: {text[:100]}...")
         print(f"   Duration: {audio_duration}s")
@@ -1915,12 +1911,7 @@ class CaptionRenderer:
     @staticmethod
     def create_estimated_captions(text, audio_duration, video_width, video_height, settings):
         """Create captions with estimated timing when word-level timing is unavailable"""
-        # Import ImageClip at function level to avoid scope issues
-        try:
-            from moviepy import ImageClip
-        except ImportError:
-            from moviepy.editor import ImageClip
-
+        # ImageClip is already imported at module level, no need to re-import
         caption_clips = []
 
         # Extract emojis from text (CapCut-style emoji integration)
@@ -2210,11 +2201,7 @@ class CaptionRenderer:
     @staticmethod
     def create_word_captions(word_timings, video_width, video_height, settings):
         """Create synchronized caption clips for each word"""
-        try:
-            from moviepy import ImageClip
-        except ImportError:
-            from moviepy.editor import ImageClip
-
+        # ImageClip is already imported at module level
         caption_clips = []
 
         # Caption settings from config
@@ -2315,12 +2302,7 @@ class CaptionRenderer:
                 print(f"  Caption frame shape: {frame.shape}, dtype: {frame.dtype}")
                 print(f"  Caption text: '{text}' ({segment['start']:.2f}s - {segment['end']:.2f}s)")
 
-                # Create ImageClip - no mask needed since background is solid
-                try:
-                    from moviepy import ImageClip
-                except ImportError:
-                    from moviepy.editor import ImageClip
-
+                # Create ImageClip - already imported at module level
                 clip = ImageClip(frame, is_mask=False)
 
                 duration = segment['end'] - segment['start']
@@ -4307,8 +4289,7 @@ class VideoQuoteAutomation:
             try:
                 watermark_path = self.settings.get('watermark_image_path', '')
                 if watermark_path and Path(watermark_path).exists():
-                    from moviepy.editor import ImageClip
-
+                    # ImageClip already imported at module level
                     # Load watermark image
                     watermark = ImageClip(watermark_path)
 
