@@ -216,7 +216,11 @@ class NeuTTSHelper:
                 if isinstance(result, str):
                     audio_file = result
                 elif isinstance(result, (tuple, list)) and len(result) > 0:
-                    audio_file = result[0]
+                    # Find the first string that looks like a file path
+                    for item in result:
+                        if isinstance(item, str) and (item.endswith('.wav') or item.endswith('.mp3') or '\\' in item or '/' in item):
+                            audio_file = item
+                            break
                 elif isinstance(result, dict) and 'path' in result:
                     audio_file = result['path']
 
