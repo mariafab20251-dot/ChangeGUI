@@ -1571,8 +1571,7 @@ class TTSGenerator:
             server_url = settings.get('neutts_server_url', 'http://localhost:7860')
             voice_name = settings.get('neutts_voice', '')
             # NeuTTS uses speed multiplier: 1.0 = normal, 1.5 = faster, 0.8 = slower
-            # Use 1.0 as default for best voice cloning quality
-            speed = 1.0
+            speed = float(settings.get('neutts_speed', 1.0))
 
             if not voice_name:
                 print("[ERROR] No NeuTTS voice selected")
