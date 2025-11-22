@@ -3335,7 +3335,7 @@ class VideoQuoteAutomation:
         # Apply chromatic aberration if enabled (apply to base video first)
         if self.settings.get('chromatic_aberration', False):
             try:
-                intensity = self.settings.get('chromatic_intensity', 5)
+                intensity = int(self.settings.get('chromatic_intensity', 5))
                 direction = self.settings.get('chromatic_direction', 'horizontal')
 
                 print(f"\n[CHROMATIC] Applying RGB glitch effect...")
@@ -4209,15 +4209,29 @@ class VideoQuoteAutomation:
 
                     return np.array(bar_img)
 
-                # Create bar clip with time-varying width
-                bar_clip = ImageClip(create_progress_bar(0), duration=final_video.duration)
-                bar_clip = bar_clip.with_make_frame(lambda t: create_progress_bar(t))
+                # Create bar clip with time-varying width using VideoClip
+                try:
+                    from moviepy import VideoClip
+                except ImportError:
+                    from moviepy.editor import VideoClip
+
+                bar_clip = VideoClip(create_progress_bar, duration=final_video.duration)
+                try:
+                    bar_clip = bar_clip.with_fps(video.fps)
+                except:
+                    bar_clip = bar_clip.set_fps(video.fps)
 
                 # Position bar
                 if bar_position == 'top':
-                    bar_clip = bar_clip.with_position((0, 0))
+                    try:
+                        bar_clip = bar_clip.with_position((0, 0))
+                    except:
+                        bar_clip = bar_clip.set_position((0, 0))
                 else:  # bottom
-                    bar_clip = bar_clip.with_position((0, video.h - bar_height))
+                    try:
+                        bar_clip = bar_clip.with_position((0, video.h - bar_height))
+                    except:
+                        bar_clip = bar_clip.set_position((0, video.h - bar_height))
 
                 # Composite onto video
                 final_video = CompositeVideoClip([final_video, bar_clip])
@@ -4310,14 +4324,20 @@ class VideoQuoteAutomation:
                         else:
                             return 1.0
 
-                    cta_clip = cta_clip.resize(lambda t: bounce_effect(t))
+                    try:
+                        cta_clip = cta_clip.resized(bounce_effect)
+                    except:
+                        cta_clip = cta_clip.resize(bounce_effect)
 
                 elif animation == 'pulse':
                     # Pulsing animation
                     def pulse_effect(t):
                         return 1.0 + 0.1 * np.sin(t * 3 * np.pi)
 
-                    cta_clip = cta_clip.resize(lambda t: pulse_effect(t))
+                    try:
+                        cta_clip = cta_clip.resized(pulse_effect)
+                    except:
+                        cta_clip = cta_clip.resize(pulse_effect)
 
                 elif animation == 'slide-in':
                     # Slide in from bottom
