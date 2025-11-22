@@ -1691,7 +1691,7 @@ class CaptionRenderer:
             caption_layout = settings.get('caption_layout', '2-line')
 
             # Get words_per_caption - this controls HOW MANY words to display
-            words_per_caption = settings.get('caption_words_per_line', 3)
+            words_per_caption = int(settings.get('caption_words_per_line', 3))
 
             # Calculate total words to show based on layout
             if caption_layout == '1-line':
