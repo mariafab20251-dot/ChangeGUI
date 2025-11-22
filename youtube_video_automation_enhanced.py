@@ -959,6 +959,148 @@ class ParticleEffects:
 
         return clip
 
+    @staticmethod
+    def create_combined(width, height, duration, fps, glitter=False, glitter_intensity=0.5,
+                       stars=False, hearts=False, confetti=False):
+        """Create combined particle effects in single layer for better performance.
+        This is much faster than rendering multiple separate particle layers."""
+        try:
+            from moviepy import VideoClip
+        except ImportError:
+            from moviepy.editor import VideoClip
+
+        # Initialize all particles we need
+        np.random.seed(42)  # Reproducible
+
+        # Glitter particles
+        glitter_particles = []
+        if glitter:
+            num_particles = int(15 * glitter_intensity)  # Reduced from 20 for performance
+            for _ in range(num_particles):
+                glitter_particles.append({
+                    'x': np.random.randint(0, width),
+                    'y': np.random.randint(0, height),
+                    'size': np.random.randint(2, 6),  # Smaller for performance
+                    'phase': np.random.uniform(0, 2 * np.pi),
+                    'speed': np.random.uniform(0.5, 2.0)
+                })
+
+        # Star particles
+        star_particles = []
+        if stars:
+            num_stars = 10  # Reduced from 15
+            np.random.seed(43)
+            for _ in range(num_stars):
+                star_particles.append({
+                    'x': np.random.randint(0, width),
+                    'y': np.random.randint(0, height),
+                    'size': np.random.randint(12, 25),  # Smaller
+                    'speed_x': np.random.uniform(-15, 15),
+                    'speed_y': np.random.uniform(-25, -8),
+                    'phase': np.random.uniform(0, 2 * np.pi),
+                    'rotation_speed': np.random.uniform(1, 3)
+                })
+
+        # Heart particles
+        heart_particles = []
+        if hearts:
+            num_hearts = 8  # Reduced from 12
+            np.random.seed(44)
+            for _ in range(num_hearts):
+                heart_particles.append({
+                    'x': np.random.randint(0, width),
+                    'y': np.random.randint(0, height),
+                    'size': np.random.randint(15, 30),
+                    'speed_y': np.random.uniform(-30, -15),
+                    'wobble': np.random.uniform(0.5, 2.0),
+                    'phase': np.random.uniform(0, 2 * np.pi)
+                })
+
+        # Confetti particles
+        confetti_particles = []
+        if confetti:
+            colors = [(255, 0, 100, 200), (255, 200, 0, 200), (0, 255, 100, 200),
+                      (100, 100, 255, 200), (255, 100, 255, 200)]
+            num_confetti = 20  # Reduced from 30
+            np.random.seed(45)
+            for _ in range(num_confetti):
+                confetti_particles.append({
+                    'x': np.random.randint(0, width),
+                    'y': np.random.randint(-height, 0),
+                    'size': np.random.randint(3, 8),
+                    'speed_y': np.random.uniform(50, 120),
+                    'speed_x': np.random.uniform(-20, 20),
+                    'rotation': np.random.uniform(0, 2 * np.pi),
+                    'rotation_speed': np.random.uniform(2, 5),
+                    'color': colors[np.random.randint(0, len(colors))]
+                })
+
+        def make_frame(t):
+            img = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+
+            # Draw glitter
+            if glitter:
+                for p in glitter_particles:
+                    alpha = abs(np.sin(t * p['speed'] + p['phase']))
+                    y_offset = int(t * 10) % height
+                    y = (p['y'] + y_offset) % height
+                    x = p['x']
+                    size = p['size']
+                    particle_alpha = int(255 * alpha * glitter_intensity)
+                    color = (255, 255, 255, particle_alpha)
+                    draw.ellipse([x-size//2, y-size//2, x+size//2, y+size//2], fill=color)
+
+            # Draw stars
+            if stars:
+                for star in star_particles:
+                    x = (star['x'] + int(star['speed_x'] * t)) % width
+                    y = (star['y'] + int(star['speed_y'] * t)) % height
+                    alpha = abs(np.sin(t * 0.5 + star['phase']))
+                    size = star['size']
+                    star_alpha = int(180 * alpha)
+                    color = (255, 215, 0, star_alpha)
+                    points = []
+                    for i in range(5):
+                        angle = i * 4 * np.pi / 5 - np.pi/2 + (t * star['rotation_speed'])
+                        points.append((x + int(size * np.cos(angle)), y + int(size * np.sin(angle))))
+                    for i in range(5):
+                        j = (i + 2) % 5
+                        draw.line([points[i], points[j]], fill=color, width=2)
+
+            # Draw hearts
+            if hearts:
+                for heart in heart_particles:
+                    x = heart['x'] + int(15 * np.sin(t * heart['wobble'] + heart['phase']))
+                    y = (heart['y'] + int(heart['speed_y'] * t)) % height
+                    alpha = abs(np.sin(t * 0.3 + heart['phase']))
+                    size = heart['size']
+                    heart_alpha = int(200 * alpha)
+                    color = (255, 100, 150, heart_alpha)
+                    draw.ellipse([x-size//2, y-size//2, x, y+size//4], fill=color)
+                    draw.ellipse([x, y-size//2, x+size//2, y+size//4], fill=color)
+                    draw.polygon([(x-size//2, y), (x+size//2, y), (x, y+size//2)], fill=color)
+
+            # Draw confetti
+            if confetti:
+                for c in confetti_particles:
+                    x = (c['x'] + int(c['speed_x'] * t)) % width
+                    y = (c['y'] + int(c['speed_y'] * t)) % height
+                    rotation = c['rotation'] + t * c['rotation_speed']
+                    w = max(2, abs(int(c['size'] * np.cos(rotation))))
+                    h = max(2, abs(int(c['size'] * np.sin(rotation))))
+                    draw.rectangle([x-w, y-h, x+w, y+h], fill=c['color'])
+
+            return np.array(img).copy()
+
+        clip = VideoClip(make_frame, duration=duration)
+        try:
+            clip = clip.with_fps(fps)
+        except:
+            clip = clip.set_fps(fps)
+
+        return clip
+
 
 class TTSGenerator:
     """Text-to-Speech voiceover generator using Microsoft Edge TTS (natural voices)"""
@@ -1778,27 +1920,31 @@ class CaptionRenderer:
         position = settings.get('caption_position', 'bottom')
         emoji_in_captions = settings.get('emoji_in_captions', True)  # Enable/disable emoji feature
 
-        # IMPROVED TIMING CALCULATION
-        # Use natural speaking rate instead of spreading words across full audio duration
-        # This fixes the issue when subtitle text is SHORT but voiceover is LONG
+        # ========== FIX: Use character-weighted timing for better caption sync ==========
+        # Longer words take longer to say, so weight duration by character count
+        # This provides much better synchronization with TTS voiceover
 
-        # Use TTS speed setting from user (default 150 wpm)
-        # Standard rates: Slow=100, Normal=150, Fast=200 words per minute
-        speaking_rate_wpm = settings.get('tts_speed', 150)
-        time_per_word = 60.0 / speaking_rate_wpm  # Convert WPM to seconds per word
+        # Calculate character-weighted durations for each word
+        word_lengths = []
+        for word in words:
+            # Minimum effective length of 2 chars for short words like "I", "a"
+            effective_length = max(2, len(word))
+            word_lengths.append(effective_length)
 
-        # Calculate natural duration for this text
-        natural_duration = len(words) * time_per_word
+        total_chars = sum(word_lengths)
+        if total_chars == 0:
+            total_chars = 1
 
-        # If natural duration exceeds audio, use audio duration instead
-        # This handles cases where text is very long relative to audio
-        if natural_duration > audio_duration:
-            time_per_word = audio_duration / len(words)
-            caption_duration = audio_duration
-        else:
-            caption_duration = natural_duration
+        # Use the full audio duration and distribute by character weight
+        caption_duration = audio_duration
 
-        print(f"  Caption timing: {len(words)} words, {caption_duration:.2f}s duration ({time_per_word:.2f}s per word)")
+        # Calculate time per character unit
+        time_per_char = caption_duration / total_chars
+
+        # Calculate average for logging
+        avg_time_per_word = caption_duration / len(words) if words else 0
+
+        print(f"  Caption timing: {len(words)} words, {caption_duration:.2f}s duration ({avg_time_per_word:.2f}s avg per word)")
 
         # No timing offset - start at 0 for better sync
         timing_offset = 0.0
@@ -1856,9 +2002,16 @@ class CaptionRenderer:
             if emoji_in_captions and segment_index < len(emoji_distribution):
                 emoji_for_segment = emoji_distribution[segment_index]
 
-            # Calculate timing - perfect sync with voiceover
+            # Calculate timing using character-weighted approach
             start_time = current_time  # Exact timing, no offset needed
-            duration = len(segment_words) * time_per_word
+
+            # Sum character weights for words in this segment
+            segment_start_idx = i
+            segment_end_idx = min(i + words_per_caption, len(words))
+            segment_char_weight = sum(word_lengths[segment_start_idx:segment_end_idx])
+
+            # Duration proportional to character weight
+            duration = segment_char_weight * time_per_char
             current_time += duration
 
             try:
@@ -3700,52 +3853,117 @@ class VideoQuoteAutomation:
                 video = video.with_fps(video.fps).fl(VideoEffects.apply_selective_blur)
 
 
+        # ========== FIX: Check TTS duration FIRST and loop video if needed ==========
+        # This prevents frame reading errors when TTS audio is longer than source video
+        target_duration = video.duration
+
+        if self.settings.get('use_tts_voiceover', False) and TTS_AVAILABLE:
+            # Pre-calculate TTS duration to know if we need to loop the video
+            # We'll generate TTS properly later, but need to estimate duration now
+            tts_speed = self.settings.get('tts_speed', 130)
+            # Estimate: ~150 WPM at default speed, adjust for user speed setting
+            word_count = len(voiceover_text.split())
+            estimated_tts_duration = (word_count / 150) * 60 * (150 / tts_speed)
+
+            if estimated_tts_duration > video.duration:
+                target_duration = estimated_tts_duration * 1.1  # Add 10% buffer
+                print(f"[INFO] TTS will be ~{estimated_tts_duration:.1f}s, video is {video.duration:.1f}s - will loop video")
+
+        # Loop video if target duration exceeds source video
+        if target_duration > video.duration:
+            try:
+                loops_needed = int(np.ceil(target_duration / video.duration))
+                print(f"[OK] Looping video {loops_needed}x to match TTS duration ({target_duration:.1f}s)")
+
+                # Create looped video by concatenating
+                try:
+                    from moviepy import concatenate_videoclips
+                except ImportError:
+                    from moviepy.editor import concatenate_videoclips
+
+                video_clips = [video] * loops_needed
+                video = concatenate_videoclips(video_clips, method="compose")
+                video = set_duration(video, target_duration)
+
+                # Update txt_clip duration to match
+                txt_clip = set_duration(txt_clip, target_duration)
+
+            except Exception as e:
+                print(f"[WARNING] Could not loop video: {e}")
+
         # Start with video and static text overlay
         layers = [video, txt_clip]
         print(f"DEBUG: txt_clip size={txt_clip.size}, position={txt_clip.pos if hasattr(txt_clip, 'pos') else 'N/A'}, duration={txt_clip.duration}")
         print(f"DEBUG: video size={video.size}, duration={video.duration}")
 
-        # Add particle effects if enabled
+        # ========== FIX: Combine all particle effects into single layer for faster rendering ==========
+        # This reduces compositing operations from N layers to 1 combined layer
+        particle_effects_enabled = []
         if self.settings.get('add_glitter', False):
-            try:
-                intensity = self.settings.get('glitter_intensity', 0.5)
-                glitter = ParticleEffects.create_glitter(
-                    video.w, video.h, video.duration, video.fps, intensity
-                )
-                layers.append(glitter)
-                print(f"[OK] Added glitter effect (intensity: {intensity})")
-            except Exception as e:
-                print(f"[WARNING] Glitter effect failed: {e}")
-
+            particle_effects_enabled.append('glitter')
         if self.settings.get('add_stars', False):
-            try:
-                stars = ParticleEffects.create_stars(
-                    video.w, video.h, video.duration, video.fps
-                )
-                layers.append(stars)
-                print("[OK] Added falling stars effect")
-            except Exception as e:
-                print(f"[WARNING] Stars effect failed: {e}")
-
+            particle_effects_enabled.append('stars')
         if self.settings.get('add_hearts', False):
-            try:
-                hearts = ParticleEffects.create_hearts(
-                    video.w, video.h, video.duration, video.fps
-                )
-                layers.append(hearts)
-                print("[OK] Added falling hearts effect")
-            except Exception as e:
-                print(f"[WARNING] Hearts effect failed: {e}")
-
+            particle_effects_enabled.append('hearts')
         if self.settings.get('add_confetti', False):
+            particle_effects_enabled.append('confetti')
+
+        if particle_effects_enabled:
             try:
-                confetti = ParticleEffects.create_confetti(
-                    video.w, video.h, video.duration, video.fps
+                # Create combined particle effect for better performance
+                combined_particles = ParticleEffects.create_combined(
+                    video.w, video.h, video.duration, video.fps,
+                    glitter=self.settings.get('add_glitter', False),
+                    glitter_intensity=self.settings.get('glitter_intensity', 0.5),
+                    stars=self.settings.get('add_stars', False),
+                    hearts=self.settings.get('add_hearts', False),
+                    confetti=self.settings.get('add_confetti', False)
                 )
-                layers.append(confetti)
-                print("[OK] Added confetti effect")
+                layers.append(combined_particles)
+                print(f"[OK] Added combined particle effects: {', '.join(particle_effects_enabled)}")
             except Exception as e:
-                print(f"[WARNING] Confetti effect failed: {e}")
+                print(f"[WARNING] Combined particle effect failed, using individual effects: {e}")
+                # Fallback to individual effects
+                if self.settings.get('add_glitter', False):
+                    try:
+                        intensity = self.settings.get('glitter_intensity', 0.5)
+                        glitter = ParticleEffects.create_glitter(
+                            video.w, video.h, video.duration, video.fps, intensity
+                        )
+                        layers.append(glitter)
+                        print(f"[OK] Added glitter effect (intensity: {intensity})")
+                    except Exception as e2:
+                        print(f"[WARNING] Glitter effect failed: {e2}")
+
+                if self.settings.get('add_stars', False):
+                    try:
+                        stars = ParticleEffects.create_stars(
+                            video.w, video.h, video.duration, video.fps
+                        )
+                        layers.append(stars)
+                        print("[OK] Added falling stars effect")
+                    except Exception as e2:
+                        print(f"[WARNING] Stars effect failed: {e2}")
+
+                if self.settings.get('add_hearts', False):
+                    try:
+                        hearts = ParticleEffects.create_hearts(
+                            video.w, video.h, video.duration, video.fps
+                        )
+                        layers.append(hearts)
+                        print("[OK] Added falling hearts effect")
+                    except Exception as e2:
+                        print(f"[WARNING] Hearts effect failed: {e2}")
+
+                if self.settings.get('add_confetti', False):
+                    try:
+                        confetti = ParticleEffects.create_confetti(
+                            video.w, video.h, video.duration, video.fps
+                        )
+                        layers.append(confetti)
+                        print("[OK] Added confetti effect")
+                    except Exception as e2:
+                        print(f"[WARNING] Confetti effect failed: {e2}")
 
         print(f"DEBUG: Compositing {len(layers)} layers...")
         final_video = CompositeVideoClip(layers)
@@ -3781,24 +3999,36 @@ class VideoQuoteAutomation:
                         total_duration = tts_audio.duration
                         tts_audio.close()
 
-                        # Weight words by length for more natural timing
-                        # Longer words typically take longer to say
-                        total_chars = sum(len(w['word']) for w in word_timings)
+                        # ========== FIX: Use character-weighted timing for better sync ==========
+                        # Longer words take longer to say, so weight by character count
+                        # This provides much better caption synchronization with TTS
+
+                        word_count = len(word_timings)
+
+                        # Calculate character count for each word (minimum 1 char)
+                        word_lengths = []
+                        for w in word_timings:
+                            # Use character count, but weight short words slightly higher
+                            # (words like "I", "a" still take some time to say)
+                            char_count = len(w['word'])
+                            # Minimum effective length of 2 chars for very short words
+                            effective_length = max(2, char_count)
+                            word_lengths.append(effective_length)
+
+                        total_chars = sum(word_lengths)
                         if total_chars == 0:
                             total_chars = 1
 
-                        # Use even distribution - simple and accurate
-                        # Most TTS engines speak at consistent pace
-                        word_count = len(word_timings)
-                        avg_word_duration = total_duration / word_count
-
+                        # Distribute duration proportionally by character length
                         current_time = 0.0
-                        for word_info in word_timings:
+                        for i, word_info in enumerate(word_timings):
                             word_info['offset'] = current_time
-                            word_info['duration'] = avg_word_duration
-                            current_time += avg_word_duration
+                            # Duration proportional to word length
+                            word_duration = (word_lengths[i] / total_chars) * total_duration
+                            word_info['duration'] = word_duration
+                            current_time += word_duration
 
-                        print(f"[OK] Calculated weighted word timing: {len(word_timings)} words, {total_duration:.2f}s total")
+                        print(f"[OK] Calculated character-weighted timing: {len(word_timings)} words, {total_duration:.2f}s total")
                     except Exception as e:
                         print(f"[WARNING] Could not calculate word timing: {e}")
 
