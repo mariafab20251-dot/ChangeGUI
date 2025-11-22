@@ -1568,7 +1568,7 @@ class TTSGenerator:
                 return TTSGenerator.generate_voiceover(text, output_path, settings)
 
             # Get NeuTTS settings
-            server_url = settings.get('neutts_server_url', 'http://localhost:5000')
+            server_url = settings.get('neutts_server_url', 'http://localhost:7860')
             voice_name = settings.get('neutts_voice', '')
             speed = float(settings.get('tts_speed', 150)) / 150.0  # Convert WPM to multiplier
 
