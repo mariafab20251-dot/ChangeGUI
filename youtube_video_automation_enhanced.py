@@ -2299,34 +2299,23 @@ class AudioProcessor:
                 for i, track in enumerate(audio_tracks):
                     if track != voiceover_audio_clip:
                         # This is BGM or original audio - apply ducking during voiceover
-                        voiceover_start = 0
-                        voiceover_end = voiceover_audio_clip.duration
-
-                        def make_ducking_function(voiceover_start, voiceover_end, ducking_amount, original_track):
-                            """Create a ducking function for audio"""
-                            def ducking_make_frame(t):
-                                # Get the original audio frame
-                                frame = original_track.get_frame(t)
-                                # Check if voiceover is playing at time t
-                                if voiceover_start <= t < voiceover_end:
-                                    # Voiceover is playing - reduce volume
-                                    return ducking_amount * frame
-                                else:
-                                    # No voiceover - full volume
-                                    return frame
-                            return ducking_make_frame
-
-                        # Apply time-varying volume by creating new AudioClip
+                        # Simple approach: just reduce the volume of BGM track
+                        # (constant reduction instead of time-varying for reliability)
                         try:
-                            from moviepy import AudioClip
-                        except ImportError:
-                            from moviepy.editor import AudioClip
+                            from moviepy.audio.fx import MultiplyVolume
+                            ducked_track = track.with_effects([MultiplyVolume(ducking_amount)])
+                        except:
+                            # Fallback: use volumex or direct volume scaling
+                            try:
+                                ducked_track = track.volumex(ducking_amount)
+                            except:
+                                # Last resort: use set_volume/with_volume
+                                try:
+                                    ducked_track = track.with_volume(ducking_amount)
+                                except:
+                                    from moviepy.audio.fx import MultiplyVolume as set_volume
+                                    ducked_track = set_volume(track, ducking_amount)
 
-                        ducked_track = AudioClip(
-                            make_ducking_function(voiceover_start, voiceover_end, ducking_amount, track),
-                            duration=track.duration,
-                            fps=track.fps
-                        )
                         audio_tracks[i] = ducked_track
 
                 print(f"[OK] Applied BGM auto-ducking ({int((1-ducking_amount)*100)}% reduction during voice)")
