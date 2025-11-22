@@ -2301,20 +2301,35 @@ class AudioProcessor:
                         # This is BGM or original audio - apply ducking during voiceover
                         # Simple approach: just reduce the volume of BGM track
                         # (constant reduction instead of time-varying for reliability)
-                        try:
-                            from moviepy.audio.fx import MultiplyVolume
-                            ducked_track = track.with_effects([MultiplyVolume(ducking_amount)])
-                        except:
-                            # Fallback: use volumex or direct volume scaling
+                        ducked_track = None
+
+                        # Try method 1: MoviePy 2.x with_effects
+                        if ducked_track is None:
+                            try:
+                                from moviepy.audio.fx import MultiplyVolume
+                                ducked_track = track.with_effects([MultiplyVolume(ducking_amount)])
+                            except:
+                                pass
+
+                        # Try method 2: MoviePy 1.x volumex
+                        if ducked_track is None:
                             try:
                                 ducked_track = track.volumex(ducking_amount)
                             except:
-                                # Last resort: use set_volume/with_volume
-                                try:
-                                    ducked_track = track.with_volume(ducking_amount)
-                                except:
-                                    from moviepy.audio.fx import MultiplyVolume as set_volume
-                                    ducked_track = set_volume(track, ducking_amount)
+                                pass
+
+                        # Try method 3: Direct function call
+                        if ducked_track is None:
+                            try:
+                                from moviepy.audio.fx.MultiplyVolume import multiply_volume
+                                ducked_track = multiply_volume(track, ducking_amount)
+                            except:
+                                pass
+
+                        # Fallback: keep original track (no ducking)
+                        if ducked_track is None:
+                            ducked_track = track
+                            print(f"[WARNING] Could not apply ducking, keeping original BGM volume")
 
                         audio_tracks[i] = ducked_track
 
