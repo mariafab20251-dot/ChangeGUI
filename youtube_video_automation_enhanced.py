@@ -4002,6 +4002,12 @@ class VideoQuoteAutomation:
                 # instead of referencing the original file beyond its duration
                 original_duration = video.duration
 
+                # ========== FIX: Remove audio before looping to avoid transformation issues ==========
+                # The audio will be replaced by TTS/BGM anyway, so remove it to avoid errors
+                # caused by nested audio transformations when trying to loop
+                original_audio = video.audio
+                video = video.without_audio()
+
                 def loop_time(get_frame, t):
                     """Loop video by wrapping time back to start"""
                     looped_t = t % original_duration
@@ -4016,33 +4022,10 @@ class VideoQuoteAutomation:
                     video = video.fl(loop_time)
                     video = video.set_duration(target_duration)
 
-                # ========== FIX: Also loop the audio to match extended video ==========
-                # The audio also needs to be looped/extended, otherwise it causes errors
-                if video.audio is not None:
-                    original_audio = video.audio
-                    original_audio_duration = original_audio.duration
-
-                    def loop_audio_time(get_frame, t):
-                        """Loop audio by wrapping time back to start"""
-                        looped_t = t % original_audio_duration
-                        return get_frame(looped_t)
-
-                    try:
-                        # MoviePy 2.x
-                        looped_audio = original_audio.transform(loop_audio_time)
-                        looped_audio = looped_audio.with_duration(target_duration)
-                    except AttributeError:
-                        # MoviePy 1.x
-                        looped_audio = original_audio.fl(loop_audio_time)
-                        looped_audio = looped_audio.set_duration(target_duration)
-
-                    video = set_audio(video, looped_audio)
-                    print(f"[OK] Audio also looped to {target_duration:.1f}s")
-
                 # Update txt_clip duration to match
                 txt_clip = set_duration(txt_clip, target_duration)
 
-                print(f"[OK] Video looped to {target_duration:.1f}s using frame wrapping")
+                print(f"[OK] Video looped to {target_duration:.1f}s (audio will be added from TTS/BGM)")
 
             except Exception as e:
                 print(f"[WARNING] Could not loop video: {e}")
