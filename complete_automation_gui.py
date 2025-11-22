@@ -1288,15 +1288,36 @@ class VideoAutomationGUI:
                 font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(0, 5))
 
         self.kokoro_voices = [
-            'af - Male 1 (American, Deep)',
-            'af_bella - Female 1 (American, Warm)',
-            'af_sarah - Female 2 (American, Clear)',
-            'am_adam - Male 2 (American, Professional)',
-            'am_michael - Male 3 (American, Energetic)',
-            'bf_emma - Female 3 (British, Elegant)',
-            'bf_isabella - Female 4 (British, Sophisticated)',
-            'bm_george - Male 4 (British, Distinguished)',
-            'bm_lewis - Male 5 (British, Authoritative)'
+            # American Female voices
+            'af_alloy - Female (American, Versatile)',
+            'af_aoede - Female (American, Melodic)',
+            'af_bella - Female (American, Warm)',
+            'af_jessica - Female (American, Conversational)',
+            'af_kore - Female (American, Expressive)',
+            'af_nicole - Female (American, Soft)',
+            'af_nova - Female (American, Friendly)',
+            'af_river - Female (American, Smooth)',
+            'af_sarah - Female (American, Clear)',
+            'af_sky - Female (American, Youthful)',
+            # American Male voices
+            'am_adam - Male (American, Professional)',
+            'am_echo - Male (American, Resonant)',
+            'am_eric - Male (American, Casual)',
+            'am_fenrir - Male (American, Deep)',
+            'am_liam - Male (American, Warm)',
+            'am_michael - Male (American, Energetic)',
+            'am_onyx - Male (American, Rich)',
+            'am_puck - Male (American, Playful)',
+            # British Female voices
+            'bf_alice - Female (British, Gentle)',
+            'bf_emma - Female (British, Elegant)',
+            'bf_isabella - Female (British, Sophisticated)',
+            'bf_lily - Female (British, Sweet)',
+            # British Male voices
+            'bm_daniel - Male (British, Refined)',
+            'bm_fable - Male (British, Storyteller)',
+            'bm_george - Male (British, Distinguished)',
+            'bm_lewis - Male (British, Authoritative)'
         ]
 
         self.kokoro_voice_var = tk.StringVar(value=self.settings.get('kokoro_voice', self.kokoro_voices[0]))
