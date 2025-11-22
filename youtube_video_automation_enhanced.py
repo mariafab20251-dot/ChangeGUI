@@ -2302,11 +2302,11 @@ class AudioProcessor:
                         voiceover_start = 0
                         voiceover_end = voiceover_audio_clip.duration
 
-                        def make_ducking_filter(voiceover_start, voiceover_end, ducking_amount):
-                            """Create a ducking filter function"""
-                            def ducking_filter(get_frame, t):
-                                # Get the audio frame
-                                frame = get_frame(t)
+                        def make_ducking_function(voiceover_start, voiceover_end, ducking_amount, original_track):
+                            """Create a ducking function for audio"""
+                            def ducking_make_frame(t):
+                                # Get the original audio frame
+                                frame = original_track.get_frame(t)
                                 # Check if voiceover is playing at time t
                                 if voiceover_start <= t < voiceover_end:
                                     # Voiceover is playing - reduce volume
@@ -2314,10 +2314,19 @@ class AudioProcessor:
                                 else:
                                     # No voiceover - full volume
                                     return frame
-                            return ducking_filter
+                            return ducking_make_frame
 
-                        # Apply time-varying volume using fl (filter layer)
-                        ducked_track = track.fl(make_ducking_filter(voiceover_start, voiceover_end, ducking_amount), apply_to=['audio'])
+                        # Apply time-varying volume by creating new AudioClip
+                        try:
+                            from moviepy import AudioClip
+                        except ImportError:
+                            from moviepy.editor import AudioClip
+
+                        ducked_track = AudioClip(
+                            make_ducking_function(voiceover_start, voiceover_end, ducking_amount, track),
+                            duration=track.duration,
+                            fps=track.fps
+                        )
                         audio_tracks[i] = ducked_track
 
                 print(f"[OK] Applied BGM auto-ducking ({int((1-ducking_amount)*100)}% reduction during voice)")
