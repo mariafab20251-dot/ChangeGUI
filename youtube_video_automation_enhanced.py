@@ -3357,6 +3357,9 @@ class VideoQuoteAutomation:
                 def apply_chromatic(get_frame, t):
                     frame = get_frame(t)
 
+                    # Ensure intensity is an integer for array slicing
+                    shift = int(intensity)
+
                     # Separate RGB channels
                     r_channel = frame[:, :, 0].copy()
                     g_channel = frame[:, :, 1].copy()
@@ -3370,9 +3373,9 @@ class VideoQuoteAutomation:
                         r_shifted = np.zeros_like(r_channel)
                         b_shifted = np.zeros_like(b_channel)
 
-                        if intensity < w:
-                            r_shifted[:, intensity:] = r_channel[:, :-intensity]
-                            b_shifted[:, :-intensity] = b_channel[:, intensity:]
+                        if shift < w and shift > 0:
+                            r_shifted[:, shift:] = r_channel[:, :-shift]
+                            b_shifted[:, :-shift] = b_channel[:, shift:]
                         else:
                             r_shifted = r_channel
                             b_shifted = b_channel
@@ -3385,9 +3388,9 @@ class VideoQuoteAutomation:
                         r_shifted = np.zeros_like(r_channel)
                         b_shifted = np.zeros_like(b_channel)
 
-                        if intensity < h:
-                            r_shifted[intensity:, :] = r_channel[:-intensity, :]
-                            b_shifted[:-intensity, :] = b_channel[intensity:, :]
+                        if shift < h and shift > 0:
+                            r_shifted[shift:, :] = r_channel[:-shift, :]
+                            b_shifted[:-shift, :] = b_channel[shift:, :]
                         else:
                             r_shifted = r_channel
                             b_shifted = b_channel
