@@ -3322,8 +3322,11 @@ Need help? Check the logs or open an issue on GitHub!
         saved_voice = self.settings.get('neutts_voice', '')
         if saved_voice in voice_names:
             self.neutts_voice_var.set(saved_voice)
+            self.update_setting('neutts_voice', saved_voice)
         elif voice_names:
             self.neutts_voice_var.set(voice_names[0])
+            # Save the auto-selected voice
+            self.update_setting('neutts_voice', voice_names[0])
 
     def browse_neutts_audio(self):
         """Browse for audio sample file for voice cloning"""
