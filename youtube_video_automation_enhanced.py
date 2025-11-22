@@ -1456,7 +1456,7 @@ class TTSGenerator:
                             break
 
                     # Check for voices file
-                    for voices_name in ['voices-v1.0.bin', 'voices.bin', 'voices-v0_19.bin', 'voices.json']:
+                    for voices_name in ['voices-multilingual.bin', 'voices-v1.0.bin', 'voices.bin', 'voices-v0_19.bin', 'voices.json']:
                         test_voices = os.path.join(base_path, voices_name)
                         if os.path.exists(test_voices):
                             voices_path = test_voices
