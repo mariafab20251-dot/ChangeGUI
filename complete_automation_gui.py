@@ -1317,7 +1317,31 @@ class VideoAutomationGUI:
             'bm_daniel - Male (British, Refined)',
             'bm_fable - Male (British, Storyteller)',
             'bm_george - Male (British, Distinguished)',
-            'bm_lewis - Male (British, Authoritative)'
+            'bm_lewis - Male (British, Authoritative)',
+            # Hindi voices
+            'hf_alpha - Female (Hindi)',
+            'hf_beta - Female (Hindi)',
+            'hm_omega - Male (Hindi)',
+            'hm_psi - Male (Hindi)',
+            # Japanese voices
+            'jf_alpha - Female (Japanese)',
+            'jf_gongitsune - Female (Japanese, Storyteller)',
+            'jf_nezumi - Female (Japanese)',
+            'jf_tebukuro - Female (Japanese)',
+            'jm_kumo - Male (Japanese)',
+            # Spanish voices
+            'ef_dora - Female (Spanish)',
+            'em_alex - Male (Spanish)',
+            'em_santa - Male (Spanish)',
+            # French voice
+            'ff_siwis - Female (French)',
+            # Italian voices
+            'if_sara - Female (Italian)',
+            'im_nicola - Male (Italian)',
+            # Brazilian Portuguese voices
+            'pf_dora - Female (Brazilian Portuguese)',
+            'pm_alex - Male (Brazilian Portuguese)',
+            'pm_santa - Male (Brazilian Portuguese)'
         ]
 
         self.kokoro_voice_var = tk.StringVar(value=self.settings.get('kokoro_voice', self.kokoro_voices[0]))
