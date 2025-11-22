@@ -210,183 +210,6 @@ class VideoEffects:
         return (frame * gradient[:, :, np.newaxis]).astype('uint8')
 
 
-class ParticleEffects:
-    """Animated particle overlays (glitter, stars, confetti, etc.)"""
-
-    @staticmethod
-    def create_glitter_overlay(width, height, duration, fps, intensity=0.5):
-        """Create glitter/sparkle particle effect"""
-        try:
-            from moviepy import VideoClip
-        except ImportError:
-            from moviepy.editor import VideoClip
-
-        def make_frame(t):
-            # Create black frame (RGB)
-            frame = np.zeros((height, width, 3), dtype=np.uint8).copy()
-
-            # Number of particles based on intensity
-            num_particles = int(50 * intensity)
-
-            # Generate random sparkles
-            np.random.seed(int(t * 1000) % 10000)  # Different random seed per frame
-            for _ in range(num_particles):
-                x = np.random.randint(0, width)
-                y = np.random.randint(0, height)
-                size = np.random.randint(2, 6)
-
-                # Twinkling effect using sine wave
-                brightness = int(255 * abs(np.sin(t * 5 + np.random.random() * 10)))
-
-                # Draw sparkle (white with brightness)
-                y1, y2 = max(0, y-size), min(height, y+size)
-                x1, x2 = max(0, x-size), min(width, x+size)
-
-                frame[y1:y2, x1:x2, :] = [brightness, brightness, brightness]  # White sparkle
-
-            return frame.copy()
-
-        def make_mask(t):
-            # Create mask where white sparkles are opaque and black is transparent
-            frame = make_frame(t)
-            # Convert to grayscale for mask (bright areas = opaque, dark = transparent)
-            mask = frame[:, :, 0].astype('uint8')  # Use any channel since it's grayscale
-            return mask
-
-        clip = VideoClip(make_frame, duration=duration)
-        mask_clip = VideoClip(make_mask, duration=duration, is_mask=True)
-
-        try:
-            clip = clip.set_fps(fps)
-            mask_clip = mask_clip.set_fps(fps)
-            clip = clip.set_mask(mask_clip)
-        except AttributeError:
-            clip = clip.with_fps(fps)
-            mask_clip = mask_clip.with_fps(fps)
-            clip = clip.with_mask(mask_clip)
-
-        return clip
-
-    @staticmethod
-    def create_stars_overlay(width, height, duration, fps, particle_type='star'):
-        """Create falling stars/hearts/emojis effect"""
-        try:
-            from moviepy import VideoClip
-        except ImportError:
-            from moviepy.editor import VideoClip
-
-        # Create particles with random positions and speeds
-        num_particles = 20
-        particles = []
-
-        for i in range(num_particles):
-            particles.append({
-                'x': np.random.randint(0, width),
-                'y_start': -np.random.randint(0, height),  # Start above screen
-                'speed': np.random.uniform(50, 150),  # Pixels per second
-                'size': np.random.randint(15, 40),
-                'rotation': np.random.uniform(0, 360),
-                'rotation_speed': np.random.uniform(-180, 180)
-            })
-
-        def make_frame(t):
-            # Create transparent RGBA frame
-            frame_rgba = Image.new('RGBA', (width, height), (0, 0, 0, 0))
-            draw = ImageDraw.Draw(frame_rgba)
-
-            for particle in particles:
-                # Update position
-                y = int(particle['y_start'] + particle['speed'] * t)
-
-                # Wrap around when particle goes off bottom
-                if y > height + 50:
-                    y = y % (height + 100) - 50
-
-                x = int(particle['x'])
-                size = particle['size']
-
-                # Draw based on type
-                if particle_type == 'star':
-                    # Draw star shape
-                    points = []
-                    for i in range(10):
-                        angle = (i * 36) * np.pi / 180
-                        r = size if i % 2 == 0 else size // 2
-                        px = x + r * np.cos(angle)
-                        py = y + r * np.sin(angle)
-                        points.append((px, py))
-                    draw.polygon(points, fill=(255, 255, 100, 255))  # Yellow
-
-                elif particle_type == 'heart':
-                    # Draw heart (simplified circle-based)
-                    draw.ellipse([x-size//2, y-size//2, x, y+size//2], fill=(255, 50, 50, 255))
-                    draw.ellipse([x, y-size//2, x+size//2, y+size//2], fill=(255, 50, 50, 255))
-                    draw.polygon([(x-size//2, y), (x+size//2, y), (x, y+size)], fill=(255, 50, 50, 255))
-
-                elif particle_type == 'circle':
-                    # Simple colorful circles
-                    colors = [(255, 100, 100, 255), (100, 255, 100, 255),
-                             (100, 100, 255, 255), (255, 255, 100, 255)]
-                    color = colors[hash(str(particle['x'])) % len(colors)]
-                    draw.ellipse([x-size//2, y-size//2, x+size//2, y+size//2], fill=color)
-
-            # Convert RGBA to RGB for video, and create separate mask
-            frame_rgb = Image.new('RGB', (width, height), (0, 0, 0))
-            frame_rgb.paste(frame_rgba, mask=frame_rgba.split()[3])
-            return np.array(frame_rgb).copy()
-
-        def make_mask(t):
-            # Extract alpha channel as mask
-            frame_rgba = Image.new('RGBA', (width, height), (0, 0, 0, 0))
-            draw = ImageDraw.Draw(frame_rgba)
-
-            for particle in particles:
-                y = int(particle['y_start'] + particle['speed'] * t)
-                if y > height + 50:
-                    y = y % (height + 100) - 50
-                x = int(particle['x'])
-                size = particle['size']
-
-                if particle_type == 'star':
-                    points = []
-                    for i in range(10):
-                        angle = (i * 36) * np.pi / 180
-                        r = size if i % 2 == 0 else size // 2
-                        px = x + r * np.cos(angle)
-                        py = y + r * np.sin(angle)
-                        points.append((px, py))
-                    draw.polygon(points, fill=(255, 255, 255, 255))
-                elif particle_type == 'heart':
-                    draw.ellipse([x-size//2, y-size//2, x, y+size//2], fill=(255, 255, 255, 255))
-                    draw.ellipse([x, y-size//2, x+size//2, y+size//2], fill=(255, 255, 255, 255))
-                    draw.polygon([(x-size//2, y), (x+size//2, y), (x, y+size)], fill=(255, 255, 255, 255))
-                elif particle_type == 'circle':
-                    draw.ellipse([x-size//2, y-size//2, x+size//2, y+size//2], fill=(255, 255, 255, 255))
-
-            # Return alpha channel as grayscale mask
-            alpha = frame_rgba.split()[3]
-            return np.array(alpha).copy()
-
-        clip = VideoClip(make_frame, duration=duration)
-        mask_clip = VideoClip(make_mask, duration=duration, is_mask=True)
-
-        try:
-            clip = clip.set_fps(fps)
-            mask_clip = mask_clip.set_fps(fps)
-            clip = clip.set_mask(mask_clip)
-        except AttributeError:
-            clip = clip.with_fps(fps)
-            mask_clip = mask_clip.with_fps(fps)
-            clip = clip.with_mask(mask_clip)
-
-        return clip
-
-    @staticmethod
-    def create_confetti_overlay(width, height, duration, fps):
-        """Create falling confetti effect"""
-        return ParticleEffects.create_stars_overlay(width, height, duration, fps, particle_type='circle')
-
-
 class TransitionEffects:
     """Professional transition effects for video intro/outro"""
 
@@ -2457,19 +2280,25 @@ class AudioProcessor:
                 for i, track in enumerate(audio_tracks):
                     if track != voiceover_audio_clip:
                         # This is BGM or original audio - apply ducking during voiceover
-                        def ducking_volume(t):
-                            # Check if voiceover is playing at time t
-                            voiceover_start = 0
-                            voiceover_end = voiceover_audio_clip.duration
-                            if voiceover_start <= t < voiceover_end:
-                                # Voiceover is playing - reduce volume
-                                return ducking_amount
-                            else:
-                                # No voiceover - full volume
-                                return 1.0
+                        voiceover_start = 0
+                        voiceover_end = voiceover_audio_clip.duration
 
-                        # Apply time-varying volume
-                        ducked_track = track.with_volume_scaled(lambda t: ducking_volume(t))
+                        def make_ducking_filter(voiceover_start, voiceover_end, ducking_amount):
+                            """Create a ducking filter function"""
+                            def ducking_filter(get_frame, t):
+                                # Get the audio frame
+                                frame = get_frame(t)
+                                # Check if voiceover is playing at time t
+                                if voiceover_start <= t < voiceover_end:
+                                    # Voiceover is playing - reduce volume
+                                    return ducking_amount * frame
+                                else:
+                                    # No voiceover - full volume
+                                    return frame
+                            return ducking_filter
+
+                        # Apply time-varying volume using fl (filter layer)
+                        ducked_track = track.fl(make_ducking_filter(voiceover_start, voiceover_end, ducking_amount), apply_to=['audio'])
                         audio_tracks[i] = ducked_track
 
                 print(f"[OK] Applied BGM auto-ducking ({int((1-ducking_amount)*100)}% reduction during voice)")
@@ -3845,7 +3674,7 @@ class VideoQuoteAutomation:
         if self.settings.get('add_glitter', False):
             try:
                 intensity = self.settings.get('glitter_intensity', 0.5)
-                glitter = ParticleEffects.create_glitter_overlay(
+                glitter = ParticleEffects.create_glitter(
                     video.w, video.h, video.duration, video.fps, intensity
                 )
                 layers.append(glitter)
@@ -3855,8 +3684,8 @@ class VideoQuoteAutomation:
 
         if self.settings.get('add_stars', False):
             try:
-                stars = ParticleEffects.create_stars_overlay(
-                    video.w, video.h, video.duration, video.fps, particle_type='star'
+                stars = ParticleEffects.create_stars(
+                    video.w, video.h, video.duration, video.fps
                 )
                 layers.append(stars)
                 print("[OK] Added falling stars effect")
@@ -3865,8 +3694,8 @@ class VideoQuoteAutomation:
 
         if self.settings.get('add_hearts', False):
             try:
-                hearts = ParticleEffects.create_stars_overlay(
-                    video.w, video.h, video.duration, video.fps, particle_type='heart'
+                hearts = ParticleEffects.create_hearts(
+                    video.w, video.h, video.duration, video.fps
                 )
                 layers.append(hearts)
                 print("[OK] Added falling hearts effect")
@@ -3875,7 +3704,7 @@ class VideoQuoteAutomation:
 
         if self.settings.get('add_confetti', False):
             try:
-                confetti = ParticleEffects.create_confetti_overlay(
+                confetti = ParticleEffects.create_confetti(
                     video.w, video.h, video.duration, video.fps
                 )
                 layers.append(confetti)
