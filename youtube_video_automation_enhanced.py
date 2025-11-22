@@ -1374,7 +1374,12 @@ class TTSGenerator:
                 return TTSGenerator.generate_voiceover(text, output_path, settings)
 
             # Get Kokoro settings
-            voice = settings.get('kokoro_voice', 'af_bella')
+            voice_setting = settings.get('kokoro_voice', 'af_bella')
+            # Extract voice ID from display name like "af_sarah - Female 2 (American, Clear)"
+            if ' - ' in voice_setting:
+                voice = voice_setting.split(' - ')[0].strip()
+            else:
+                voice = voice_setting
             speed = settings.get('tts_speed', 130) / 100  # Convert to multiplier (1.0 = normal)
 
             # Clean text for TTS
