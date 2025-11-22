@@ -1380,6 +1380,38 @@ class VideoAutomationGUI:
                       font=('Segoe UI', 9),
                       command=lambda: self.update_setting('kokoro_quality', 'mp3')).pack(anchor='w', pady=3)
 
+        # Kokoro Speed Control
+        kokoro_speed_frame = tk.Frame(self.kokoro_settings_frame, bg=AppStyles.BG_CARD)
+        kokoro_speed_frame.pack(fill='x', pady=8)
+
+        tk.Label(kokoro_speed_frame, text='Speech Speed:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(0, 5))
+
+        speed_slider_frame = tk.Frame(kokoro_speed_frame, bg=AppStyles.BG_CARD)
+        speed_slider_frame.pack(fill='x')
+
+        tk.Label(speed_slider_frame, text='Slow',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8)).pack(side='left')
+
+        self.kokoro_speed_var = tk.DoubleVar(value=self.settings.get('kokoro_speed', 1.0))
+        kokoro_speed_slider = tk.Scale(speed_slider_frame, from_=0.5, to=2.0,
+                                       resolution=0.1, orient='horizontal',
+                                       variable=self.kokoro_speed_var,
+                                       bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                                       highlightthickness=0, troughcolor=AppStyles.BG_INPUT,
+                                       command=lambda v: self.update_setting('kokoro_speed', float(v)))
+        kokoro_speed_slider.pack(side='left', fill='x', expand=True, padx=5)
+
+        tk.Label(speed_slider_frame, text='Fast',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8)).pack(side='left')
+
+        tk.Label(kokoro_speed_frame, text='1.0 = Normal speed, 0.8 = Slower, 1.2 = Faster',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(5, 0))
+
         # Model Path (optional - for custom installations)
         model_path_frame = tk.Frame(self.kokoro_settings_frame, bg=AppStyles.BG_CARD)
         model_path_frame.pack(fill='x', pady=8)
@@ -2734,26 +2766,14 @@ class VideoAutomationGUI:
         import subprocess
         import platform
 
-        # Get selected voice key
-        display_name = self.tts_voice_var.get()
-        voice_key = 'aria'  # Default
-
-        if TTSGenerator:
-            voice_options = [TTSGenerator.VOICE_NAMES.get(k, k) for k in self.tts_voice_keys]
-            try:
-                voice_index = voice_options.index(display_name)
-                voice_key = self.tts_voice_keys[voice_index]
-            except (ValueError, IndexError):
-                voice_key = 'aria'
+        # Check if using Kokoro or Cloud TTS
+        tts_engine = self.settings.get('tts_engine', 'cloud')
 
         # Get test text from Text widget
         test_text = self.preview_text_widget.get('1.0', 'end-1c').strip()
         if not test_text:
             self.preview_status_label.config(text="⚠ Please enter test text")
             return
-
-        # Get speed
-        speed = self.settings.get('tts_speed', 150)
 
         # Update status
         self.preview_status_label.config(text="🔄 Generating preview audio...")
@@ -2762,39 +2782,127 @@ class VideoAutomationGUI:
         # Generate audio in background thread
         def generate_and_play():
             try:
-                # Check if edge-tts is available
-                try:
-                    import edge_tts
-                    import asyncio
-                except ImportError:
-                    self.preview_status_label.config(text="❌ edge-tts not installed. Run: pip install edge-tts")
-                    return
-
-                # Get voice mapping
-                if TTSGenerator:
-                    voice_id = TTSGenerator.VOICES.get(voice_key, 'en-US-AriaNeural')
-                else:
-                    voice_id = 'en-US-AriaNeural'
-
-                # Create temp file
                 temp_dir = tempfile.gettempdir()
-                preview_file = Path(temp_dir) / f"tts_preview_{voice_key}.mp3"
 
-                # Generate audio using edge-tts
-                async def generate_audio():
-                    # Calculate rate from speed (150 WPM = +0%)
-                    rate_percent = int((speed - 150) / 150 * 100)
-                    rate = f"{rate_percent:+d}%"
+                if tts_engine == 'local':
+                    # Use Kokoro TTS
+                    try:
+                        from kokoro_onnx import Kokoro
+                        import numpy as np
+                        import soundfile as sf
+                    except ImportError as e:
+                        self.preview_status_label.config(text=f"❌ Missing package: {e}")
+                        return
 
-                    communicate = edge_tts.Communicate(test_text, voice_id, rate=rate)
-                    await communicate.save(str(preview_file))
+                    # Get Kokoro voice
+                    voice_setting = self.kokoro_voice_var.get()
+                    if ' - ' in voice_setting:
+                        voice = voice_setting.split(' - ')[0].strip()
+                    else:
+                        voice = voice_setting
 
-                # Run async generation
-                asyncio.run(generate_audio())
+                    speed = float(self.settings.get('kokoro_speed', 1.0))
 
-                # Update status
-                voice_display = TTSGenerator.VOICE_NAMES.get(voice_key, voice_key) if TTSGenerator else voice_key
-                self.preview_status_label.config(text=f"▶ Playing: {voice_display}")
+                    preview_file = Path(temp_dir) / f"tts_preview_kokoro_{voice}.mp3"
+
+                    # Find and initialize Kokoro
+                    import os
+                    model_path = self.settings.get('kokoro_model_path', '')
+
+                    # Search for model files
+                    search_paths = [
+                        model_path,
+                        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'VoiceModules', 'KokoroTTS'),
+                        os.path.dirname(os.path.abspath(__file__)),
+                    ]
+
+                    kokoro = None
+                    for base_path in search_paths:
+                        if not base_path or not os.path.exists(base_path):
+                            continue
+
+                        found_model = None
+                        found_voices = None
+
+                        for model_name in ['kokoro-v0_19.onnx', 'kokoro-v1.0.onnx', 'kokoro.onnx']:
+                            test_path = os.path.join(base_path, model_name)
+                            if os.path.exists(test_path):
+                                found_model = test_path
+                                break
+
+                        for voices_name in ['voices-multilingual.bin', 'voices-v1.0.bin', 'voices.bin']:
+                            test_path = os.path.join(base_path, voices_name)
+                            if os.path.exists(test_path):
+                                found_voices = test_path
+                                break
+
+                        if found_model and found_voices:
+                            kokoro = Kokoro(found_model, found_voices)
+                            break
+
+                    if not kokoro:
+                        self.preview_status_label.config(text="❌ Kokoro models not found")
+                        return
+
+                    # Generate audio
+                    audio, sample_rate = kokoro.create(text=test_text, voice=voice, speed=speed)
+
+                    # Save as WAV then convert to MP3
+                    wav_path = preview_file.with_suffix('.wav')
+                    sf.write(str(wav_path), audio, sample_rate)
+
+                    # Convert to MP3
+                    subprocess.run([
+                        'ffmpeg', '-y', '-i', str(wav_path),
+                        '-acodec', 'libmp3lame', '-q:a', '2',
+                        str(preview_file)
+                    ], capture_output=True, check=True)
+                    wav_path.unlink()
+
+                    voice_display = voice_setting
+                    self.preview_status_label.config(text=f"▶ Playing Kokoro: {voice}")
+
+                else:
+                    # Use Cloud TTS (edge-tts)
+                    try:
+                        import edge_tts
+                        import asyncio
+                    except ImportError:
+                        self.preview_status_label.config(text="❌ edge-tts not installed. Run: pip install edge-tts")
+                        return
+
+                    # Get selected voice key
+                    display_name = self.tts_voice_var.get()
+                    voice_key = 'aria'
+
+                    if TTSGenerator:
+                        voice_options = [TTSGenerator.VOICE_NAMES.get(k, k) for k in self.tts_voice_keys]
+                        try:
+                            voice_index = voice_options.index(display_name)
+                            voice_key = self.tts_voice_keys[voice_index]
+                        except (ValueError, IndexError):
+                            voice_key = 'aria'
+
+                    # Get voice mapping
+                    if TTSGenerator:
+                        voice_id = TTSGenerator.VOICES.get(voice_key, 'en-US-AriaNeural')
+                    else:
+                        voice_id = 'en-US-AriaNeural'
+
+                    preview_file = Path(temp_dir) / f"tts_preview_{voice_key}.mp3"
+                    speed = self.settings.get('tts_speed', 150)
+
+                    # Generate audio using edge-tts
+                    async def generate_audio():
+                        rate_percent = int((speed - 150) / 150 * 100)
+                        rate = f"{rate_percent:+d}%"
+                        communicate = edge_tts.Communicate(test_text, voice_id, rate=rate)
+                        await communicate.save(str(preview_file))
+
+                    asyncio.run(generate_audio())
+
+                    voice_display = TTSGenerator.VOICE_NAMES.get(voice_key, voice_key) if TTSGenerator else voice_key
+                    self.preview_status_label.config(text=f"▶ Playing: {voice_display}")
 
                 # Play audio based on platform
                 system = platform.system()
