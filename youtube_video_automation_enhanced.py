@@ -1579,9 +1579,9 @@ class CaptionRenderer:
         if not words:
             return []
 
-        # Settings
-        words_per_caption = settings.get('caption_words_per_line', 3)
-        font_size = settings.get('caption_highlight_font_size', 42)  # CapCut-specific font size
+        # Settings - ensure integers for numeric values
+        words_per_caption = int(settings.get('caption_words_per_line', 3))
+        font_size = int(settings.get('caption_highlight_font_size', 42))  # CapCut-specific font size
         font_style = settings.get('caption_highlight_font_style', 'Arial Bold')  # CapCut-specific font style
         position = settings.get('caption_position', 'bottom')
         emoji_enabled = settings.get('emoji_in_captions', True)
@@ -1603,7 +1603,7 @@ class CaptionRenderer:
         stroke_enabled = settings.get('caption_stroke_enabled', True)
         active_stroke_hex = settings.get('caption_active_stroke_color', '#FF1493')  # Pink for active word outline
         inactive_stroke_hex = settings.get('caption_inactive_stroke_color', '#000000')  # Black for inactive outline
-        stroke_width = settings.get('caption_stroke_width', 4)
+        stroke_width = int(settings.get('caption_stroke_width', 4))
 
         # Convert hex to RGB
         def hex_to_rgb(hex_color):
@@ -2037,8 +2037,8 @@ class CaptionRenderer:
             return []
 
         # Caption settings
-        words_per_caption = settings.get('caption_words_per_line', 3)
-        font_size = settings.get('caption_font_size', 60)
+        words_per_caption = int(settings.get('caption_words_per_line', 3))
+        font_size = int(settings.get('caption_font_size', 60))
         position = settings.get('caption_position', 'bottom')
         emoji_in_captions = settings.get('emoji_in_captions', True)  # Enable/disable emoji feature
 
