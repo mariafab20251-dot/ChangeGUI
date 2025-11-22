@@ -1563,7 +1563,7 @@ class VideoAutomationGUI:
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                 font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(0, 5))
 
-        self.neutts_url_var = tk.StringVar(value=self.settings.get('neutts_server_url', 'http://localhost:5000'))
+        self.neutts_url_var = tk.StringVar(value=self.settings.get('neutts_server_url', 'http://localhost:7860'))
         neutts_url_entry = tk.Entry(url_frame, textvariable=self.neutts_url_var,
                                     bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
                                     font=('Segoe UI', 9), relief='flat')

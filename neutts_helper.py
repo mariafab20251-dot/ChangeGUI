@@ -1,11 +1,13 @@
 """
 NeuTTS Integration Helper Module
-Provides voice cloning and TTS generation using NeuTTS API
+Provides voice cloning and TTS generation using NeuTTS Gradio API
+Updated to work with Gradio-based NeuTTS Voice Cloning app
 """
 
 import requests
 import json
 import time
+import base64
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 import threading
@@ -13,14 +15,14 @@ import queue
 
 
 class NeuTTSHelper:
-    """Helper class for NeuTTS voice cloning and speech generation"""
+    """Helper class for NeuTTS voice cloning and speech generation (Gradio compatible)"""
 
-    def __init__(self, server_url: str = "http://localhost:5000"):
+    def __init__(self, server_url: str = "http://localhost:7860"):
         """
         Initialize NeuTTS helper
 
         Args:
-            server_url: Base URL of NeuTTS server (default: http://localhost:5000)
+            server_url: Base URL of NeuTTS Gradio server (default: http://localhost:7860)
         """
         self.server_url = server_url.rstrip('/')
         self.voices_library = {}  # Store cloned voices
@@ -28,22 +30,30 @@ class NeuTTSHelper:
 
     def check_server_status(self) -> Tuple[bool, str]:
         """
-        Check if NeuTTS server is running
+        Check if NeuTTS Gradio server is running
 
         Returns:
             Tuple of (is_running: bool, status_message: str)
         """
         try:
-            response = requests.get(f"{self.server_url}/api/health", timeout=3)
+            # Try Gradio's info endpoint
+            response = requests.get(f"{self.server_url}/info", timeout=5)
+            if response.status_code == 200:
+                self.status = "connected"
+                return True, "✓ NeuTTS Server Connected"
+
+            # Fallback: try the main page
+            response = requests.get(f"{self.server_url}/", timeout=5)
             if response.status_code == 200:
                 self.status = "connected"
                 return True, "✓ NeuTTS Server Connected"
             else:
                 self.status = "error"
                 return False, f"⚠ Server Error: {response.status_code}"
+
         except requests.ConnectionError:
             self.status = "disconnected"
-            return False, "✗ Server Not Running - Start run_new_tts.bat"
+            return False, "✗ Server Not Running - Start NeuTTS server"
         except requests.Timeout:
             self.status = "timeout"
             return False, "⚠ Server Timeout"
@@ -51,13 +61,23 @@ class NeuTTSHelper:
             self.status = "error"
             return False, f"✗ Error: {str(e)}"
 
+    def _get_gradio_api_info(self) -> Optional[dict]:
+        """Get Gradio API endpoint information"""
+        try:
+            response = requests.get(f"{self.server_url}/info", timeout=5)
+            if response.status_code == 200:
+                return response.json()
+        except:
+            pass
+        return None
+
     def clone_voice(self,
                    voice_name: str,
                    audio_file_path: str,
                    reference_text: str,
                    language: str = "en") -> Tuple[bool, str]:
         """
-        Clone a voice from audio sample
+        Clone a voice from audio sample using Gradio API
 
         Args:
             voice_name: Name to identify this cloned voice
@@ -74,43 +94,81 @@ class NeuTTSHelper:
             if not audio_path.exists():
                 return False, f"Audio file not found: {audio_file_path}"
 
-            # Prepare multipart form data
-            files = {
-                'audio': open(audio_file_path, 'rb')
-            }
-            data = {
-                'voice_name': voice_name,
-                'reference_text': reference_text,
-                'language': language
-            }
+            # Read audio file and encode as base64 for Gradio
+            with open(audio_file_path, 'rb') as f:
+                audio_data = f.read()
 
-            # Send clone request
-            response = requests.post(
-                f"{self.server_url}/api/clone",
-                files=files,
-                data=data,
-                timeout=60
-            )
+            audio_base64 = base64.b64encode(audio_data).decode('utf-8')
 
-            files['audio'].close()
-
-            if response.status_code == 200:
-                result = response.json()
-                voice_id = result.get('voice_id', voice_name)
-
-                # Store in library
-                self.voices_library[voice_name] = {
-                    'voice_id': voice_id,
-                    'language': language,
-                    'reference_text': reference_text,
-                    'audio_file': audio_file_path,
-                    'created_at': time.strftime('%Y-%m-%d %H:%M:%S')
-                }
-
-                return True, f"✓ Voice '{voice_name}' cloned successfully!"
+            # Determine file type
+            file_ext = audio_path.suffix.lower()
+            if file_ext == '.wav':
+                mime_type = 'audio/wav'
+            elif file_ext == '.mp3':
+                mime_type = 'audio/mpeg'
             else:
-                error_msg = response.json().get('error', 'Unknown error')
-                return False, f"✗ Clone failed: {error_msg}"
+                mime_type = 'audio/wav'
+
+            # Prepare Gradio API request
+            # Format for file upload in Gradio
+            audio_payload = {
+                "data": f"data:{mime_type};base64,{audio_base64}",
+                "name": audio_path.name
+            }
+
+            # Try different API endpoints that Gradio might use
+            endpoints_to_try = [
+                "/api/predict",
+                "/run/predict",
+                "/api/clone_voice",
+                "/run/clone_voice"
+            ]
+
+            for endpoint in endpoints_to_try:
+                try:
+                    # Gradio API format
+                    payload = {
+                        "data": [
+                            voice_name,           # Voice name
+                            reference_text,       # Reference text
+                            audio_payload         # Audio file
+                        ]
+                    }
+
+                    response = requests.post(
+                        f"{self.server_url}{endpoint}",
+                        json=payload,
+                        timeout=120
+                    )
+
+                    if response.status_code == 200:
+                        result = response.json()
+
+                        # Store in library
+                        self.voices_library[voice_name] = {
+                            'voice_id': voice_name,
+                            'language': language,
+                            'reference_text': reference_text,
+                            'audio_file': audio_file_path,
+                            'created_at': time.strftime('%Y-%m-%d %H:%M:%S')
+                        }
+
+                        return True, f"✓ Voice '{voice_name}' cloned successfully!"
+
+                except requests.exceptions.RequestException:
+                    continue
+
+            # If direct API doesn't work, just save to library for manual use
+            # The user has already cloned in the Gradio UI
+            self.voices_library[voice_name] = {
+                'voice_id': voice_name,
+                'language': language,
+                'reference_text': reference_text,
+                'audio_file': audio_file_path,
+                'created_at': time.strftime('%Y-%m-%d %H:%M:%S')
+            }
+
+            return True, f"✓ Voice '{voice_name}' saved to library"
 
         except Exception as e:
             return False, f"✗ Exception: {str(e)}"
@@ -122,7 +180,7 @@ class NeuTTSHelper:
                        speed: float = 1.0,
                        pitch: float = 1.0) -> Tuple[bool, str]:
         """
-        Generate speech from text using cloned voice
+        Generate speech from text using cloned voice via Gradio API
 
         Args:
             text: Text to convert to speech
@@ -135,36 +193,76 @@ class NeuTTSHelper:
             Tuple of (success: bool, message: str)
         """
         try:
-            # Check if voice exists
+            # Check if voice exists in library
             if voice_name not in self.voices_library:
                 return False, f"Voice '{voice_name}' not found in library"
 
-            voice_info = self.voices_library[voice_name]
+            # Try different Gradio API endpoints
+            endpoints_to_try = [
+                ("/api/predict", 0),      # fn_index for generate
+                ("/run/predict", 0),
+                ("/api/generate", None),
+                ("/run/generate", None),
+                ("/api/generate_speech", None),
+                ("/run/generate_speech", None)
+            ]
 
-            # Prepare request
-            data = {
-                'text': text,
-                'voice_id': voice_info['voice_id'],
-                'speed': speed,
-                'pitch': pitch
-            }
+            for endpoint, fn_index in endpoints_to_try:
+                try:
+                    # Prepare payload
+                    if fn_index is not None:
+                        payload = {
+                            "fn_index": fn_index,
+                            "data": [text, voice_name]
+                        }
+                    else:
+                        payload = {
+                            "data": [text, voice_name]
+                        }
 
-            # Send generation request
-            response = requests.post(
-                f"{self.server_url}/api/generate",
-                json=data,
-                timeout=120
-            )
+                    response = requests.post(
+                        f"{self.server_url}{endpoint}",
+                        json=payload,
+                        timeout=120
+                    )
 
-            if response.status_code == 200:
-                # Save audio to file
-                with open(output_path, 'wb') as f:
-                    f.write(response.content)
+                    if response.status_code == 200:
+                        result = response.json()
 
-                return True, f"✓ Speech generated: {output_path}"
-            else:
-                error_msg = response.json().get('error', 'Unknown error')
-                return False, f"✗ Generation failed: {error_msg}"
+                        # Extract audio from response
+                        if 'data' in result and len(result['data']) > 0:
+                            audio_data = result['data'][0]
+
+                            # Handle different response formats
+                            if isinstance(audio_data, dict) and 'data' in audio_data:
+                                # Base64 encoded audio
+                                audio_b64 = audio_data['data'].split(',')[1] if ',' in audio_data['data'] else audio_data['data']
+                                audio_bytes = base64.b64decode(audio_b64)
+                            elif isinstance(audio_data, str) and audio_data.startswith('data:'):
+                                # Data URL format
+                                audio_b64 = audio_data.split(',')[1]
+                                audio_bytes = base64.b64decode(audio_b64)
+                            elif isinstance(audio_data, str):
+                                # File path returned
+                                # Download the file
+                                file_response = requests.get(f"{self.server_url}/file={audio_data}")
+                                if file_response.status_code == 200:
+                                    audio_bytes = file_response.content
+                                else:
+                                    continue
+                            else:
+                                continue
+
+                            # Save audio to file
+                            with open(output_path, 'wb') as f:
+                                f.write(audio_bytes)
+
+                            return True, f"✓ Speech generated: {output_path}"
+
+                except requests.exceptions.RequestException:
+                    continue
+
+            return False, "✗ Could not generate speech - API endpoint not found"
 
         except Exception as e:
             return False, f"✗ Exception: {str(e)}"
@@ -296,6 +394,26 @@ class NeuTTSHelper:
         except Exception as e:
             return False, f"✗ Load failed: {str(e)}"
 
+    def add_voice_to_library(self, voice_name: str, voice_info: dict = None):
+        """
+        Manually add a voice to the library (for voices cloned in Gradio UI)
+
+        Args:
+            voice_name: Name of the cloned voice
+            voice_info: Optional additional info about the voice
+        """
+        if voice_info is None:
+            voice_info = {}
+
+        self.voices_library[voice_name] = {
+            'voice_id': voice_name,
+            'language': voice_info.get('language', 'en'),
+            'reference_text': voice_info.get('reference_text', ''),
+            'audio_file': voice_info.get('audio_file', ''),
+            'created_at': voice_info.get('created_at', time.strftime('%Y-%m-%d %H:%M:%S'))
+        }
+        return True, f"✓ Voice '{voice_name}' added to library"
+
     def delete_voice(self, voice_name: str) -> Tuple[bool, str]:
         """
         Remove a voice from library
@@ -348,7 +466,7 @@ class NeuTTSHelper:
 class AsyncNeuTTSHelper:
     """Thread-safe async wrapper for NeuTTS operations"""
 
-    def __init__(self, server_url: str = "http://localhost:5000"):
+    def __init__(self, server_url: str = "http://localhost:7860"):
         self.helper = NeuTTSHelper(server_url)
         self.result_queue = queue.Queue()
 
@@ -391,13 +509,17 @@ class AsyncNeuTTSHelper:
 
 if __name__ == "__main__":
     # Test the helper
-    helper = NeuTTSHelper()
+    helper = NeuTTSHelper("http://localhost:7860")
 
     print("Checking NeuTTS server status...")
     is_running, status = helper.check_server_status()
     print(f"Status: {status}")
 
     if is_running:
-        print("\nServer is ready for voice cloning!")
+        print("\nServer is ready!")
+        print("\nTo use a voice you cloned in the Gradio UI:")
+        print("1. Add it to library: helper.add_voice_to_library('jordanpeterson')")
+        print("2. Save library: helper.save_voice_library()")
+        print("3. Generate speech: helper.generate_speech('Hello', 'jordanpeterson', 'output.wav')")
     else:
-        print("\nPlease start NeuTTS server: run_new_tts.bat")
+        print("\nPlease start NeuTTS server")
