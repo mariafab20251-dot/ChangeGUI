@@ -1410,6 +1410,9 @@ class TTSGenerator:
                 possible_paths.extend([
                     # Settings path (user configured)
                     settings.get('kokoro_model_path', ''),
+                    # Project directory - VoiceModules folder
+                    os.path.join(os.path.dirname(os.path.abspath(__file__)), 'VoiceModules', 'KokoroTTS'),
+                    os.path.join(os.path.dirname(os.path.abspath(__file__)), 'VoiceModules'),
                     # Project directory
                     os.path.dirname(os.path.abspath(__file__)),
                     os.path.join(os.path.dirname(os.path.abspath(__file__)), 'kokoro_models'),
@@ -1418,6 +1421,7 @@ class TTSGenerator:
                     os.getcwd(),
                     os.path.join(os.getcwd(), "kokoro_models"),
                     os.path.join(os.getcwd(), "models"),
+                    os.path.join(os.getcwd(), "VoiceModules", "KokoroTTS"),
                     # User home directories
                     os.path.expanduser("~/.kokoro"),
                     os.path.expanduser("~/kokoro"),
