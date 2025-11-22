@@ -1358,17 +1358,115 @@ class TTSGenerator:
             return False
 
     @staticmethod
-    def generate_voiceover(text: str, output_path: Path, settings: dict = None):
-        """Generate natural-sounding voiceover from text using Microsoft Edge TTS
+    def _generate_kokoro_voiceover(text: str, output_path: Path, settings: dict):
+        """Generate voiceover using local Kokoro TTS (offline)
         Returns: (success: bool, word_timings: list)
         """
+        try:
+            # Try to import Kokoro
+            try:
+                from kokoro_onnx import Kokoro
+            except ImportError:
+                print("[ERROR] Kokoro TTS not installed. Install with: pip install kokoro-onnx")
+                print("[INFO] Falling back to Cloud TTS...")
+                # Fallback to cloud TTS
+                settings['tts_engine'] = 'cloud'
+                return TTSGenerator.generate_voiceover(text, output_path, settings)
+
+            # Get Kokoro settings
+            voice = settings.get('kokoro_voice', 'af_bella')
+            speed = settings.get('tts_speed', 130) / 100  # Convert to multiplier (1.0 = normal)
+
+            # Clean text for TTS
+            clean_text = re.sub(r'[\U0001F300-\U0001F9FF\U0001F600-\U0001F64F\U0001F680-\U0001F6FF\U00002600-\U000027BF\U0001F1E0-\U0001F1FF]+', '', text)
+            clean_text = clean_text.strip()
+
+            if not clean_text:
+                print("[WARNING] No text to convert after cleaning")
+                return False, []
+
+            print(f"[INFO] Generating Kokoro TTS with voice: {voice}")
+
+            # Initialize Kokoro
+            kokoro = Kokoro()
+
+            # Generate audio
+            audio, sample_rate = kokoro.create(
+                text=clean_text,
+                voice=voice,
+                speed=speed
+            )
+
+            # Save as WAV first, then convert to MP3
+            import soundfile as sf
+            wav_path = output_path.with_suffix('.wav')
+            sf.write(str(wav_path), audio, sample_rate)
+
+            # Convert to MP3 using ffmpeg
+            import subprocess
+            try:
+                subprocess.run([
+                    'ffmpeg', '-y', '-i', str(wav_path),
+                    '-acodec', 'libmp3lame', '-q:a', '2',
+                    str(output_path)
+                ], capture_output=True, check=True)
+                wav_path.unlink()  # Remove WAV file
+            except Exception as e:
+                print(f"[WARNING] Could not convert to MP3: {e}")
+                # Use WAV directly
+                output_path = wav_path
+
+            # Generate word timings (estimated based on text)
+            words = clean_text.split()
+            word_timings = []
+
+            # Calculate audio duration
+            audio_duration = len(audio) / sample_rate
+
+            # Use character-weighted timing
+            word_lengths = [max(2, len(w)) for w in words]
+            total_chars = sum(word_lengths)
+
+            current_time = 0.0
+            for i, word in enumerate(words):
+                word_duration = (word_lengths[i] / total_chars) * audio_duration
+                word_timings.append({
+                    'word': word,
+                    'offset': current_time,
+                    'duration': word_duration
+                })
+                current_time += word_duration
+
+            print(f"[OK] Generated Kokoro TTS voiceover: {output_path.name}")
+            print(f"  {len(word_timings)} words, {audio_duration:.2f}s duration")
+            return True, word_timings
+
+        except Exception as e:
+            print(f"[ERROR] Kokoro TTS generation failed: {e}")
+            import traceback
+            traceback.print_exc()
+            return False, []
+
+    @staticmethod
+    def generate_voiceover(text: str, output_path: Path, settings: dict = None):
+        """Generate natural-sounding voiceover from text using selected TTS engine
+        Returns: (success: bool, word_timings: list)
+        """
+        settings = settings or {}
+
+        # Check which TTS engine to use
+        tts_engine = settings.get('tts_engine', 'cloud')
+
+        # Use Kokoro (local) TTS if selected
+        if tts_engine == 'local':
+            return TTSGenerator._generate_kokoro_voiceover(text, output_path, settings)
+
+        # Otherwise use Cloud TTS (edge-tts)
         if not TTS_AVAILABLE:
-            print("[WARNING] TTS not available - skipping voiceover generation")
+            print("[WARNING] Cloud TTS not available - skipping voiceover generation")
             return False, []
 
         try:
-            settings = settings or {}
-
             # Select voice based on preference (defaults to 'aria')
             voice_key = settings.get('tts_voice', 'aria').lower()
             voice = TTSGenerator.VOICES.get(voice_key, TTSGenerator.VOICES['aria'])
