@@ -1606,49 +1606,65 @@ class CaptionRenderer:
             # Apply animation effects
             animation_style = settings.get('caption_word_animation', 'none')
             animation_intensity = settings.get('caption_animation_intensity', 1.2)
-            anim_duration = min(0.15, word_duration * 0.5)  # Animation takes first 15% of word duration
+            anim_duration = min(0.2, word_duration * 0.5)  # Animation takes first 20% of word duration
 
             if animation_style == 'pop':
-                # Pop effect: scale from 0 to full size quickly
+                # Pop effect: scale from small to full size quickly
                 def pop_scale(t):
-                    progress = min(1.0, t / anim_duration)
-                    # Ease-out cubic for smooth pop
-                    scale = progress ** 0.5
-                    return scale
+                    if t < anim_duration:
+                        progress = min(1.0, t / anim_duration)
+                        # Ease-out for smooth pop (starts at 0.3, grows to 1.0)
+                        scale = 0.3 + 0.7 * (progress ** 0.5)
+                        return scale
+                    return 1.0
 
                 try:
-                    clip = clip.resize(lambda t: pop_scale(t))
-                except:
-                    pass
+                    # Use resize with time-varying function
+                    try:
+                        clip = clip.resized(pop_scale)
+                    except:
+                        clip = clip.resize(pop_scale)
+                except Exception as e:
+                    print(f"[DEBUG] Pop animation failed: {e}")
 
             elif animation_style == 'bounce':
                 # Bounce effect: scale up beyond size, then bounce back
                 def bounce_scale(t):
                     if t < anim_duration:
                         progress = t / anim_duration
-                        # Overshoot and bounce back
-                        scale = 1.0 + (animation_intensity - 1.0) * (1.0 - abs(1.0 - progress * 1.5))
-                        return max(0.5, scale)
-                    else:
-                        return 1.0
+                        # Overshoot and bounce back with elastic effect
+                        # Goes from 1.0 -> 1.3 -> 1.0 (or whatever animation_intensity is set to)
+                        if progress < 0.6:
+                            # First part: scale up to peak
+                            scale = 1.0 + (animation_intensity - 1.0) * (progress / 0.6)
+                        else:
+                            # Second part: bounce back to 1.0
+                            bounce_back = (progress - 0.6) / 0.4
+                            scale = animation_intensity - (animation_intensity - 1.0) * bounce_back
+                        return scale
+                    return 1.0
 
                 try:
-                    clip = clip.resize(lambda t: bounce_scale(t))
-                except:
-                    pass
+                    # Use resize with time-varying function
+                    try:
+                        clip = clip.resized(bounce_scale)
+                    except:
+                        clip = clip.resize(bounce_scale)
+                except Exception as e:
+                    print(f"[DEBUG] Bounce animation failed: {e}")
 
             elif animation_style == 'fade':
                 # Fade effect: fade in from transparent
-                def fade_opacity(t):
-                    if t < anim_duration:
-                        return t / anim_duration
-                    else:
-                        return 1.0
-
                 try:
-                    clip = clip.set_opacity(lambda t: fade_opacity(t))
-                except:
-                    pass
+                    # Use MoviePy's built-in fadein
+                    if anim_duration > 0:
+                        try:
+                            from moviepy.video.fx import FadeIn
+                            clip = clip.with_effects([FadeIn(anim_duration)])
+                        except:
+                            clip = clip.fadein(anim_duration)
+                except Exception as e:
+                    print(f"[DEBUG] Fade animation failed: {e}")
 
             elif animation_style == 'slide':
                 # Slide effect: slide in from right
@@ -1664,9 +1680,12 @@ class CaptionRenderer:
                         return ('center', y_pos)
 
                 try:
-                    clip = clip.set_position(lambda t: slide_position(t))
-                except:
-                    pass
+                    try:
+                        clip = clip.with_position(slide_position)
+                    except:
+                        clip = clip.set_position(slide_position)
+                except Exception as e:
+                    print(f"[DEBUG] Slide animation failed: {e}")
 
             caption_clips.append(clip)
             current_time += word_duration
