@@ -472,6 +472,9 @@ class VideoAutomationGUI:
         canvas.pack(side='left', fill='both', expand=True, padx=10, pady=10)
         scrollbar.pack(side='right', fill='y')
 
+        # Enable mouse wheel scrolling
+        self.setup_mousewheel_scroll(canvas, content)
+
         # Create horizontal grid container (3 columns for main cards)
         grid_container = tk.Frame(content, bg=AppStyles.BG_CARD)
         grid_container.pack(fill='both', expand=True, padx=15, pady=10)
@@ -677,6 +680,9 @@ class VideoAutomationGUI:
         canvas.pack(side='left', fill='both', expand=True, padx=10, pady=10)
         scrollbar.pack(side='right', fill='y')
 
+        # Enable mouse wheel scrolling
+        self.setup_mousewheel_scroll(canvas, content)
+
         # Create horizontal grid container (3 columns)
         grid_container = tk.Frame(content, bg=AppStyles.BG_CARD)
         grid_container.pack(fill='both', expand=True, padx=15, pady=10)
@@ -711,6 +717,9 @@ class VideoAutomationGUI:
 
         canvas.pack(side='left', fill='both', expand=True, padx=10, pady=10)
         scrollbar.pack(side='right', fill='y')
+
+        # Enable mouse wheel scrolling
+        self.setup_mousewheel_scroll(canvas, content)
 
         # Combined effects list for horizontal grid
         all_effects = [
@@ -1080,6 +1089,9 @@ class VideoAutomationGUI:
 
         canvas.pack(side='left', fill='both', expand=True, padx=10, pady=10)
         scrollbar.pack(side='right', fill='y')
+
+        # Enable mouse wheel scrolling
+        self.setup_mousewheel_scroll(canvas, content)
 
         # Create horizontal grid container (2x2 grid)
         grid_container = tk.Frame(content, bg=AppStyles.BG_CARD)
@@ -1640,6 +1652,9 @@ class VideoAutomationGUI:
         canvas.pack(side='left', fill='both', expand=True, padx=10, pady=10)
         scrollbar.pack(side='right', fill='y')
 
+        # Enable mouse wheel scrolling
+        self.setup_mousewheel_scroll(canvas, content)
+
         # Create horizontal grid container (3 columns)
         grid_container = tk.Frame(content, bg=AppStyles.BG_CARD)
         grid_container.pack(fill='both', expand=True, padx=15, pady=10)
@@ -1989,6 +2004,9 @@ class VideoAutomationGUI:
         canvas.pack(side='left', fill='both', expand=True, padx=10, pady=10)
         scrollbar.pack(side='right', fill='y')
 
+        # Enable mouse wheel scrolling
+        self.setup_mousewheel_scroll(canvas, content)
+
         # Combined transitions list for horizontal grid
         all_transitions = [
             ('transition_fade_in', '🌅 Fade In'),
@@ -2127,6 +2145,24 @@ class VideoAutomationGUI:
         self.create_slider_control(cinematic_card, 'Film Burn Interval:', 'film_burn_repeat_interval', 5.0, 30.0, 10.0, resolution=1.0, value_format=lambda v: f"{v:.0f}s")
 
     # Helper methods
+
+    def setup_mousewheel_scroll(self, canvas, content):
+        """Setup mouse wheel scrolling for a canvas (Windows compatible)"""
+        def _on_mousewheel(event):
+            # Windows mouse wheel
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        def _bind_mousewheel(event):
+            canvas.bind_all("<MouseWheel>", _on_mousewheel)
+
+        def _unbind_mousewheel(event):
+            canvas.unbind_all("<MouseWheel>")
+
+        # Bind mouse wheel when mouse enters canvas/content
+        canvas.bind('<Enter>', _bind_mousewheel)
+        canvas.bind('<Leave>', _unbind_mousewheel)
+        content.bind('<Enter>', _bind_mousewheel)
+        content.bind('<Leave>', _unbind_mousewheel)
 
     def create_modern_card(self, parent, title):
         """Create a modern card with shadow and rounded corners"""
