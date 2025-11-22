@@ -1380,7 +1380,8 @@ class TTSGenerator:
                 voice = voice_setting.split(' - ')[0].strip()
             else:
                 voice = voice_setting
-            speed = settings.get('tts_speed', 130) / 100  # Convert to multiplier (1.0 = normal)
+            # Use separate Kokoro speed setting (0.5 to 2.0, default 1.0)
+            speed = float(settings.get('kokoro_speed', 1.0))
 
             # Clean text for TTS
             clean_text = re.sub(r'[\U0001F300-\U0001F9FF\U0001F600-\U0001F64F\U0001F680-\U0001F6FF\U00002600-\U000027BF\U0001F1E0-\U0001F1FF]+', '', text)
