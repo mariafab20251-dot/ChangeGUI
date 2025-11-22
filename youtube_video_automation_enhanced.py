@@ -1915,6 +1915,12 @@ class CaptionRenderer:
     @staticmethod
     def create_estimated_captions(text, audio_duration, video_width, video_height, settings):
         """Create captions with estimated timing when word-level timing is unavailable"""
+        # Import ImageClip at function level to avoid scope issues
+        try:
+            from moviepy import ImageClip
+        except ImportError:
+            from moviepy.editor import ImageClip
+
         caption_clips = []
 
         # Extract emojis from text (CapCut-style emoji integration)
@@ -2170,11 +2176,7 @@ class CaptionRenderer:
                 # Convert to frame array
                 frame = np.array(img).copy()
 
-                try:
-                    from moviepy import ImageClip
-                except ImportError:
-                    from moviepy.editor import ImageClip
-
+                # ImageClip is now imported at function level
                 clip = ImageClip(frame, is_mask=False)
 
                 try:
