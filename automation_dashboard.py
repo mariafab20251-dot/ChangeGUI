@@ -1133,37 +1133,116 @@ class AutomationDashboard:
         """Create API-based visual generator settings"""
         self.api_visual_frame = tk.Frame(self.visual_settings_frame, bg=DashboardStyles.BG_CARD)
 
-        tk.Label(self.api_visual_frame, text="API Visual Generator",
+        tk.Label(self.api_visual_frame, text="Cloud Visual API Settings",
                 bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_WHITE,
                 font=('Segoe UI', 12, 'bold')).pack(anchor='w', padx=15, pady=(15, 10))
 
-        tk.Label(self.api_visual_frame,
-                text="Configure API keys for cloud-based image/video generation.\n"
-                     "Support for Nano Banana, Sora, Kling, Hailuo, and Meta AI.",
-                bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 10)).pack(padx=15, pady=10)
+        # Create scrollable frame for API keys
+        canvas = tk.Canvas(self.api_visual_frame, bg=DashboardStyles.BG_CARD, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(self.api_visual_frame, orient='vertical', command=canvas.yview)
+        api_content = tk.Frame(canvas, bg=DashboardStyles.BG_CARD)
 
-        # API Key entry
-        api_frame = tk.Frame(self.api_visual_frame, bg=DashboardStyles.BG_CARD)
-        api_frame.pack(fill='x', padx=15, pady=5)
+        api_content.bind('<Configure>', lambda e: canvas.configure(scrollregion=canvas.bbox('all')))
+        canvas.create_window((0, 0), window=api_content, anchor='nw')
+        canvas.configure(yscrollcommand=scrollbar.set)
 
-        tk.Label(api_frame, text="API Key:",
-                bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_LIGHT,
-                font=('Segoe UI', 10)).pack(side='left')
+        canvas.pack(side='left', fill='both', expand=True, padx=15)
+        scrollbar.pack(side='right', fill='y')
 
-        self.visual_api_key_var = tk.StringVar(value=self.settings.get('visual_api_key', ''))
-        tk.Entry(api_frame, textvariable=self.visual_api_key_var,
-                bg=DashboardStyles.BG_INPUT, fg=DashboardStyles.TEXT_LIGHT,
-                font=('Segoe UI', 10), show='*', width=40).pack(side='left', padx=10)
+        # API key configurations
+        api_services = [
+            ('nanobanana', 'Nano Banana / Replicate', 'Get key from replicate.com'),
+            ('openai', 'OpenAI (DALL-E / Sora)', 'Get key from platform.openai.com'),
+            ('kling', 'Kling AI', 'Get key from klingai.com'),
+            ('hailuo', 'Hailuo / MiniMax', 'Get key from minimax.chat'),
+        ]
 
-        tk.Button(api_frame, text="Save",
+        self.cloud_api_vars = {}
+
+        for key, name, hint in api_services:
+            frame = tk.Frame(api_content, bg=DashboardStyles.BG_INPUT)
+            frame.pack(fill='x', pady=5)
+
+            tk.Label(frame, text=name,
+                    bg=DashboardStyles.BG_INPUT, fg=DashboardStyles.TEXT_WHITE,
+                    font=('Segoe UI', 10, 'bold')).pack(anchor='w', padx=10, pady=(8, 2))
+
+            key_row = tk.Frame(frame, bg=DashboardStyles.BG_INPUT)
+            key_row.pack(fill='x', padx=10, pady=(0, 5))
+
+            tk.Label(key_row, text="API Key:",
+                    bg=DashboardStyles.BG_INPUT, fg=DashboardStyles.TEXT_LIGHT,
+                    font=('Segoe UI', 9)).pack(side='left')
+
+            var = tk.StringVar(value=self.settings.get(f'{key}_api_key', ''))
+            self.cloud_api_vars[key] = var
+
+            entry = tk.Entry(key_row, textvariable=var,
+                           bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_LIGHT,
+                           font=('Segoe UI', 9), show='*', width=35)
+            entry.pack(side='left', padx=(5, 5))
+
+            tk.Button(key_row, text="Save",
+                     bg=DashboardStyles.ACCENT_PRIMARY, fg='white',
+                     font=('Segoe UI', 8), padx=8,
+                     command=lambda k=key: self.save_cloud_api_key(k)).pack(side='left')
+
+            tk.Label(frame, text=hint,
+                    bg=DashboardStyles.BG_INPUT, fg=DashboardStyles.TEXT_MEDIUM,
+                    font=('Segoe UI', 8, 'italic')).pack(anchor='w', padx=10, pady=(0, 8))
+
+        # Test all APIs button
+        tk.Button(api_content, text="Test All API Connections",
                  bg=DashboardStyles.ACCENT_INFO, fg='white',
-                 command=lambda: self.save_visual_api_key()).pack(side='left', padx=5)
+                 font=('Segoe UI', 10, 'bold'), padx=15, pady=8,
+                 command=self.test_cloud_apis).pack(pady=15)
 
-        tk.Label(self.api_visual_frame,
-                text="Note: Each API service requires its own key.\nConfigure based on your selected source above.",
-                bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 9, 'italic')).pack(padx=15, pady=(20, 15))
+    def save_cloud_api_key(self, service):
+        """Save a cloud API key"""
+        if service in self.cloud_api_vars:
+            key = self.cloud_api_vars[service].get()
+            self.settings[f'{service}_api_key'] = key
+            self.save_settings()
+            self.add_log(f"✓ {service.title()} API key saved", 'success')
+
+    def test_cloud_apis(self):
+        """Test all configured cloud API connections"""
+        results = []
+
+        # Test OpenAI
+        if self.settings.get('openai_api_key'):
+            try:
+                response = requests.get(
+                    'https://api.openai.com/v1/models',
+                    headers={'Authorization': f"Bearer {self.settings['openai_api_key']}"},
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    results.append("✓ OpenAI: Connected")
+                else:
+                    results.append(f"✗ OpenAI: {response.status_code}")
+            except:
+                results.append("✗ OpenAI: Connection failed")
+
+        # Test Replicate (Nano Banana)
+        if self.settings.get('nanobanana_api_key'):
+            try:
+                response = requests.get(
+                    'https://api.replicate.com/v1/models',
+                    headers={'Authorization': f"Token {self.settings['nanobanana_api_key']}"},
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    results.append("✓ Replicate: Connected")
+                else:
+                    results.append(f"✗ Replicate: {response.status_code}")
+            except:
+                results.append("✗ Replicate: Connection failed")
+
+        if results:
+            messagebox.showinfo("API Test Results", "\n".join(results))
+        else:
+            messagebox.showinfo("No APIs", "No API keys configured yet.")
 
     def on_visual_source_change(self):
         """Handle visual source selection change"""
@@ -2875,6 +2954,290 @@ Return ONLY the prompts, one per line, no numbering or extra text."""
                 prompts.append(prompt)
 
         return prompts
+
+    def generate_captions(self, script, audio_path, output_path):
+        """
+        Generate SRT captions from script text.
+
+        Args:
+            script: The script text
+            audio_path: Path to audio file (for timing)
+            output_path: Output SRT file path
+
+        Returns:
+            Path to generated SRT file or None
+        """
+        import subprocess
+        import re
+
+        try:
+            # Get audio duration for timing
+            duration_cmd = [
+                'ffprobe', '-v', 'error', '-show_entries', 'format=duration',
+                '-of', 'default=noprint_wrappers=1:nokey=1', audio_path
+            ]
+            result = subprocess.run(duration_cmd, capture_output=True, text=True, timeout=30)
+            audio_duration = float(result.stdout.strip()) if result.stdout.strip() else 60
+
+            # Split script into sentences
+            sentences = re.split(r'(?<=[.!?])\s+', script)
+            sentences = [s.strip() for s in sentences if s.strip()]
+
+            if not sentences:
+                return None
+
+            # Calculate timing per sentence
+            time_per_sentence = audio_duration / len(sentences)
+
+            # Generate SRT content
+            srt_content = []
+            current_time = 0
+
+            for i, sentence in enumerate(sentences, 1):
+                start_time = current_time
+                end_time = current_time + time_per_sentence
+
+                # Format times as HH:MM:SS,mmm
+                start_str = self.format_srt_time(start_time)
+                end_str = self.format_srt_time(end_time)
+
+                # Split long sentences into multiple lines
+                words = sentence.split()
+                if len(words) > 8:
+                    mid = len(words) // 2
+                    line1 = ' '.join(words[:mid])
+                    line2 = ' '.join(words[mid:])
+                    text = f"{line1}\n{line2}"
+                else:
+                    text = sentence
+
+                srt_content.append(f"{i}\n{start_str} --> {end_str}\n{text}\n")
+                current_time = end_time
+
+            # Write SRT file
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write('\n'.join(srt_content))
+
+            self.add_log(f"✓ Captions generated: {len(sentences)} segments", 'success')
+            return output_path
+
+        except Exception as e:
+            logger.error(f"Caption generation failed: {e}")
+            return None
+
+    def format_srt_time(self, seconds):
+        """Format seconds to SRT time format HH:MM:SS,mmm"""
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        secs = int(seconds % 60)
+        millis = int((seconds % 1) * 1000)
+        return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
+
+    def burn_captions(self, video_path, srt_path, output_path):
+        """
+        Burn captions into video using ffmpeg.
+
+        Args:
+            video_path: Input video path
+            srt_path: SRT subtitle file path
+            output_path: Output video path
+
+        Returns:
+            Tuple of (success: bool, message: str)
+        """
+        import subprocess
+
+        try:
+            # Escape special characters in path for ffmpeg
+            srt_escaped = srt_path.replace('\\', '/').replace(':', '\\:')
+
+            cmd = [
+                'ffmpeg', '-y',
+                '-i', video_path,
+                '-vf', f"subtitles='{srt_escaped}':force_style='FontSize=24,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=2,Shadow=1,MarginV=30'",
+                '-c:a', 'copy',
+                output_path
+            ]
+
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+
+            if result.returncode == 0:
+                return True, f"Captions burned into video"
+            else:
+                # Try alternative method with subtitles filter
+                cmd = [
+                    'ffmpeg', '-y',
+                    '-i', video_path,
+                    '-i', srt_path,
+                    '-c:v', 'libx264', '-preset', 'medium', '-crf', '23',
+                    '-c:a', 'copy',
+                    '-c:s', 'mov_text',
+                    output_path
+                ]
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+
+                if result.returncode == 0:
+                    return True, f"Captions added as track"
+                else:
+                    return False, f"FFmpeg error: {result.stderr[:100]}"
+
+        except subprocess.TimeoutExpired:
+            return False, "FFmpeg timed out"
+        except Exception as e:
+            return False, f"Caption burn error: {str(e)}"
+
+    def add_background_music(self, video_path, music_path, output_path, music_volume=0.15):
+        """
+        Add background music to a video.
+
+        Args:
+            video_path: Input video path
+            music_path: Background music file path
+            output_path: Output video path
+            music_volume: Volume level for music (0.0 to 1.0)
+
+        Returns:
+            Tuple of (success: bool, message: str)
+        """
+        import subprocess
+
+        try:
+            # Get video duration
+            duration_cmd = [
+                'ffprobe', '-v', 'error', '-show_entries', 'format=duration',
+                '-of', 'default=noprint_wrappers=1:nokey=1', video_path
+            ]
+            result = subprocess.run(duration_cmd, capture_output=True, text=True, timeout=30)
+            video_duration = float(result.stdout.strip()) if result.stdout.strip() else 60
+
+            # Mix voice audio with background music
+            # The music is looped if needed and volume-adjusted
+            cmd = [
+                'ffmpeg', '-y',
+                '-i', video_path,
+                '-stream_loop', '-1',  # Loop music if needed
+                '-i', music_path,
+                '-t', str(video_duration),  # Match video duration
+                '-filter_complex',
+                f'[1:a]volume={music_volume},afade=t=in:st=0:d=2,afade=t=out:st={video_duration-2}:d=2[music];'
+                f'[0:a][music]amix=inputs=2:duration=shortest[aout]',
+                '-map', '0:v',
+                '-map', '[aout]',
+                '-c:v', 'copy',
+                '-c:a', 'aac', '-b:a', '192k',
+                output_path
+            ]
+
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+
+            if result.returncode == 0:
+                self.add_log(f"✓ Background music added", 'success')
+                return True, "Background music added successfully"
+            else:
+                return False, f"FFmpeg error: {result.stderr[:100]}"
+
+        except subprocess.TimeoutExpired:
+            return False, "FFmpeg timed out"
+        except Exception as e:
+            return False, f"Music mixing error: {str(e)}"
+
+    def generate_thumbnail(self, video_path, output_path, timestamp=None):
+        """
+        Generate a thumbnail from video.
+
+        Args:
+            video_path: Input video path
+            output_path: Output thumbnail path
+            timestamp: Time in seconds to capture (None = middle of video)
+
+        Returns:
+            Tuple of (success: bool, message: str)
+        """
+        import subprocess
+
+        try:
+            # Get video duration if timestamp not specified
+            if timestamp is None:
+                duration_cmd = [
+                    'ffprobe', '-v', 'error', '-show_entries', 'format=duration',
+                    '-of', 'default=noprint_wrappers=1:nokey=1', video_path
+                ]
+                result = subprocess.run(duration_cmd, capture_output=True, text=True, timeout=30)
+                duration = float(result.stdout.strip()) if result.stdout.strip() else 60
+                timestamp = duration / 3  # Use first third for better thumbnail
+
+            # Extract frame
+            cmd = [
+                'ffmpeg', '-y',
+                '-ss', str(timestamp),
+                '-i', video_path,
+                '-vframes', '1',
+                '-q:v', '2',  # High quality JPEG
+                output_path
+            ]
+
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+
+            if result.returncode == 0 and os.path.exists(output_path):
+                self.add_log(f"✓ Thumbnail generated", 'success')
+                return True, f"Thumbnail saved: {output_path}"
+            else:
+                return False, f"Thumbnail generation failed"
+
+        except Exception as e:
+            return False, f"Thumbnail error: {str(e)}"
+
+    def generate_thumbnail_with_text(self, video_path, output_path, title_text, timestamp=None):
+        """
+        Generate a thumbnail with text overlay.
+
+        Args:
+            video_path: Input video path
+            output_path: Output thumbnail path
+            title_text: Text to overlay on thumbnail
+            timestamp: Time in seconds to capture
+
+        Returns:
+            Tuple of (success: bool, message: str)
+        """
+        import subprocess
+
+        try:
+            # Get video duration if timestamp not specified
+            if timestamp is None:
+                duration_cmd = [
+                    'ffprobe', '-v', 'error', '-show_entries', 'format=duration',
+                    '-of', 'default=noprint_wrappers=1:nokey=1', video_path
+                ]
+                result = subprocess.run(duration_cmd, capture_output=True, text=True, timeout=30)
+                duration = float(result.stdout.strip()) if result.stdout.strip() else 60
+                timestamp = duration / 3
+
+            # Escape text for ffmpeg
+            safe_text = title_text.replace("'", "\\'").replace(":", "\\:")[:50]
+
+            # Extract frame with text overlay
+            cmd = [
+                'ffmpeg', '-y',
+                '-ss', str(timestamp),
+                '-i', video_path,
+                '-vframes', '1',
+                '-vf', f"drawtext=text='{safe_text}':fontsize=48:fontcolor=white:borderw=3:bordercolor=black:x=(w-text_w)/2:y=h-th-50",
+                '-q:v', '2',
+                output_path
+            ]
+
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+
+            if result.returncode == 0 and os.path.exists(output_path):
+                self.add_log(f"✓ Thumbnail with text generated", 'success')
+                return True, f"Thumbnail saved: {output_path}"
+            else:
+                # Fallback to simple thumbnail
+                return self.generate_thumbnail(video_path, output_path, timestamp)
+
+        except Exception as e:
+            return False, f"Thumbnail error: {str(e)}"
 
     def export_project_config(self):
         """Export current dashboard configuration as JSON"""
