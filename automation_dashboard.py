@@ -1507,7 +1507,7 @@ class AutomationDashboard:
         # Create project wizard dialog
         wizard = tk.Toplevel(self.window)
         wizard.title("New Automation Project")
-        wizard.geometry("600x700")
+        wizard.geometry("600x850")
         wizard.configure(bg=DashboardStyles.BG_DARK)
         wizard.transient(self.window)
         wizard.grab_set()
@@ -1641,6 +1641,58 @@ class AutomationDashboard:
                       bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_WHITE,
                       selectcolor=DashboardStyles.BG_INPUT).pack(side='left', padx=5)
 
+        # Post-processing settings
+        postproc_frame = tk.Frame(wizard, bg=DashboardStyles.BG_CARD)
+        postproc_frame.pack(fill='x', padx=20, pady=5)
+
+        tk.Label(postproc_frame, text="Post-processing",
+                bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_WHITE,
+                font=('Segoe UI', 11, 'bold')).pack(anchor='w', padx=10, pady=(10, 5))
+
+        # Captions option
+        caption_row = tk.Frame(postproc_frame, bg=DashboardStyles.BG_CARD)
+        caption_row.pack(fill='x', padx=10, pady=5)
+
+        captions_var = tk.BooleanVar(value=False)
+        tk.Checkbutton(caption_row, text="Add Captions/Subtitles", variable=captions_var,
+                      bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_WHITE,
+                      selectcolor=DashboardStyles.BG_INPUT).pack(side='left')
+
+        # Background music option
+        music_row = tk.Frame(postproc_frame, bg=DashboardStyles.BG_CARD)
+        music_row.pack(fill='x', padx=10, pady=5)
+
+        tk.Label(music_row, text="Background Music:",
+                bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_LIGHT,
+                font=('Segoe UI', 10)).pack(side='left')
+
+        music_path_var = tk.StringVar(value='')
+        music_entry = tk.Entry(music_row, textvariable=music_path_var,
+                              bg=DashboardStyles.BG_INPUT, fg=DashboardStyles.TEXT_LIGHT,
+                              font=('Segoe UI', 9), width=25)
+        music_entry.pack(side='left', padx=5)
+
+        def browse_music():
+            path = filedialog.askopenfilename(
+                title="Select Background Music",
+                filetypes=[("Audio files", "*.mp3 *.wav *.m4a *.ogg"), ("All files", "*.*")]
+            )
+            if path:
+                music_path_var.set(path)
+
+        tk.Button(music_row, text="Browse", command=browse_music,
+                 bg=DashboardStyles.ACCENT_PRIMARY, fg='white',
+                 font=('Segoe UI', 8)).pack(side='left', padx=2)
+
+        # Thumbnail option
+        thumb_row = tk.Frame(postproc_frame, bg=DashboardStyles.BG_CARD)
+        thumb_row.pack(fill='x', padx=10, pady=(5, 10))
+
+        thumbnail_var = tk.BooleanVar(value=True)
+        tk.Checkbutton(thumb_row, text="Generate Thumbnail", variable=thumbnail_var,
+                      bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_WHITE,
+                      selectcolor=DashboardStyles.BG_INPUT).pack(side='left')
+
         def create_project():
             # Gather project data
             project = {
@@ -1657,6 +1709,9 @@ class AutomationDashboard:
                     'instagram': instagram_var.get(),
                     'facebook': facebook_var.get()
                 },
+                'add_captions': captions_var.get(),
+                'background_music': music_path_var.get(),
+                'generate_thumbnail': thumbnail_var.get(),
                 'status': 'pending'
             }
 
@@ -2462,6 +2517,66 @@ class AutomationDashboard:
             except Exception as e:
                 self.add_log(f"Composition error: {str(e)[:50]}", 'error')
                 logger.error(f"Video composition failed: {e}")
+
+            # Post-processing steps (only if video was created)
+            if final_video_path and os.path.exists(final_video_path):
+
+                # Step 4.5a: Add Captions (optional)
+                if project.get('add_captions', False) and script and audio_path:
+                    self.add_log("Adding captions...", 'info')
+                    try:
+                        srt_path = final_video_path.replace('.mp4', '.srt')
+                        srt_file = self.generate_captions(script, audio_path, srt_path)
+
+                        if srt_file:
+                            captioned_path = final_video_path.replace('.mp4', '_captioned.mp4')
+                            success, msg = self.burn_captions(final_video_path, srt_file, captioned_path)
+
+                            if success and os.path.exists(captioned_path):
+                                # Replace original with captioned version
+                                os.replace(captioned_path, final_video_path)
+                                self.add_log("✓ Captions added to video", 'success')
+                    except Exception as e:
+                        self.add_log(f"Caption error: {str(e)[:30]}", 'warning')
+
+                # Step 4.5b: Add Background Music (optional)
+                music_path = project.get('background_music', '') or self.settings.get('background_music', '')
+                if music_path and os.path.exists(music_path):
+                    self.add_log("Adding background music...", 'info')
+                    try:
+                        music_volume = project.get('music_volume', 0.15)
+                        music_output = final_video_path.replace('.mp4', '_music.mp4')
+
+                        success, msg = self.add_background_music(
+                            final_video_path, music_path, music_output, music_volume
+                        )
+
+                        if success and os.path.exists(music_output):
+                            os.replace(music_output, final_video_path)
+                            self.add_log("✓ Background music added", 'success')
+                    except Exception as e:
+                        self.add_log(f"Music error: {str(e)[:30]}", 'warning')
+
+                # Step 4.5c: Generate Thumbnail
+                if project.get('generate_thumbnail', True):
+                    self.add_log("Generating thumbnail...", 'info')
+                    try:
+                        thumb_path = final_video_path.replace('.mp4', '_thumb.jpg')
+                        title_text = project.get('name', '')
+
+                        if title_text:
+                            success, msg = self.generate_thumbnail_with_text(
+                                final_video_path, thumb_path, title_text
+                            )
+                        else:
+                            success, msg = self.generate_thumbnail(
+                                final_video_path, thumb_path
+                            )
+
+                        if success:
+                            self.add_log("✓ Thumbnail generated", 'success')
+                    except Exception as e:
+                        self.add_log(f"Thumbnail error: {str(e)[:30]}", 'warning')
 
             # Step 5: Publish (100%)
             if any(project['publish'].values()) and final_video_path and os.path.exists(final_video_path):
