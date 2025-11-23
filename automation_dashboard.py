@@ -1608,9 +1608,9 @@ class AutomationDashboard:
                 bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_LIGHT,
                 font=('Segoe UI', 10)).pack(side='left')
 
-        voice_source_var = tk.StringVar(value='cloud')
+        voice_source_var = tk.StringVar(value='system')
         ttk.Combobox(voice_row, textvariable=voice_source_var,
-                    values=['cloud', 'kokoro', 'neutts', 'elevenlabs', 'import'],
+                    values=['system', 'kokoro', 'neutts', 'elevenlabs', 'import'],
                     state='readonly', width=15).pack(side='left', padx=10)
 
         # Visual source
@@ -2124,6 +2124,41 @@ class AutomationDashboard:
                     except Exception as e:
                         self.add_log(f"ElevenLabs failed: {str(e)[:50]}", 'error')
                         logger.error(f"ElevenLabs voice generation failed: {e}")
+
+            elif voice_source == 'system':
+                # Use system TTS (pyttsx3) - Windows SAPI5 voices
+                try:
+                    import pyttsx3
+
+                    engine = pyttsx3.init()
+
+                    # Get available voices and set one
+                    voices = engine.getProperty('voices')
+                    if voices:
+                        # Use first available voice (usually Microsoft David or Zira)
+                        engine.setProperty('voice', voices[0].id)
+
+                    # Set rate (speed)
+                    engine.setProperty('rate', 150)  # Default is 200
+
+                    # Generate audio file
+                    audio_path = os.path.join(output_dir, f"{project['name']}_{video_num}_voice.wav")
+                    engine.save_to_file(script, audio_path)
+                    engine.runAndWait()
+
+                    if os.path.exists(audio_path):
+                        self.add_log(f"✓ System voice generated", 'success')
+                        logger.info(f"System voice saved: {audio_path}")
+                    else:
+                        self.add_log("System voice failed to save", 'error')
+                        audio_path = None
+
+                except ImportError:
+                    self.add_log("pyttsx3 not installed. Run: pip install pyttsx3", 'error')
+                    logger.error("pyttsx3 not installed")
+                except Exception as e:
+                    self.add_log(f"System voice failed: {str(e)[:50]}", 'error')
+                    logger.error(f"System voice generation failed: {e}")
 
             elif voice_source == 'neutts':
                 # Use NeuTTS via gradio_client
