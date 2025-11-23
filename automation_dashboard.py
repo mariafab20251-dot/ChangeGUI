@@ -317,6 +317,9 @@ class AutomationDashboard:
         # Save local clips folder
         if hasattr(self, 'clips_folder_var'):
             self.settings['local_clips_folder'] = self.clips_folder_var.get()
+        # Save clip duration setting
+        if hasattr(self, 'clip_duration_var'):
+            self.settings['clip_duration'] = self.clip_duration_var.get()
         with open(self.settings_file, 'w') as f:
             json.dump(self.settings, f, indent=2)
 
@@ -1201,6 +1204,34 @@ class AutomationDashboard:
                  font=('Segoe UI', 10), padx=15, pady=8,
                  command=self.preview_local_clips).pack(pady=10)
 
+        # Clip duration setting
+        duration_frame = tk.Frame(self.local_folder_frame, bg=DashboardStyles.BG_CARD)
+        duration_frame.pack(fill='x', padx=15, pady=(10, 5))
+
+        tk.Label(duration_frame, text="Clip Duration (seconds):",
+                bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_WHITE,
+                font=('Segoe UI', 10, 'bold')).pack(anchor='w')
+
+        tk.Label(duration_frame, text="Set how long each image/clip is shown. Set to 0 for auto-fit to audio.",
+                bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 9)).pack(anchor='w', pady=(2, 5))
+
+        slider_frame = tk.Frame(duration_frame, bg=DashboardStyles.BG_CARD)
+        slider_frame.pack(fill='x', pady=5)
+
+        self.clip_duration_var = tk.DoubleVar(value=self.settings.get('clip_duration', 0))
+
+        self.clip_duration_label = tk.Label(slider_frame,
+                text=f"{self.clip_duration_var.get():.1f}s" if self.clip_duration_var.get() > 0 else "Auto",
+                bg=DashboardStyles.BG_CARD, fg=DashboardStyles.ACCENT_PRIMARY,
+                font=('Segoe UI', 10, 'bold'), width=6)
+        self.clip_duration_label.pack(side='right', padx=(10, 0))
+
+        self.clip_duration_scale = ttk.Scale(slider_frame, from_=0, to=10,
+                variable=self.clip_duration_var, orient='horizontal',
+                command=self.update_clip_duration_label)
+        self.clip_duration_scale.pack(side='left', fill='x', expand=True)
+
     def create_api_visual_settings(self):
         """Create API-based visual generator settings"""
         self.api_visual_frame = tk.Frame(self.visual_settings_frame, bg=DashboardStyles.BG_CARD)
@@ -1407,6 +1438,17 @@ class AutomationDashboard:
 
         except Exception as e:
             messagebox.showerror("Error", f"Error reading folder: {str(e)}")
+
+    def update_clip_duration_label(self, value):
+        """Update clip duration label when slider changes"""
+        duration = float(value)
+        if duration == 0:
+            self.clip_duration_label.config(text="Auto")
+        else:
+            self.clip_duration_label.config(text=f"{duration:.1f}s")
+        # Save immediately
+        self.settings['clip_duration'] = duration
+        self.save_settings()
 
     def save_visual_api_key(self):
         """Save visual API key"""
@@ -2652,7 +2694,8 @@ class AutomationDashboard:
 
             # Step 4: Compose Video (90%)
             self.update_queue_item(index, '🎬 Compose', f'{int((v/num_videos)*100 + 75)}%')
-            self.add_log("Composing video with ffmpeg...", 'info')
+            composition_method = "MoviePy" if MOVIEPY_AVAILABLE else "ffmpeg"
+            self.add_log(f"Composing video with {composition_method}...", 'info')
 
             final_video_path = None
             try:
@@ -2843,6 +2886,9 @@ class AutomationDashboard:
         import math
 
         try:
+            # Get clip duration setting (0 = auto-fit to audio)
+            clip_duration_setting = self.settings.get('clip_duration', 0)
+
             # Get audio duration
             duration_cmd = [
                 'ffprobe', '-v', 'error', '-show_entries', 'format=duration',
@@ -2880,7 +2926,10 @@ class AutomationDashboard:
                 # Use video clips - concatenate them
                 # Calculate duration per clip
                 num_clips = len(videos)
-                clip_duration = audio_duration / num_clips
+                if clip_duration_setting > 0:
+                    clip_duration = clip_duration_setting
+                else:
+                    clip_duration = audio_duration / num_clips
 
                 # Create concat file
                 concat_file = os.path.join(temp_dir, 'concat.txt')
@@ -2933,7 +2982,10 @@ class AutomationDashboard:
             elif images:
                 # Use images - create slideshow
                 num_images = len(images)
-                image_duration = audio_duration / num_images
+                if clip_duration_setting > 0:
+                    image_duration = clip_duration_setting
+                else:
+                    image_duration = audio_duration / num_images
 
                 # Create image sequence with crossfade
                 filter_complex = []
@@ -3027,13 +3079,18 @@ class AutomationDashboard:
         try:
             from PIL import Image
 
+            # Get clip duration setting (0 = auto-fit to audio)
+            clip_duration_setting = self.settings.get('clip_duration', 0)
+
             # Get audio duration
             if audio_path and os.path.exists(audio_path):
                 audio_clip = AudioFileClip(audio_path)
                 total_duration = audio_clip.duration
             else:
                 audio_clip = None
-                total_duration = len(visual_paths) * 3  # 3 seconds per visual
+                # Use clip duration setting or default 3 seconds per visual
+                default_duration = clip_duration_setting if clip_duration_setting > 0 else 3
+                total_duration = len(visual_paths) * default_duration
 
             if not visual_paths:
                 # Create black background with audio
@@ -3046,7 +3103,14 @@ class AutomationDashboard:
 
             # Calculate duration per visual
             num_visuals = len(visual_paths)
-            visual_duration = total_duration / num_visuals
+            if clip_duration_setting > 0:
+                # Use user-specified duration
+                visual_duration = clip_duration_setting
+                self.add_log(f"Using {visual_duration}s per clip (user setting)", 'info')
+            else:
+                # Auto-fit to audio duration
+                visual_duration = total_duration / num_visuals
+                self.add_log(f"Auto-fit: {visual_duration:.1f}s per clip", 'info')
 
             # Separate images and videos
             image_exts = ('.jpg', '.jpeg', '.png', '.webp', '.bmp')
