@@ -3270,6 +3270,95 @@ class VideoAutomationGUI:
                     pitch_label = f" (pitch: {pitch_semitones:+d})" if pitch_semitones != 0 else ""
                     self.preview_status_label.config(text=f"▶ Playing Kokoro: {voice}{pitch_label}{effect_label}")
 
+                elif tts_engine == 'neutts':
+                    # Use NeuTTS (Voice Cloning)
+                    if not NeuTTSHelper:
+                        self.preview_status_label.config(text="❌ NeuTTS helper not available")
+                        return
+
+                    # Get selected voice
+                    selected_voice = self.settings.get('neutts_voice', '')
+                    if not selected_voice:
+                        self.preview_status_label.config(text="❌ No NeuTTS voice selected")
+                        return
+
+                    server_url = self.settings.get('neutts_server_url', 'http://localhost:7860')
+                    speed = float(self.settings.get('neutts_speed', 1.0))
+
+                    preview_file = Path(temp_dir) / f"tts_preview_neutts_{selected_voice}.mp3"
+                    wav_path = preview_file.with_suffix('.wav')
+
+                    try:
+                        # Initialize NeuTTS helper
+                        helper = NeuTTSHelper(server_url)
+
+                        # Generate speech
+                        audio_data = helper.generate_speech(
+                            text=test_text,
+                            voice_name=selected_voice,
+                            speed=speed
+                        )
+
+                        if audio_data:
+                            # Save WAV file
+                            with open(str(wav_path), 'wb') as f:
+                                f.write(audio_data)
+
+                            # Get pitch and voice effect settings
+                            pitch_semitones = self.settings.get('neutts_pitch', 0)
+                            voice_effect = self.settings.get('voice_effect', 'none')
+
+                            # Build FFmpeg filter chain
+                            filters = []
+
+                            # Apply pitch shift if not zero
+                            if pitch_semitones != 0:
+                                pitch_factor = 2 ** (pitch_semitones / 12)
+                                filters.append(f"asetrate=22050*{pitch_factor},aresample=22050")
+
+                            # Apply voice effects
+                            if voice_effect == 'deep':
+                                if pitch_semitones == 0:
+                                    filters.append("asetrate=22050*0.5,aresample=22050")
+                            elif voice_effect == 'high':
+                                if pitch_semitones == 0:
+                                    filters.append("asetrate=22050*2,aresample=22050")
+                            elif voice_effect == 'robot':
+                                filters.append("afftfilt=real='hypot(re,im)*sin(0)':imag='hypot(re,im)*cos(0)':win_size=512:overlap=0.75")
+                            elif voice_effect == 'echo':
+                                filters.append("aecho=0.8:0.88:60:0.4")
+                            elif voice_effect == 'whisper':
+                                filters.append("highpass=f=1000,lowpass=f=3000,volume=1.5")
+                            elif voice_effect == 'radio':
+                                filters.append("highpass=f=300,lowpass=f=3400,equalizer=f=1000:t=h:w=200:g=3")
+                            elif voice_effect == 'chipmunk':
+                                if pitch_semitones == 0:
+                                    filters.append("asetrate=22050*2.5,aresample=22050")
+
+                            # Build FFmpeg command
+                            ffmpeg_cmd = ['ffmpeg', '-y', '-i', str(wav_path)]
+
+                            if filters:
+                                filter_chain = ','.join(filters)
+                                ffmpeg_cmd.extend(['-af', filter_chain])
+
+                            ffmpeg_cmd.extend(['-acodec', 'libmp3lame', '-q:a', '2', str(preview_file)])
+
+                            subprocess.run(ffmpeg_cmd, capture_output=True, check=True)
+                            wav_path.unlink()
+
+                            effect_label = f" + {voice_effect}" if voice_effect != 'none' else ""
+                            pitch_label = f" (pitch: {pitch_semitones:+d})" if pitch_semitones != 0 else ""
+                            self.preview_status_label.config(text=f"▶ Playing NeuTTS: {selected_voice}{pitch_label}{effect_label}")
+                        else:
+                            self.preview_status_label.config(text="❌ NeuTTS failed to generate audio")
+                            return
+
+                    except Exception as e:
+                        self.preview_status_label.config(text=f"❌ NeuTTS error: {str(e)}")
+                        logger.error(f"NeuTTS preview error: {e}")
+                        return
+
                 else:
                     # Use Cloud TTS (edge-tts)
                     try:
