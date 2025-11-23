@@ -30,16 +30,28 @@ except ImportError:
     except ImportError:
         MOVIEPY_AVAILABLE = False
 
-# Import effects classes from main project
+# Import all classes from main project for full integration
 try:
-    from youtube_video_automation_enhanced import VideoEffects, TransitionEffects
+    from youtube_video_automation_enhanced import (
+        VideoEffects,
+        TransitionEffects,
+        TTSGenerator,
+        CaptionRenderer,
+        AudioProcessor
+    )
+    MAIN_PROJECT_AVAILABLE = True
     EFFECTS_AVAILABLE = True
 except ImportError:
     VideoEffects = None
     TransitionEffects = None
+    TTSGenerator = None
+    CaptionRenderer = None
+    AudioProcessor = None
+    MAIN_PROJECT_AVAILABLE = False
     EFFECTS_AVAILABLE = False
 
 import numpy as np
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -2197,228 +2209,96 @@ class AutomationDashboard:
 
             # Step 2: Generate Voice (50%)
             self.update_queue_item(index, '🎙️ Voice', f'{int((v/num_videos)*100 + 25)}%')
-            self.add_log(f"Generating voice ({project.get('voice_source', 'cloud')})...", 'info')
+            voice_source = project.get('voice_source', 'cloud')
+            self.add_log(f"Generating voice ({voice_source})...", 'info')
 
             audio_path = None
-            voice_source = project.get('voice_source', 'cloud')
+            word_timings = []  # For caption sync
 
-            if voice_source == 'elevenlabs':
-                # Use ElevenLabs API
-                api_key = self.settings.get('elevenlabs_api_key', '')
-                voice_id = self.settings.get('elevenlabs_voice_id', '')
-
-                if api_key and voice_id and script:
+            if script and voice_source != 'import':
+                # Use TTSGenerator from main project for all voice types
+                if MAIN_PROJECT_AVAILABLE and TTSGenerator:
                     try:
-                        response = requests.post(
-                            f'https://api.elevenlabs.io/v1/text-to-speech/{voice_id}',
-                            headers={
-                                'xi-api-key': api_key,
-                                'Content-Type': 'application/json'
-                            },
-                            json={
-                                'text': script,
-                                'model_id': 'eleven_monolingual_v1',
-                                'voice_settings': {
-                                    'stability': self.settings.get('elevenlabs_stability', 0.5),
-                                    'similarity_boost': self.settings.get('elevenlabs_similarity', 0.75)
-                                }
-                            },
-                            timeout=120
-                        )
-
-                        if response.status_code == 200:
-                            audio_path = os.path.join(output_dir, f"{project['name']}_{video_num}_voice.mp3")
-                            with open(audio_path, 'wb') as f:
-                                f.write(response.content)
-                            self.add_log(f"✓ ElevenLabs voice saved", 'success')
-                            logger.info(f"ElevenLabs voice saved: {audio_path}")
-                        else:
-                            self.add_log(f"ElevenLabs error: {response.status_code}", 'error')
-                            logger.error(f"ElevenLabs error: {response.text}")
-                    except Exception as e:
-                        self.add_log(f"ElevenLabs failed: {str(e)[:50]}", 'error')
-                        logger.error(f"ElevenLabs voice generation failed: {e}")
-
-            elif voice_source == 'system':
-                # Use system TTS (pyttsx3) - Windows SAPI5 voices
-                try:
-                    import pyttsx3
-
-                    engine = pyttsx3.init()
-
-                    # Get available voices and set one
-                    voices = engine.getProperty('voices')
-                    if voices:
-                        # Use first available voice (usually Microsoft David or Zira)
-                        engine.setProperty('voice', voices[0].id)
-
-                    # Set rate (speed)
-                    engine.setProperty('rate', 150)  # Default is 200
-
-                    # Generate audio file
-                    audio_path = os.path.join(output_dir, f"{project['name']}_{video_num}_voice.wav")
-                    engine.save_to_file(script, audio_path)
-                    engine.runAndWait()
-
-                    if os.path.exists(audio_path):
-                        self.add_log(f"✓ System voice generated", 'success')
-                        logger.info(f"System voice saved: {audio_path}")
-                    else:
-                        self.add_log("System voice failed to save", 'error')
-                        audio_path = None
-
-                except ImportError:
-                    self.add_log("pyttsx3 not installed. Run: pip install pyttsx3", 'error')
-                    logger.error("pyttsx3 not installed")
-                except Exception as e:
-                    self.add_log(f"System voice failed: {str(e)[:50]}", 'error')
-                    logger.error(f"System voice generation failed: {e}")
-
-            elif voice_source == 'neutts':
-                # Use NeuTTS via existing NeuTTSHelper
-                if NeuTTSHelper is None:
-                    self.add_log("NeuTTSHelper not available", 'error')
-                    logger.error("NeuTTSHelper not imported")
-                else:
-                    try:
-                        neutts_url = self.settings.get('neutts_url', 'http://127.0.0.1:7860')
-                        helper = NeuTTSHelper(neutts_url)
-
-                        # Load existing voice library
-                        helper.load_voice_library()
-
-                        # Get voice name from settings
-                        voice_name = self.settings.get('neutts_voice', '')
-
-                        if not voice_name:
-                            # Use first available voice
-                            voices = helper.get_available_voices()
-                            if voices:
-                                voice_name = list(voices.keys())[0]
-                            else:
-                                self.add_log("No NeuTTS voices in library", 'error')
-                                continue
-
-                        # Generate speech
                         audio_path = os.path.join(output_dir, f"{project['name']}_{video_num}_voice.wav")
-                        success, msg = helper.generate_speech(
-                            text=script,
-                            voice_name=voice_name,
-                            output_path=audio_path,
-                            speed=self.settings.get('neutts_speed', 1.0)
-                        )
 
-                        if success:
-                            self.add_log(f"✓ NeuTTS voice generated ({voice_name})", 'success')
-                            logger.info(f"NeuTTS voice generated: {audio_path}")
-                        else:
-                            self.add_log(f"NeuTTS failed: {msg[:50]}", 'error')
-                            logger.error(f"NeuTTS voice generation failed: {msg}")
-                            audio_path = None
+                        # Map voice_source to tts_engine setting
+                        tts_settings = self.settings.copy()
+                        if voice_source == 'cloud':
+                            tts_settings['tts_engine'] = 'cloud'
+                        elif voice_source == 'kokoro':
+                            tts_settings['tts_engine'] = 'local'
+                        elif voice_source == 'neutts':
+                            tts_settings['tts_engine'] = 'neutts'
+                        elif voice_source == 'elevenlabs':
+                            # ElevenLabs not in TTSGenerator, use direct API
+                            tts_settings = None
+                        elif voice_source == 'system':
+                            tts_settings = None  # Use pyttsx3 fallback
 
-                    except Exception as e:
-                        self.add_log(f"NeuTTS failed: {str(e)[:50]}", 'error')
-                        logger.error(f"NeuTTS voice generation failed: {e}")
-
-            elif voice_source == 'kokoro':
-                # Use Kokoro TTS (local)
-                try:
-                    # Try importing kokoro
-                    try:
-                        from kokoro import KPipeline
-                        import soundfile as sf
-
-                        # Initialize Kokoro pipeline
-                        voice = self.settings.get('kokoro_voice', 'af_bella')
-                        pipeline = KPipeline(lang_code='a')
-
-                        # Generate audio
-                        generator = pipeline(
-                            script,
-                            voice=voice,
-                            speed=self.settings.get('kokoro_speed', 1.0)
-                        )
-
-                        # Collect all audio segments
-                        all_audio = []
-                        for i, (gs, ps, audio) in enumerate(generator):
-                            all_audio.append(audio)
-
-                        if all_audio:
-                            # Concatenate audio segments
-                            import numpy as np
-                            full_audio = np.concatenate(all_audio)
-
-                            # Save to file
-                            audio_path = os.path.join(output_dir, f"{project['name']}_{video_num}_voice.wav")
-                            sf.write(audio_path, full_audio, 24000)
-
-                            self.add_log(f"✓ Kokoro voice generated", 'success')
-                            logger.info(f"Kokoro voice generated: {audio_path}")
-                        else:
-                            self.add_log("Kokoro generated no audio", 'warning')
-
-                    except ImportError:
-                        # Try gradio_client approach for Kokoro web UI
-                        try:
-                            from gradio_client import Client
-
-                            kokoro_url = self.settings.get('kokoro_url', 'http://127.0.0.1:7861')
-                            client = Client(kokoro_url)
-
-                            # Call Kokoro API
-                            result = client.predict(
+                        if tts_settings:
+                            success, word_timings = TTSGenerator.generate_voiceover(
                                 script,
-                                self.settings.get('kokoro_voice', 'af_bella'),
-                                self.settings.get('kokoro_speed', 1.0),
-                                api_name="/generate"
+                                Path(audio_path),
+                                tts_settings
                             )
 
-                            if result:
-                                # Handle result
-                                if isinstance(result, str):
-                                    audio_path = result
-                                elif isinstance(result, tuple):
-                                    for item in result:
-                                        if isinstance(item, str) and (item.endswith('.wav') or item.endswith('.mp3')):
-                                            audio_path = item
-                                            break
+                            if success and os.path.exists(audio_path):
+                                self.add_log(f"✓ Voice generated ({len(word_timings)} words timed)", 'success')
+                            else:
+                                audio_path = None
+                                self.add_log("Voice generation failed - trying fallback", 'warning')
 
-                                if audio_path:
-                                    self.add_log(f"✓ Kokoro voice generated", 'success')
-                                    logger.info(f"Kokoro voice generated: {audio_path}")
+                    except Exception as e:
+                        self.add_log(f"TTSGenerator failed: {str(e)[:40]}", 'warning')
+                        audio_path = None
 
+                # ElevenLabs direct API (not in TTSGenerator)
+                if voice_source == 'elevenlabs' and not audio_path:
+                    api_key = self.settings.get('elevenlabs_api_key', '')
+                    voice_id = self.settings.get('elevenlabs_voice_id', '')
+                    if api_key and voice_id:
+                        try:
+                            response = requests.post(
+                                f'https://api.elevenlabs.io/v1/text-to-speech/{voice_id}',
+                                headers={'xi-api-key': api_key, 'Content-Type': 'application/json'},
+                                json={
+                                    'text': script,
+                                    'model_id': 'eleven_monolingual_v1',
+                                    'voice_settings': {
+                                        'stability': self.settings.get('elevenlabs_stability', 0.5),
+                                        'similarity_boost': self.settings.get('elevenlabs_similarity', 0.75)
+                                    }
+                                },
+                                timeout=120
+                            )
+                            if response.status_code == 200:
+                                audio_path = os.path.join(output_dir, f"{project['name']}_{video_num}_voice.mp3")
+                                with open(audio_path, 'wb') as f:
+                                    f.write(response.content)
+                                self.add_log("✓ ElevenLabs voice generated", 'success')
                         except Exception as e:
-                            self.add_log(f"Kokoro server not running - falling back to system voice", 'warning')
-                            logger.error(f"Kokoro gradio_client failed: {e}")
-                            # Fallback to system voice
-                            voice_source = 'system'
+                            self.add_log(f"ElevenLabs failed: {str(e)[:40]}", 'error')
 
-                except Exception as e:
-                    self.add_log(f"Kokoro failed - falling back to system voice", 'warning')
-                    logger.error(f"Kokoro voice generation failed: {e}")
-                    # Fallback to system voice
-                    voice_source = 'system'
+                # System voice fallback (pyttsx3)
+                if not audio_path and voice_source in ['system', 'kokoro', 'neutts', 'cloud']:
+                    try:
+                        import pyttsx3
+                        engine = pyttsx3.init()
+                        voices = engine.getProperty('voices')
+                        if voices:
+                            engine.setProperty('voice', voices[0].id)
+                        engine.setProperty('rate', 150)
+                        audio_path = os.path.join(output_dir, f"{project['name']}_{video_num}_voice.wav")
+                        engine.save_to_file(script, audio_path)
+                        engine.runAndWait()
+                        if os.path.exists(audio_path):
+                            self.add_log("✓ System voice generated (fallback)", 'success')
+                        else:
+                            audio_path = None
+                    except Exception as e:
+                        self.add_log(f"System voice failed: {str(e)[:30]}", 'error')
 
-            # Fallback to system voice if Kokoro/NeuTTS failed
-            if voice_source == 'system' and not audio_path:
-                try:
-                    import pyttsx3
-                    engine = pyttsx3.init()
-                    voices = engine.getProperty('voices')
-                    if voices:
-                        engine.setProperty('voice', voices[0].id)
-                    engine.setProperty('rate', 150)
-                    audio_path = os.path.join(output_dir, f"{project['name']}_{video_num}_voice.wav")
-                    engine.save_to_file(script, audio_path)
-                    engine.runAndWait()
-                    if os.path.exists(audio_path):
-                        self.add_log("✓ System voice generated (fallback)", 'success')
-                except Exception as e:
-                    self.add_log(f"System voice failed: {str(e)[:30]}", 'error')
-
-            if voice_source == 'import':
-                # User will provide audio
+            elif voice_source == 'import':
                 logger.info("Voice source: import - using user-provided audio")
 
             # Step 3: Generate Visuals (75%)
@@ -2785,21 +2665,55 @@ class AutomationDashboard:
 
                 # Step 4.5a: Add Captions (optional)
                 if project.get('add_captions', False) and script and audio_path:
-                    self.add_log("Adding captions...", 'info')
+                    self.add_log("Adding CapCut-style captions...", 'info')
                     try:
-                        srt_path = final_video_path.replace('.mp4', '.srt')
-                        srt_file = self.generate_captions(script, audio_path, srt_path)
+                        # Use CaptionRenderer from main project for CapCut-style captions
+                        if MAIN_PROJECT_AVAILABLE and CaptionRenderer and MOVIEPY_AVAILABLE:
+                            video = VideoFileClip(final_video_path)
+                            audio_duration = video.duration
 
-                        if srt_file:
-                            captioned_path = final_video_path.replace('.mp4', '_captioned.mp4')
-                            success, msg = self.burn_captions(final_video_path, srt_file, captioned_path)
+                            # Create highlighted word captions with word timings
+                            caption_clips = CaptionRenderer.create_highlighted_word_captions(
+                                script,
+                                audio_duration,
+                                video.w,
+                                video.h,
+                                self.settings,
+                                word_timings if word_timings else None
+                            )
 
-                            if success and os.path.exists(captioned_path):
-                                # Replace original with captioned version
-                                os.replace(captioned_path, final_video_path)
-                                self.add_log("✓ Captions added to video", 'success')
+                            if caption_clips:
+                                # Composite captions onto video
+                                final_video = CompositeVideoClip([video] + caption_clips)
+                                captioned_path = final_video_path.replace('.mp4', '_captioned.mp4')
+                                final_video.write_videofile(
+                                    captioned_path,
+                                    codec='libx264',
+                                    audio_codec='aac',
+                                    fps=24
+                                )
+                                final_video.close()
+                                video.close()
+
+                                if os.path.exists(captioned_path):
+                                    os.replace(captioned_path, final_video_path)
+                                    self.add_log(f"✓ CapCut captions added ({len(caption_clips)} clips)", 'success')
+                            else:
+                                video.close()
+                                self.add_log("No caption clips generated", 'warning')
+                        else:
+                            # Fallback to basic SRT captions
+                            srt_path = final_video_path.replace('.mp4', '.srt')
+                            srt_file = self.generate_captions(script, audio_path, srt_path)
+                            if srt_file:
+                                captioned_path = final_video_path.replace('.mp4', '_captioned.mp4')
+                                success, msg = self.burn_captions(final_video_path, srt_file, captioned_path)
+                                if success and os.path.exists(captioned_path):
+                                    os.replace(captioned_path, final_video_path)
+                                    self.add_log("✓ Basic captions added", 'success')
                     except Exception as e:
-                        self.add_log(f"Caption error: {str(e)[:30]}", 'warning')
+                        self.add_log(f"Caption error: {str(e)[:40]}", 'warning')
+                        logger.error(f"Caption generation failed: {e}")
 
                 # Step 4.5b: Add Background Music (optional)
                 music_path = project.get('background_music', '') or self.settings.get('background_music', '')
