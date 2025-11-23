@@ -12,6 +12,12 @@ import logging
 import requests
 import os
 
+# Import existing helpers from main project
+try:
+    from neutts_helper import NeuTTSHelper
+except ImportError:
+    NeuTTSHelper = None
+
 logger = logging.getLogger(__name__)
 
 # Content templates for different video types
@@ -2161,34 +2167,50 @@ class AutomationDashboard:
                     logger.error(f"System voice generation failed: {e}")
 
             elif voice_source == 'neutts':
-                # Use NeuTTS via gradio_client
-                try:
-                    from gradio_client import Client
-                    neutts_url = self.settings.get('neutts_url', 'http://127.0.0.1:7860')
-                    client = Client(neutts_url)
+                # Use NeuTTS via existing NeuTTSHelper
+                if NeuTTSHelper is None:
+                    self.add_log("NeuTTSHelper not available", 'error')
+                    logger.error("NeuTTSHelper not imported")
+                else:
+                    try:
+                        neutts_url = self.settings.get('neutts_url', 'http://127.0.0.1:7860')
+                        helper = NeuTTSHelper(neutts_url)
 
-                    # Call NeuTTS
-                    result = client.predict(
-                        script,
-                        self.settings.get('neutts_reference', ''),
-                        self.settings.get('neutts_speed', 1.0),
-                        api_name="/predict"
-                    )
+                        # Load existing voice library
+                        helper.load_voice_library()
 
-                    if result:
-                        # Handle tuple result
-                        if isinstance(result, tuple):
-                            for item in result:
-                                if isinstance(item, str) and item.endswith(('.wav', '.mp3')):
-                                    audio_path = item
-                                    break
+                        # Get voice name from settings
+                        voice_name = self.settings.get('neutts_voice', '')
+
+                        if not voice_name:
+                            # Use first available voice
+                            voices = helper.get_available_voices()
+                            if voices:
+                                voice_name = list(voices.keys())[0]
+                            else:
+                                self.add_log("No NeuTTS voices in library", 'error')
+                                continue
+
+                        # Generate speech
+                        audio_path = os.path.join(output_dir, f"{project['name']}_{video_num}_voice.wav")
+                        success, msg = helper.generate_speech(
+                            text=script,
+                            voice_name=voice_name,
+                            output_path=audio_path,
+                            speed=self.settings.get('neutts_speed', 1.0)
+                        )
+
+                        if success:
+                            self.add_log(f"✓ NeuTTS voice generated ({voice_name})", 'success')
+                            logger.info(f"NeuTTS voice generated: {audio_path}")
                         else:
-                            audio_path = result
-                        self.add_log(f"✓ NeuTTS voice generated", 'success')
-                        logger.info(f"NeuTTS voice generated: {audio_path}")
-                except Exception as e:
-                    self.add_log(f"NeuTTS failed: {str(e)[:50]}", 'error')
-                    logger.error(f"NeuTTS voice generation failed: {e}")
+                            self.add_log(f"NeuTTS failed: {msg[:50]}", 'error')
+                            logger.error(f"NeuTTS voice generation failed: {msg}")
+                            audio_path = None
+
+                    except Exception as e:
+                        self.add_log(f"NeuTTS failed: {str(e)[:50]}", 'error')
+                        logger.error(f"NeuTTS voice generation failed: {e}")
 
             elif voice_source == 'kokoro':
                 # Use Kokoro TTS (local)
