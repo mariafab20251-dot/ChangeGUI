@@ -224,6 +224,9 @@ class AutomationDashboard:
         self.window.geometry("1400x900")
         self.window.configure(bg=DashboardStyles.BG_DARK)
 
+        # Save settings on window close
+        self.window.protocol("WM_DELETE_WINDOW", self.on_closing)
+
         # Settings storage
         self.settings_file = Path("automation_settings.json")
         self.settings = self.load_settings()
@@ -282,8 +285,22 @@ class AutomationDashboard:
             self.settings['output_dir'] = self.output_dir_var.get()
         if hasattr(self, 'video_quality_var'):
             self.settings['video_quality'] = self.video_quality_var.get()
+        # Save voice source selection
+        if hasattr(self, 'voice_source_var'):
+            self.settings['voice_source'] = self.voice_source_var.get()
+        # Save visual source selection
+        if hasattr(self, 'visual_source_var'):
+            self.settings['visual_source'] = self.visual_source_var.get()
+        # Save local clips folder
+        if hasattr(self, 'clips_folder_var'):
+            self.settings['local_clips_folder'] = self.clips_folder_var.get()
         with open(self.settings_file, 'w') as f:
             json.dump(self.settings, f, indent=2)
+
+    def on_closing(self):
+        """Handle window close - save settings and exit"""
+        self.save_settings()
+        self.window.destroy()
 
     def browse_output_dir(self):
         """Browse for output directory"""
