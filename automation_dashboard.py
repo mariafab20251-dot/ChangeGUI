@@ -239,14 +239,40 @@ class AutomationDashboard:
         self.create_ui()
 
     def load_settings(self):
-        """Load dashboard settings"""
+        """Load dashboard settings and merge with main project settings"""
+        settings = {}
+
+        # Load automation dashboard settings
         if self.settings_file.exists():
             try:
                 with open(self.settings_file, 'r') as f:
-                    return json.load(f)
+                    settings = json.load(f)
             except:
                 pass
-        return {}
+
+        # Load main project settings (overlay_settings.json) for voice/TTS configs
+        main_settings_file = Path("overlay_settings.json")
+        if main_settings_file.exists():
+            try:
+                with open(main_settings_file, 'r') as f:
+                    main_settings = json.load(f)
+
+                # Import voice/TTS settings from main project
+                voice_keys = [
+                    'tts_engine', 'kokoro_voice', 'kokoro_speed', 'kokoro_quality',
+                    'elevenlabs_api_key', 'elevenlabs_voice_id', 'elevenlabs_stability', 'elevenlabs_similarity',
+                    'neutts_url', 'neutts_voice', 'neutts_speed',
+                    'openai_api_key', 'anthropic_api_key', 'ollama_url', 'ollama_model'
+                ]
+
+                for key in voice_keys:
+                    if key in main_settings and key not in settings:
+                        settings[key] = main_settings[key]
+
+            except Exception as e:
+                logger.warning(f"Could not load main project settings: {e}")
+
+        return settings
 
     def save_settings(self):
         """Save dashboard settings"""
