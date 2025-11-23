@@ -413,8 +413,8 @@ class NeuTTSHelper:
             filepath: Path to save library
         """
         try:
-            with open(filepath, 'w') as f:
-                json.dump(self.voices_library, f, indent=2)
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(self.voices_library, f, indent=2, ensure_ascii=False)
             return True, f"✓ Library saved to {filepath}"
         except Exception as e:
             return False, f"✗ Save failed: {str(e)}"
@@ -428,7 +428,7 @@ class NeuTTSHelper:
         """
         try:
             if Path(filepath).exists():
-                with open(filepath, 'r') as f:
+                with open(filepath, 'r', encoding='utf-8') as f:
                     self.voices_library = json.load(f)
                 return True, f"✓ Loaded {len(self.voices_library)} voices"
             else:
