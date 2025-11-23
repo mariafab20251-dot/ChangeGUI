@@ -1507,7 +1507,7 @@ class AutomationDashboard:
         # Create project wizard dialog
         wizard = tk.Toplevel(self.window)
         wizard.title("New Automation Project")
-        wizard.geometry("600x850")
+        wizard.geometry("600x950")
         wizard.configure(bg=DashboardStyles.BG_DARK)
         wizard.transient(self.window)
         wizard.grab_set()
@@ -1574,6 +1574,32 @@ class AutomationDashboard:
                     values=list(CONTENT_TEMPLATES.keys()),
                     state='readonly', width=15).pack(side='left', padx=5)
 
+        # Script file path (for import)
+        script_file_row = tk.Frame(content_frame, bg=DashboardStyles.BG_CARD)
+        script_file_row.pack(fill='x', padx=10, pady=5)
+
+        tk.Label(script_file_row, text="Script File:",
+                bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_LIGHT,
+                font=('Segoe UI', 10)).pack(side='left')
+
+        script_file_var = tk.StringVar(value='')
+        script_file_entry = tk.Entry(script_file_row, textvariable=script_file_var,
+                                    bg=DashboardStyles.BG_INPUT, fg=DashboardStyles.TEXT_LIGHT,
+                                    font=('Segoe UI', 9), width=20)
+        script_file_entry.pack(side='left', padx=5)
+
+        def browse_script_file():
+            path = filedialog.askopenfilename(
+                title="Select Script File",
+                filetypes=[("Text files", "*.txt"), ("All files", "*.*")]
+            )
+            if path:
+                script_file_var.set(path)
+
+        tk.Button(script_file_row, text="Browse", command=browse_script_file,
+                 bg=DashboardStyles.ACCENT_PRIMARY, fg='white',
+                 font=('Segoe UI', 8)).pack(side='left', padx=2)
+
         # Voice source
         voice_row = tk.Frame(content_frame, bg=DashboardStyles.BG_CARD)
         voice_row.pack(fill='x', padx=10, pady=5)
@@ -1599,6 +1625,29 @@ class AutomationDashboard:
         ttk.Combobox(visual_row, textvariable=visual_source_var,
                     values=['comfyui', 'local', 'nanobanana', 'sora', 'kling', 'hailuo'],
                     state='readonly', width=15).pack(side='left', padx=10)
+
+        # Local images folder (shown when 'local' is selected)
+        local_folder_row = tk.Frame(content_frame, bg=DashboardStyles.BG_CARD)
+        local_folder_row.pack(fill='x', padx=10, pady=5)
+
+        tk.Label(local_folder_row, text="Images Folder:",
+                bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_LIGHT,
+                font=('Segoe UI', 10)).pack(side='left')
+
+        local_folder_var = tk.StringVar(value='')
+        local_folder_entry = tk.Entry(local_folder_row, textvariable=local_folder_var,
+                                     bg=DashboardStyles.BG_INPUT, fg=DashboardStyles.TEXT_LIGHT,
+                                     font=('Segoe UI', 9), width=20)
+        local_folder_entry.pack(side='left', padx=5)
+
+        def browse_local_folder():
+            path = filedialog.askdirectory(title="Select Images Folder")
+            if path:
+                local_folder_var.set(path)
+
+        tk.Button(local_folder_row, text="Browse", command=browse_local_folder,
+                 bg=DashboardStyles.ACCENT_PRIMARY, fg='white',
+                 font=('Segoe UI', 8)).pack(side='left', padx=2)
 
         # Number of videos
         num_row = tk.Frame(content_frame, bg=DashboardStyles.BG_CARD)
@@ -1699,9 +1748,11 @@ class AutomationDashboard:
                 'name': project_name_var.get(),
                 'video_type': video_type_var.get(),
                 'script_source': script_source_var.get(),
+                'script_file': script_file_var.get(),
                 'template': template_var.get(),
                 'voice_source': voice_source_var.get(),
                 'visual_source': visual_source_var.get(),
+                'local_images_folder': local_folder_var.get(),
                 'num_videos': num_videos_var.get(),
                 'publish': {
                     'youtube': youtube_var.get(),
@@ -2014,9 +2065,21 @@ class AutomationDashboard:
                 self.add_log(f"✓ Script generated ({len(script)} chars)", 'success')
                 logger.info(f"Script generated: {len(script)} chars")
             else:
-                # Import mode - use placeholder
-                script = "Imported script content"
-                self.add_log("Using imported script", 'info')
+                # Import mode - read from file
+                script_file = project.get('script_file', '')
+                if script_file and os.path.exists(script_file):
+                    try:
+                        with open(script_file, 'r', encoding='utf-8') as f:
+                            script = f.read().strip()
+                        self.add_log(f"✓ Script imported ({len(script)} chars)", 'success')
+                        logger.info(f"Script imported from {script_file}: {len(script)} chars")
+                    except Exception as e:
+                        self.add_log(f"Failed to read script file: {str(e)}", 'error')
+                        logger.error(f"Failed to read script file: {e}")
+                        script = ""
+                else:
+                    self.add_log("No script file specified", 'warning')
+                    script = ""
 
             # Step 2: Generate Voice (50%)
             self.update_queue_item(index, '🎙️ Voice', f'{int((v/num_videos)*100 + 25)}%')
@@ -2273,8 +2336,8 @@ class AutomationDashboard:
                     logger.error(f"ComfyUI visual generation failed: {e}")
 
             elif visual_source == 'local':
-                # Use local clips folder
-                local_folder = self.settings.get('local_clips_folder', '')
+                # Use local clips folder - check project first, then global settings
+                local_folder = project.get('local_images_folder', '') or self.settings.get('local_clips_folder', '')
                 if local_folder and os.path.exists(local_folder):
                     video_exts = ('.mp4', '.mov', '.avi', '.mkv', '.webm')
                     image_exts = ('.jpg', '.jpeg', '.png', '.webp')
@@ -3383,7 +3446,8 @@ Return ONLY the prompts, one per line, no numbering or extra text."""
                 'local_clips_folder': self.settings.get('local_clips_folder', ''),
             },
             'accounts': [
-                {'platform': a['platform'], 'name': a.get('name', a['platform'])}
+                {'platform': a['platform'], 'name': a.get('name', a['platform'])} if isinstance(a, dict)
+                else {'platform': a, 'name': a}
                 for a in self.settings.get('accounts', [])
             ],
             'queue': self.settings.get('queue', [])
