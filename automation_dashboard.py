@@ -2389,14 +2389,35 @@ class AutomationDashboard:
                                     logger.info(f"Kokoro voice generated: {audio_path}")
 
                         except Exception as e:
-                            self.add_log(f"Kokoro failed: {str(e)[:50]}", 'error')
+                            self.add_log(f"Kokoro server not running - falling back to system voice", 'warning')
                             logger.error(f"Kokoro gradio_client failed: {e}")
+                            # Fallback to system voice
+                            voice_source = 'system'
 
                 except Exception as e:
-                    self.add_log(f"Kokoro failed: {str(e)[:50]}", 'error')
+                    self.add_log(f"Kokoro failed - falling back to system voice", 'warning')
                     logger.error(f"Kokoro voice generation failed: {e}")
+                    # Fallback to system voice
+                    voice_source = 'system'
 
-            elif voice_source == 'import':
+            # Fallback to system voice if Kokoro/NeuTTS failed
+            if voice_source == 'system' and not audio_path:
+                try:
+                    import pyttsx3
+                    engine = pyttsx3.init()
+                    voices = engine.getProperty('voices')
+                    if voices:
+                        engine.setProperty('voice', voices[0].id)
+                    engine.setProperty('rate', 150)
+                    audio_path = os.path.join(output_dir, f"{project['name']}_{video_num}_voice.wav")
+                    engine.save_to_file(script, audio_path)
+                    engine.runAndWait()
+                    if os.path.exists(audio_path):
+                        self.add_log("✓ System voice generated (fallback)", 'success')
+                except Exception as e:
+                    self.add_log(f"System voice failed: {str(e)[:30]}", 'error')
+
+            if voice_source == 'import':
                 # User will provide audio
                 logger.info("Voice source: import - using user-provided audio")
 
