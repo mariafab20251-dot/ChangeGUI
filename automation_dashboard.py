@@ -2656,6 +2656,18 @@ class AutomationDashboard:
                     if success:
                         self.add_log(f"✓ Audio-only video created", 'success')
                         logger.info(f"Audio-only video created: {final_video_path}")
+                elif visual_paths:
+                    # Visuals only - create slideshow without audio
+                    success, msg = self.compose_video(
+                        audio_path=None,
+                        visual_paths=visual_paths,
+                        output_path=final_video_path,
+                        width=width,
+                        height=height
+                    )
+                    if success:
+                        self.add_log(f"✓ Slideshow video created (no audio)", 'success')
+                        logger.info(f"Slideshow video created: {final_video_path}")
                 else:
                     self.add_log("No audio or visuals to compose", 'warning')
                     logger.warning("No audio or visuals to compose")
