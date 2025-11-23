@@ -58,6 +58,13 @@ except ImportError:
     AsyncNeuTTSHelper = None
     logger.warning("Could not import NeuTTSHelper - voice cloning will not be available")
 
+# Import Automation Dashboard
+try:
+    from automation_dashboard import AutomationDashboard
+except ImportError:
+    AutomationDashboard = None
+    logger.warning("Could not import AutomationDashboard - AI automation features will not be available")
+
 
 class AppStyles:
     """Modern Professional Dark Theme - Easy on Eyes"""
@@ -293,6 +300,20 @@ class VideoAutomationGUI:
         except Exception as e:
             logger.error(f"Error saving paths: {e}")
 
+    def open_automation_dashboard(self):
+        """Open the AI Automation Dashboard window"""
+        if AutomationDashboard:
+            try:
+                dashboard = AutomationDashboard(parent=self.root)
+                logger.info("Opened AI Automation Dashboard")
+            except Exception as e:
+                logger.error(f"Error opening dashboard: {e}")
+                messagebox.showerror("Error", f"Failed to open AI Automation Dashboard: {str(e)}")
+        else:
+            messagebox.showwarning("Not Available",
+                                   "AI Automation Dashboard is not available.\n"
+                                   "Please check that automation_dashboard.py is present.")
+
     def setup_ui(self):
         """Setup the main UI with modern design"""
 
@@ -333,12 +354,26 @@ class VideoAutomationGUI:
                 bg=AppStyles.BG_GRADIENT_START, fg=AppStyles.TEXT_WHITE,
                 font=('Segoe UI', 9)).pack(anchor='w', pady=(3,0))
 
-        # Right side - Status
+        # Right side - Automation Button and Status
         right_header = tk.Frame(header_content, bg=AppStyles.BG_GRADIENT_START)
         right_header.pack(side='right', padx=30, pady=15)
 
+        # AI Automation Dashboard Button
+        if AutomationDashboard:
+            automation_btn = tk.Button(right_header, text="🤖 AI Automation",
+                                       bg=AppStyles.ACCENT_PRIMARY, fg=AppStyles.TEXT_WHITE,
+                                       font=('Segoe UI', 10, 'bold'),
+                                       relief='flat', cursor='hand2',
+                                       padx=15, pady=8,
+                                       command=self.open_automation_dashboard)
+            automation_btn.pack(side='left', padx=(0, 15))
+
+            # Hover effects
+            automation_btn.bind('<Enter>', lambda e: automation_btn.config(bg=AppStyles.ACCENT_INFO))
+            automation_btn.bind('<Leave>', lambda e: automation_btn.config(bg=AppStyles.ACCENT_PRIMARY))
+
         status_badge = tk.Frame(right_header, bg=AppStyles.ACCENT_SUCCESS, padx=15, pady=8)
-        status_badge.pack()
+        status_badge.pack(side='left')
 
         self.status_label = tk.Label(status_badge, textvariable=self.status_var,
                                      bg=AppStyles.ACCENT_SUCCESS, fg=AppStyles.TEXT_WHITE,
