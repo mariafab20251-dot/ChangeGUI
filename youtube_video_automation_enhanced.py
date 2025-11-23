@@ -1744,7 +1744,7 @@ class CaptionRenderer:
     """Render synchronized captions/subtitles"""
 
     @staticmethod
-    def create_highlighted_word_captions(text, audio_duration, video_width, video_height, settings):
+    def create_highlighted_word_captions(text, audio_duration, video_width, video_height, settings, word_timings=None):
         """Create CapCut-style highlighted captions where current word is highlighted in different color"""
         import re
         # ImageClip is already imported at module level, no need to re-import
@@ -1752,6 +1752,10 @@ class CaptionRenderer:
         print(f"   Text: {text[:100]}...")
         print(f"   Duration: {audio_duration}s")
         print(f"   Video size: {video_width}x{video_height}")
+        if word_timings:
+            print(f"   Using ACTUAL word timings ({len(word_timings)} words)")
+        else:
+            print(f"   Using ESTIMATED word timings")
 
         # Extract emojis and clean text
         emoji_pattern = re.compile(r'[\U0001F300-\U0001F9FF\U0001F600-\U0001F64F\U0001F680-\U0001F6FF\U00002600-\U000027BF\U0001F1E0-\U0001F1FF]+')
@@ -1853,11 +1857,20 @@ class CaptionRenderer:
             font = ImageFont.load_default()
             emoji_font = font
 
-        # Timing
-        speaking_rate_wpm = settings.get('tts_speed', 150)
-        time_per_word = 60.0 / speaking_rate_wpm
-
+        # Timing - use actual word timings if available
         caption_clips = []
+
+        # Check if we have actual word timings from TTS
+        use_actual_timings = False
+        if word_timings and len(word_timings) == len(words):
+            use_actual_timings = True
+            print(f"   Syncing with actual TTS word timings")
+        elif word_timings and len(word_timings) != len(words):
+            print(f"   [WARNING] Word count mismatch: {len(word_timings)} timings vs {len(words)} words - using estimated")
+
+        # Fallback: estimated timing based on speaking rate
+        speaking_rate_wpm = settings.get('tts_speed', 150)
+        estimated_time_per_word = 60.0 / speaking_rate_wpm
         current_time = 0.0
 
         # Distribute emojis across words
@@ -1871,8 +1884,17 @@ class CaptionRenderer:
 
         # Process each word individually for highlighting effect
         for word_idx, word in enumerate(words):
-            word_start = current_time
-            word_duration = time_per_word
+            # Use actual TTS timing if available, otherwise estimate
+            if use_actual_timings:
+                word_start = word_timings[word_idx]['offset']
+                word_duration = word_timings[word_idx]['duration']
+                # Ensure minimum duration for visibility
+                if word_duration < 0.1:
+                    word_duration = 0.1
+            else:
+                word_start = current_time
+                word_duration = estimated_time_per_word
+                current_time += word_duration
 
             # Get context (words before and after for display)
             # Get caption_layout (1-line vs 2-line) - this controls LINE ARRANGEMENT
@@ -4409,7 +4431,12 @@ class VideoQuoteAutomation:
                         tts_audio.close()
 
                         # Use subtitle_text for captions (short heading)
-                        # Timing is estimated based on voiceover duration
+                        # Pass word_timings if voiceover matches subtitle
+                        caption_word_timings = None
+                        if word_timings and voiceover_text == subtitle_text:
+                            caption_word_timings = word_timings
+                            print(f"   Passing {len(word_timings)} word timings for sync")
+
                         # Check if highlighted captions are enabled (CapCut style)
                         if self.settings.get('caption_highlight_enabled', False):
                             caption_clips = CaptionRenderer.create_highlighted_word_captions(
@@ -4417,7 +4444,8 @@ class VideoQuoteAutomation:
                                 audio_duration,
                                 video.w,
                                 video.h,
-                                self.settings
+                                self.settings,
+                                caption_word_timings
                             )
                         else:
                             caption_clips = CaptionRenderer.create_estimated_captions(
