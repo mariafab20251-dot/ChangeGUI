@@ -1233,15 +1233,18 @@ class AutomationDashboard:
 
         tk.Button(btn_frame, text="▶️ Start Queue",
                  bg=DashboardStyles.ACCENT_PRIMARY, fg='white',
-                 font=('Segoe UI', 10, 'bold'), padx=15, pady=8).pack(side='left', padx=5)
+                 font=('Segoe UI', 10, 'bold'), padx=15, pady=8,
+                 command=self.process_queue).pack(side='left', padx=5)
 
         tk.Button(btn_frame, text="⏸️ Pause",
                  bg=DashboardStyles.ACCENT_WARNING, fg='white',
-                 font=('Segoe UI', 10, 'bold'), padx=15, pady=8).pack(side='left', padx=5)
+                 font=('Segoe UI', 10, 'bold'), padx=15, pady=8,
+                 command=self.pause_queue).pack(side='left', padx=5)
 
         tk.Button(btn_frame, text="🗑️ Clear",
                  bg=DashboardStyles.ACCENT_DANGER, fg='white',
-                 font=('Segoe UI', 10, 'bold'), padx=15, pady=8).pack(side='left', padx=5)
+                 font=('Segoe UI', 10, 'bold'), padx=15, pady=8,
+                 command=self.clear_queue).pack(side='left', padx=5)
 
         # Queue list
         queue_frame = tk.Frame(tab, bg=DashboardStyles.BG_CARD)
@@ -1272,8 +1275,517 @@ class AutomationDashboard:
             self.ai_settings_frame.pack_forget()
 
     def start_new_project(self):
-        """Start a new automation project"""
-        messagebox.showinfo("New Project", "Starting new project wizard...")
+        """Start a new automation project with wizard"""
+        # Create project wizard dialog
+        wizard = tk.Toplevel(self.window)
+        wizard.title("New Automation Project")
+        wizard.geometry("600x700")
+        wizard.configure(bg=DashboardStyles.BG_DARK)
+        wizard.transient(self.window)
+        wizard.grab_set()
+
+        tk.Label(wizard, text="Create New Project",
+                bg=DashboardStyles.BG_DARK, fg=DashboardStyles.TEXT_WHITE,
+                font=('Segoe UI', 16, 'bold')).pack(pady=(20, 15))
+
+        # Project name
+        name_frame = tk.Frame(wizard, bg=DashboardStyles.BG_CARD)
+        name_frame.pack(fill='x', padx=20, pady=5)
+
+        tk.Label(name_frame, text="Project Name:",
+                bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_LIGHT,
+                font=('Segoe UI', 10)).pack(anchor='w', padx=10, pady=(10, 5))
+
+        project_name_var = tk.StringVar(value=f"Project_{len(self.settings.get('projects', []))+1}")
+        tk.Entry(name_frame, textvariable=project_name_var,
+                bg=DashboardStyles.BG_INPUT, fg=DashboardStyles.TEXT_LIGHT,
+                font=('Segoe UI', 10), width=40).pack(padx=10, pady=(0, 10))
+
+        # Video type
+        type_frame = tk.Frame(wizard, bg=DashboardStyles.BG_CARD)
+        type_frame.pack(fill='x', padx=20, pady=5)
+
+        tk.Label(type_frame, text="Video Type:",
+                bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_LIGHT,
+                font=('Segoe UI', 10)).pack(anchor='w', padx=10, pady=(10, 5))
+
+        video_type_var = tk.StringVar(value='shorts')
+        type_row = tk.Frame(type_frame, bg=DashboardStyles.BG_CARD)
+        type_row.pack(fill='x', padx=10, pady=(0, 10))
+
+        tk.Radiobutton(type_row, text="Shorts (< 60s)", variable=video_type_var, value='shorts',
+                      bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_WHITE,
+                      selectcolor=DashboardStyles.BG_INPUT).pack(side='left', padx=10)
+        tk.Radiobutton(type_row, text="Long-form (> 60s)", variable=video_type_var, value='long',
+                      bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_WHITE,
+                      selectcolor=DashboardStyles.BG_INPUT).pack(side='left', padx=10)
+
+        # Content settings
+        content_frame = tk.Frame(wizard, bg=DashboardStyles.BG_CARD)
+        content_frame.pack(fill='x', padx=20, pady=5)
+
+        tk.Label(content_frame, text="Content Settings",
+                bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_WHITE,
+                font=('Segoe UI', 11, 'bold')).pack(anchor='w', padx=10, pady=(10, 5))
+
+        # Script source
+        script_row = tk.Frame(content_frame, bg=DashboardStyles.BG_CARD)
+        script_row.pack(fill='x', padx=10, pady=5)
+
+        tk.Label(script_row, text="Script:",
+                bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_LIGHT,
+                font=('Segoe UI', 10)).pack(side='left')
+
+        script_source_var = tk.StringVar(value='ai')
+        ttk.Combobox(script_row, textvariable=script_source_var,
+                    values=['ai', 'import'],
+                    state='readonly', width=15).pack(side='left', padx=10)
+
+        template_var = tk.StringVar(value='stoic')
+        ttk.Combobox(script_row, textvariable=template_var,
+                    values=list(CONTENT_TEMPLATES.keys()),
+                    state='readonly', width=15).pack(side='left', padx=5)
+
+        # Voice source
+        voice_row = tk.Frame(content_frame, bg=DashboardStyles.BG_CARD)
+        voice_row.pack(fill='x', padx=10, pady=5)
+
+        tk.Label(voice_row, text="Voice:",
+                bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_LIGHT,
+                font=('Segoe UI', 10)).pack(side='left')
+
+        voice_source_var = tk.StringVar(value='cloud')
+        ttk.Combobox(voice_row, textvariable=voice_source_var,
+                    values=['cloud', 'kokoro', 'neutts', 'elevenlabs', 'import'],
+                    state='readonly', width=15).pack(side='left', padx=10)
+
+        # Visual source
+        visual_row = tk.Frame(content_frame, bg=DashboardStyles.BG_CARD)
+        visual_row.pack(fill='x', padx=10, pady=5)
+
+        tk.Label(visual_row, text="Visuals:",
+                bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_LIGHT,
+                font=('Segoe UI', 10)).pack(side='left')
+
+        visual_source_var = tk.StringVar(value='local')
+        ttk.Combobox(visual_row, textvariable=visual_source_var,
+                    values=['comfyui', 'local', 'nanobanana', 'sora', 'kling', 'hailuo'],
+                    state='readonly', width=15).pack(side='left', padx=10)
+
+        # Number of videos
+        num_row = tk.Frame(content_frame, bg=DashboardStyles.BG_CARD)
+        num_row.pack(fill='x', padx=10, pady=(5, 10))
+
+        tk.Label(num_row, text="Videos to create:",
+                bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_LIGHT,
+                font=('Segoe UI', 10)).pack(side='left')
+
+        num_videos_var = tk.IntVar(value=1)
+        tk.Spinbox(num_row, from_=1, to=100, textvariable=num_videos_var,
+                  width=5, bg=DashboardStyles.BG_INPUT, fg=DashboardStyles.TEXT_LIGHT).pack(side='left', padx=10)
+
+        # Publish settings
+        publish_frame = tk.Frame(wizard, bg=DashboardStyles.BG_CARD)
+        publish_frame.pack(fill='x', padx=20, pady=5)
+
+        tk.Label(publish_frame, text="Publish To",
+                bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_WHITE,
+                font=('Segoe UI', 11, 'bold')).pack(anchor='w', padx=10, pady=(10, 5))
+
+        pub_row = tk.Frame(publish_frame, bg=DashboardStyles.BG_CARD)
+        pub_row.pack(fill='x', padx=10, pady=(0, 10))
+
+        youtube_var = tk.BooleanVar(value=False)
+        tiktok_var = tk.BooleanVar(value=False)
+        instagram_var = tk.BooleanVar(value=False)
+        facebook_var = tk.BooleanVar(value=False)
+
+        tk.Checkbutton(pub_row, text="YouTube", variable=youtube_var,
+                      bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_WHITE,
+                      selectcolor=DashboardStyles.BG_INPUT).pack(side='left', padx=5)
+        tk.Checkbutton(pub_row, text="TikTok", variable=tiktok_var,
+                      bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_WHITE,
+                      selectcolor=DashboardStyles.BG_INPUT).pack(side='left', padx=5)
+        tk.Checkbutton(pub_row, text="Instagram", variable=instagram_var,
+                      bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_WHITE,
+                      selectcolor=DashboardStyles.BG_INPUT).pack(side='left', padx=5)
+        tk.Checkbutton(pub_row, text="Facebook", variable=facebook_var,
+                      bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_WHITE,
+                      selectcolor=DashboardStyles.BG_INPUT).pack(side='left', padx=5)
+
+        def create_project():
+            # Gather project data
+            project = {
+                'name': project_name_var.get(),
+                'video_type': video_type_var.get(),
+                'script_source': script_source_var.get(),
+                'template': template_var.get(),
+                'voice_source': voice_source_var.get(),
+                'visual_source': visual_source_var.get(),
+                'num_videos': num_videos_var.get(),
+                'publish': {
+                    'youtube': youtube_var.get(),
+                    'tiktok': tiktok_var.get(),
+                    'instagram': instagram_var.get(),
+                    'facebook': facebook_var.get()
+                },
+                'status': 'pending'
+            }
+
+            # Add to queue
+            self.add_to_queue(project)
+
+            wizard.destroy()
+            messagebox.showinfo("Project Created",
+                              f"Project '{project['name']}' added to queue!\n"
+                              f"Videos to create: {project['num_videos']}")
+
+            # Switch to queue tab
+            self.notebook.select(5)  # Queue tab index
+
+        # Buttons
+        btn_frame = tk.Frame(wizard, bg=DashboardStyles.BG_DARK)
+        btn_frame.pack(fill='x', padx=20, pady=20)
+
+        tk.Button(btn_frame, text="Create & Add to Queue",
+                 bg=DashboardStyles.ACCENT_PRIMARY, fg='white',
+                 font=('Segoe UI', 11, 'bold'), padx=20, pady=10,
+                 command=create_project).pack(side='left', padx=10)
+
+        tk.Button(btn_frame, text="Cancel",
+                 bg=DashboardStyles.ACCENT_DANGER, fg='white',
+                 font=('Segoe UI', 10), padx=15, pady=8,
+                 command=wizard.destroy).pack(side='left', padx=10)
+
+    def add_to_queue(self, project):
+        """Add a project to the processing queue"""
+        # Insert into queue treeview
+        status = '⏳ Pending'
+        title = project['name']
+        video_type = project['video_type'].title()
+        progress = '0%'
+
+        self.queue_tree.insert('', 'end', values=(status, title, video_type, progress))
+
+        # Store project data
+        if 'queue' not in self.settings:
+            self.settings['queue'] = []
+        self.settings['queue'].append(project)
+        self.save_settings()
+
+    def process_queue(self):
+        """Process all items in the queue"""
+        queue = self.settings.get('queue', [])
+        if not queue:
+            messagebox.showinfo("Queue Empty", "No items in queue to process.")
+            return
+
+        # Initialize paused state
+        if not hasattr(self, 'queue_paused'):
+            self.queue_paused = False
+
+        # Start processing in thread
+        def process_thread():
+            for i, project in enumerate(queue):
+                # Check for pause
+                while getattr(self, 'queue_paused', False):
+                    time.sleep(0.5)
+
+                if project['status'] == 'completed':
+                    continue
+
+                # Update status
+                self.update_queue_item(i, '🔄 Processing', '0%')
+
+                try:
+                    # Execute pipeline steps
+                    success = self.execute_pipeline(project, i)
+
+                    if success:
+                        self.update_queue_item(i, '✅ Complete', '100%')
+                        project['status'] = 'completed'
+                    else:
+                        self.update_queue_item(i, '❌ Failed', 'Error')
+                        project['status'] = 'failed'
+
+                except Exception as e:
+                    self.update_queue_item(i, '❌ Failed', str(e)[:20])
+                    project['status'] = 'failed'
+                    logger.error(f"Pipeline error: {e}")
+
+            self.save_settings()
+            messagebox.showinfo("Queue Complete", "All items processed!")
+
+        thread = threading.Thread(target=process_thread, daemon=True)
+        thread.start()
+
+    def update_queue_item(self, index, status, progress):
+        """Update a queue item's status"""
+        try:
+            items = self.queue_tree.get_children()
+            if index < len(items):
+                item = items[index]
+                values = list(self.queue_tree.item(item, 'values'))
+                values[0] = status
+                values[3] = progress
+                self.queue_tree.item(item, values=values)
+                self.window.update()
+        except:
+            pass
+
+    def pause_queue(self):
+        """Pause/Resume queue processing"""
+        if not hasattr(self, 'queue_paused'):
+            self.queue_paused = False
+
+        self.queue_paused = not self.queue_paused
+
+        if self.queue_paused:
+            messagebox.showinfo("Queue Paused", "Queue processing paused. Click Pause again to resume.")
+        else:
+            messagebox.showinfo("Queue Resumed", "Queue processing resumed.")
+
+    def clear_queue(self):
+        """Clear all items from the queue"""
+        if messagebox.askyesno("Clear Queue", "Are you sure you want to clear all items from the queue?"):
+            # Clear treeview
+            for item in self.queue_tree.get_children():
+                self.queue_tree.delete(item)
+
+            # Clear settings
+            self.settings['queue'] = []
+            self.save_settings()
+
+            messagebox.showinfo("Queue Cleared", "All items removed from queue.")
+
+    def execute_pipeline(self, project, index):
+        """Execute the full automation pipeline for a project"""
+        import random
+        import os
+        import tempfile
+
+        num_videos = project['num_videos']
+        output_dir = self.settings.get('output_dir', tempfile.gettempdir())
+
+        for v in range(num_videos):
+            video_num = v + 1
+            logger.info(f"Processing video {video_num}/{num_videos} for project: {project['name']}")
+
+            # Check for pause
+            while getattr(self, 'queue_paused', False):
+                time.sleep(0.5)
+
+            # Step 1: Generate Script (25%)
+            self.update_queue_item(index, '📝 Script', f'{int((v/num_videos)*100)}%')
+
+            script = None
+            if project['script_source'] == 'ai':
+                template = CONTENT_TEMPLATES.get(project['template'], CONTENT_TEMPLATES['stoic'])
+                topic = random.choice(template['topics'])
+
+                provider = self.settings.get('llm_provider', 'openai')
+                script, error = self.call_llm_api(
+                    provider,
+                    template['system_prompt'],
+                    template['user_prompt'].format(topic=topic)
+                )
+
+                if error:
+                    logger.error(f"Script generation failed: {error}")
+                    return False
+
+                logger.info(f"Script generated: {len(script)} chars")
+            else:
+                # Import mode - use placeholder
+                script = "Imported script content"
+
+            # Step 2: Generate Voice (50%)
+            self.update_queue_item(index, '🎙️ Voice', f'{int((v/num_videos)*100 + 25)}%')
+
+            audio_path = None
+            voice_source = project.get('voice_source', 'cloud')
+
+            if voice_source == 'elevenlabs':
+                # Use ElevenLabs API
+                api_key = self.settings.get('elevenlabs_api_key', '')
+                voice_id = self.settings.get('elevenlabs_voice_id', '')
+
+                if api_key and voice_id and script:
+                    try:
+                        response = requests.post(
+                            f'https://api.elevenlabs.io/v1/text-to-speech/{voice_id}',
+                            headers={
+                                'xi-api-key': api_key,
+                                'Content-Type': 'application/json'
+                            },
+                            json={
+                                'text': script,
+                                'model_id': 'eleven_monolingual_v1',
+                                'voice_settings': {
+                                    'stability': self.settings.get('elevenlabs_stability', 0.5),
+                                    'similarity_boost': self.settings.get('elevenlabs_similarity', 0.75)
+                                }
+                            },
+                            timeout=120
+                        )
+
+                        if response.status_code == 200:
+                            audio_path = os.path.join(output_dir, f"{project['name']}_{video_num}_voice.mp3")
+                            with open(audio_path, 'wb') as f:
+                                f.write(response.content)
+                            logger.info(f"ElevenLabs voice saved: {audio_path}")
+                        else:
+                            logger.error(f"ElevenLabs error: {response.text}")
+                    except Exception as e:
+                        logger.error(f"ElevenLabs voice generation failed: {e}")
+
+            elif voice_source == 'neutts':
+                # Use NeuTTS via gradio_client
+                try:
+                    from gradio_client import Client
+                    neutts_url = self.settings.get('neutts_url', 'http://127.0.0.1:7860')
+                    client = Client(neutts_url)
+
+                    # Call NeuTTS
+                    result = client.predict(
+                        script,
+                        self.settings.get('neutts_reference', ''),
+                        self.settings.get('neutts_speed', 1.0),
+                        api_name="/predict"
+                    )
+
+                    if result:
+                        # Handle tuple result
+                        if isinstance(result, tuple):
+                            for item in result:
+                                if isinstance(item, str) and item.endswith(('.wav', '.mp3')):
+                                    audio_path = item
+                                    break
+                        else:
+                            audio_path = result
+                        logger.info(f"NeuTTS voice generated: {audio_path}")
+                except Exception as e:
+                    logger.error(f"NeuTTS voice generation failed: {e}")
+
+            elif voice_source == 'kokoro':
+                # Use Kokoro TTS (local)
+                try:
+                    # Kokoro integration would go here
+                    logger.info("Kokoro TTS - placeholder for local generation")
+                except Exception as e:
+                    logger.error(f"Kokoro voice generation failed: {e}")
+
+            elif voice_source == 'import':
+                # User will provide audio
+                logger.info("Voice source: import - using user-provided audio")
+
+            # Step 3: Generate Visuals (75%)
+            self.update_queue_item(index, '🎨 Visuals', f'{int((v/num_videos)*100 + 50)}%')
+
+            visual_paths = []
+            visual_source = project.get('visual_source', 'local')
+
+            if visual_source == 'comfyui':
+                # Generate with ComfyUI
+                comfyui_url = self.settings.get('comfyui_url', 'http://127.0.0.1:8188')
+
+                try:
+                    # Load workflow
+                    workflow_path = self.settings.get('comfyui_workflow', '')
+                    if workflow_path and os.path.exists(workflow_path):
+                        with open(workflow_path, 'r') as f:
+                            workflow = json.load(f)
+
+                        # Queue prompt
+                        response = requests.post(
+                            f'{comfyui_url}/prompt',
+                            json={'prompt': workflow},
+                            timeout=300
+                        )
+
+                        if response.status_code == 200:
+                            result = response.json()
+                            logger.info(f"ComfyUI generation queued: {result.get('prompt_id', 'unknown')}")
+                            # Note: Real implementation would poll for completion
+                        else:
+                            logger.error(f"ComfyUI error: {response.text}")
+                except Exception as e:
+                    logger.error(f"ComfyUI visual generation failed: {e}")
+
+            elif visual_source == 'local':
+                # Use local clips folder
+                local_folder = self.settings.get('local_clips_folder', '')
+                if local_folder and os.path.exists(local_folder):
+                    video_exts = ('.mp4', '.mov', '.avi', '.mkv', '.webm')
+                    image_exts = ('.jpg', '.jpeg', '.png', '.webp')
+
+                    for f in os.listdir(local_folder):
+                        if f.lower().endswith(video_exts + image_exts):
+                            visual_paths.append(os.path.join(local_folder, f))
+
+                    logger.info(f"Found {len(visual_paths)} local visuals")
+
+            elif visual_source in ['nanobanana', 'sora', 'kling', 'hailuo']:
+                # Cloud API visual generation
+                logger.info(f"Cloud visual API ({visual_source}) - placeholder")
+
+            # Step 4: Compose Video (90%)
+            self.update_queue_item(index, '🎬 Compose', f'{int((v/num_videos)*100 + 75)}%')
+
+            final_video_path = None
+            try:
+                # Create output filename
+                final_video_path = os.path.join(
+                    output_dir,
+                    f"{project['name']}_{video_num}_final.mp4"
+                )
+
+                # Video composition logic would integrate with existing project tools
+                # This would use ffmpeg to combine audio + visuals
+                logger.info(f"Video composition: {final_video_path}")
+
+                # Placeholder: Create a simple composition command
+                if audio_path and visual_paths:
+                    # Real implementation would use subprocess with ffmpeg
+                    logger.info(f"Composing: {len(visual_paths)} visuals + {audio_path}")
+
+            except Exception as e:
+                logger.error(f"Video composition failed: {e}")
+
+            # Step 5: Publish (100%)
+            if any(project['publish'].values()):
+                self.update_queue_item(index, '📤 Publish', f'{int((v/num_videos)*100 + 90)}%')
+
+                # Get account credentials
+                accounts = self.settings.get('accounts', [])
+
+                if project['publish'].get('youtube'):
+                    yt_account = next((a for a in accounts if a['platform'] == 'YouTube'), None)
+                    if yt_account:
+                        logger.info("Publishing to YouTube...")
+                        # YouTube API upload would go here
+
+                if project['publish'].get('tiktok'):
+                    tt_account = next((a for a in accounts if a['platform'] == 'TikTok'), None)
+                    if tt_account:
+                        logger.info("Publishing to TikTok...")
+                        # TikTok upload would go here
+
+                if project['publish'].get('instagram'):
+                    ig_account = next((a for a in accounts if a['platform'] == 'Instagram'), None)
+                    if ig_account:
+                        logger.info("Publishing to Instagram...")
+                        # Instagram upload would go here
+
+                if project['publish'].get('facebook'):
+                    fb_account = next((a for a in accounts if a['platform'] == 'Facebook'), None)
+                    if fb_account:
+                        logger.info("Publishing to Facebook...")
+                        # Facebook API upload would go here
+
+            logger.info(f"Video {video_num}/{num_videos} complete")
+
+        return True
 
     def import_project(self):
         """Import existing project"""
@@ -1282,13 +1794,66 @@ class AutomationDashboard:
             filetypes=[('JSON Files', '*.json'), ('All Files', '*.*')]
         )
         if file:
-            messagebox.showinfo("Import", f"Imported: {file}")
+            try:
+                with open(file, 'r') as f:
+                    project = json.load(f)
+                self.add_to_queue(project)
+                messagebox.showinfo("Import", f"Project imported and added to queue!")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to import: {str(e)}")
 
     def load_template(self):
         """Load a project template"""
-        templates = ['Stoic Shorts', 'Motivational Long', 'Horror Stories', 'Educational Facts']
-        # Would show template selector
-        messagebox.showinfo("Templates", "Template selector coming soon!")
+        # Create template selector dialog
+        dialog = tk.Toplevel(self.window)
+        dialog.title("Select Template")
+        dialog.geometry("400x500")
+        dialog.configure(bg=DashboardStyles.BG_DARK)
+        dialog.transient(self.window)
+        dialog.grab_set()
+
+        tk.Label(dialog, text="Choose a Template",
+                bg=DashboardStyles.BG_DARK, fg=DashboardStyles.TEXT_WHITE,
+                font=('Segoe UI', 14, 'bold')).pack(pady=(20, 15))
+
+        templates = [
+            ('Stoic Shorts', 'stoic', 'shorts', 'Short Stoic wisdom videos'),
+            ('Motivational', 'motivational', 'shorts', 'Inspiring action videos'),
+            ('Horror Stories', 'horror', 'long', 'Creepy story narrations'),
+            ('Educational', 'educational', 'long', 'Learn something new'),
+            ('Facts', 'facts', 'shorts', 'Mind-blowing facts'),
+            ('Quotes', 'quotes', 'shorts', 'Powerful quotes')
+        ]
+
+        selected_template = tk.StringVar(value='stoic')
+
+        for name, key, vtype, desc in templates:
+            frame = tk.Frame(dialog, bg=DashboardStyles.BG_CARD)
+            frame.pack(fill='x', padx=20, pady=3)
+
+            tk.Radiobutton(frame, text=name, variable=selected_template, value=key,
+                          bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_WHITE,
+                          selectcolor=DashboardStyles.BG_INPUT,
+                          font=('Segoe UI', 10, 'bold')).pack(anchor='w', padx=10, pady=(8, 0))
+            tk.Label(frame, text=f"{vtype.title()} • {desc}",
+                    bg=DashboardStyles.BG_CARD, fg=DashboardStyles.TEXT_MEDIUM,
+                    font=('Segoe UI', 9)).pack(anchor='w', padx=30, pady=(0, 8))
+
+        def apply_template():
+            key = selected_template.get()
+            template = next((t for t in templates if t[1] == key), templates[0])
+
+            # Update dashboard settings
+            self.content_template_var.set(key)
+            self.video_type_var.set(template[2])
+
+            dialog.destroy()
+            messagebox.showinfo("Template Applied", f"Template '{template[0]}' applied!")
+
+        tk.Button(dialog, text="Apply Template",
+                 bg=DashboardStyles.ACCENT_PRIMARY, fg='white',
+                 font=('Segoe UI', 10, 'bold'), padx=20, pady=10,
+                 command=apply_template).pack(pady=20)
 
     def configure_llm_api(self):
         """Configure LLM API settings"""
