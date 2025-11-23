@@ -205,8 +205,93 @@ class VideoAutomationGUI:
         self.progress_var = tk.DoubleVar(value=0)
         self.status_var = tk.StringVar(value="Ready")
 
+        # Enable copy-paste keyboard shortcuts for all text widgets
+        self.setup_copy_paste_bindings()
+
         self.setup_ui()
         logger.info("Application started successfully")
+
+    def setup_copy_paste_bindings(self):
+        """Setup global copy-paste keyboard shortcuts for all text widgets"""
+        # Bind Ctrl+A to select all for Text widgets
+        def select_all(event):
+            widget = event.widget
+            if isinstance(widget, tk.Text):
+                widget.tag_add('sel', '1.0', 'end')
+                return 'break'
+            elif isinstance(widget, tk.Entry):
+                widget.select_range(0, tk.END)
+                return 'break'
+            return None
+
+        # Bind Ctrl+C for copy
+        def copy_text(event):
+            widget = event.widget
+            try:
+                if isinstance(widget, tk.Text):
+                    if widget.tag_ranges('sel'):
+                        text = widget.get('sel.first', 'sel.last')
+                        self.root.clipboard_clear()
+                        self.root.clipboard_append(text)
+                elif isinstance(widget, tk.Entry):
+                    if widget.selection_present():
+                        text = widget.selection_get()
+                        self.root.clipboard_clear()
+                        self.root.clipboard_append(text)
+            except:
+                pass
+            return 'break'
+
+        # Bind Ctrl+V for paste
+        def paste_text(event):
+            widget = event.widget
+            try:
+                text = self.root.clipboard_get()
+                if isinstance(widget, tk.Text):
+                    if widget.tag_ranges('sel'):
+                        widget.delete('sel.first', 'sel.last')
+                    widget.insert('insert', text)
+                elif isinstance(widget, tk.Entry):
+                    if widget.selection_present():
+                        widget.delete('sel.first', 'sel.last')
+                    widget.insert('insert', text)
+            except:
+                pass
+            return 'break'
+
+        # Bind Ctrl+X for cut
+        def cut_text(event):
+            widget = event.widget
+            try:
+                if isinstance(widget, tk.Text):
+                    if widget.tag_ranges('sel'):
+                        text = widget.get('sel.first', 'sel.last')
+                        self.root.clipboard_clear()
+                        self.root.clipboard_append(text)
+                        widget.delete('sel.first', 'sel.last')
+                elif isinstance(widget, tk.Entry):
+                    if widget.selection_present():
+                        text = widget.selection_get()
+                        self.root.clipboard_clear()
+                        self.root.clipboard_append(text)
+                        widget.delete('sel.first', 'sel.last')
+            except:
+                pass
+            return 'break'
+
+        # Apply bindings globally
+        self.root.bind_class('Text', '<Control-a>', select_all)
+        self.root.bind_class('Text', '<Control-A>', select_all)
+        self.root.bind_class('Text', '<Control-c>', copy_text)
+        self.root.bind_class('Text', '<Control-C>', copy_text)
+        self.root.bind_class('Text', '<Control-v>', paste_text)
+        self.root.bind_class('Text', '<Control-V>', paste_text)
+        self.root.bind_class('Text', '<Control-x>', cut_text)
+        self.root.bind_class('Text', '<Control-X>', cut_text)
+
+        # Entry widgets usually work by default, but add explicit bindings
+        self.root.bind_class('Entry', '<Control-a>', select_all)
+        self.root.bind_class('Entry', '<Control-A>', select_all)
 
     def load_settings(self):
         """Load settings from JSON file"""
@@ -3284,6 +3369,7 @@ class VideoAutomationGUI:
 
                     server_url = self.settings.get('neutts_server_url', 'http://localhost:7860')
                     speed = float(self.settings.get('neutts_speed', 1.0))
+                    pitch_semitones = self.settings.get('neutts_pitch', 0)
 
                     preview_file = Path(temp_dir) / f"tts_preview_neutts_{selected_voice}.mp3"
                     wav_path = preview_file.with_suffix('.wav')
@@ -3292,20 +3378,17 @@ class VideoAutomationGUI:
                         # Initialize NeuTTS helper
                         helper = NeuTTSHelper(server_url)
 
-                        # Generate speech
-                        audio_data = helper.generate_speech(
+                        # Generate speech - returns (success, message)
+                        success, message = helper.generate_speech(
                             text=test_text,
                             voice_name=selected_voice,
-                            speed=speed
+                            output_path=str(wav_path),
+                            speed=speed,
+                            pitch=1.0  # NeuTTS pitch is 0.5-2.0 scale, we use semitones later
                         )
 
-                        if audio_data:
-                            # Save WAV file
-                            with open(str(wav_path), 'wb') as f:
-                                f.write(audio_data)
-
-                            # Get pitch and voice effect settings
-                            pitch_semitones = self.settings.get('neutts_pitch', 0)
+                        if success and wav_path.exists():
+                            # Get voice effect settings
                             voice_effect = self.settings.get('voice_effect', 'none')
 
                             # Build FFmpeg filter chain
@@ -3345,13 +3428,16 @@ class VideoAutomationGUI:
                             ffmpeg_cmd.extend(['-acodec', 'libmp3lame', '-q:a', '2', str(preview_file)])
 
                             subprocess.run(ffmpeg_cmd, capture_output=True, check=True)
-                            wav_path.unlink()
+
+                            # Clean up wav file
+                            if wav_path.exists():
+                                wav_path.unlink()
 
                             effect_label = f" + {voice_effect}" if voice_effect != 'none' else ""
                             pitch_label = f" (pitch: {pitch_semitones:+d})" if pitch_semitones != 0 else ""
                             self.preview_status_label.config(text=f"▶ Playing NeuTTS: {selected_voice}{pitch_label}{effect_label}")
                         else:
-                            self.preview_status_label.config(text="❌ NeuTTS failed to generate audio")
+                            self.preview_status_label.config(text=f"❌ NeuTTS failed: {message}")
                             return
 
                     except Exception as e:
