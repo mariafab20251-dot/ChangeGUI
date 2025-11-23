@@ -128,7 +128,7 @@ def format_voice_choice(name):
 # ---------------------------
 def load_reference(voice_name):
     txt_path, audio_or_pt = VOICES["samples"][voice_name]
-    ref_text = open(txt_path, "r").read().strip()
+    ref_text = open(txt_path, "r", encoding="utf-8").read().strip()
 
     if audio_or_pt.endswith(".pt"):
         ref_codes = torch.load(audio_or_pt)
@@ -389,7 +389,7 @@ def clone_voice(new_name, txt, audio_file):
         pt_path = f"samples/{new_name}.pt"
 
         # Save reference text and audio
-        with open(txt_path, "w") as f:
+        with open(txt_path, "w", encoding="utf-8") as f:
             f.write(txt.strip())
         shutil.copy(audio_file, wav_path)
 
