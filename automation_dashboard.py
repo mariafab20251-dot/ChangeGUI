@@ -18,6 +18,29 @@ try:
 except ImportError:
     NeuTTSHelper = None
 
+# Import MoviePy and effects from main project
+try:
+    from moviepy import VideoFileClip, ImageClip, CompositeVideoClip, AudioFileClip, concatenate_videoclips
+    from moviepy.video.fx import Resize, FadeIn, FadeOut
+    MOVIEPY_AVAILABLE = True
+except ImportError:
+    try:
+        from moviepy.editor import VideoFileClip, ImageClip, CompositeVideoClip, AudioFileClip, concatenate_videoclips
+        MOVIEPY_AVAILABLE = True
+    except ImportError:
+        MOVIEPY_AVAILABLE = False
+
+# Import effects classes from main project
+try:
+    from youtube_video_automation_enhanced import VideoEffects, TransitionEffects
+    EFFECTS_AVAILABLE = True
+except ImportError:
+    VideoEffects = None
+    TransitionEffects = None
+    EFFECTS_AVAILABLE = False
+
+import numpy as np
+
 logger = logging.getLogger(__name__)
 
 # Content templates for different video types
@@ -2646,9 +2669,9 @@ class AutomationDashboard:
                 else:
                     width, height = 1920, 1080  # 16:9 horizontal
 
-                # Compose video with ffmpeg
+                # Compose video with effects (MoviePy) or fallback to ffmpeg
                 if audio_path and visual_paths:
-                    success, msg = self.compose_video(
+                    success, msg = self.compose_video_with_effects(
                         audio_path=audio_path,
                         visual_paths=visual_paths,
                         output_path=final_video_path,
@@ -2663,7 +2686,7 @@ class AutomationDashboard:
                         logger.error(f"Composition failed: {msg}")
                 elif audio_path:
                     # Audio only - create video with black background
-                    success, msg = self.compose_video(
+                    success, msg = self.compose_video_with_effects(
                         audio_path=audio_path,
                         visual_paths=[],
                         output_path=final_video_path,
@@ -2675,7 +2698,7 @@ class AutomationDashboard:
                         logger.info(f"Audio-only video created: {final_video_path}")
                 elif visual_paths:
                     # Visuals only - create slideshow without audio
-                    success, msg = self.compose_video(
+                    success, msg = self.compose_video_with_effects(
                         audio_path=None,
                         visual_paths=visual_paths,
                         output_path=final_video_path,
@@ -2982,6 +3005,214 @@ class AutomationDashboard:
             return False, "FFmpeg not found - please install ffmpeg"
         except Exception as e:
             return False, f"Composition error: {str(e)}"
+
+    def compose_video_with_effects(self, audio_path, visual_paths, output_path, width=1080, height=1920):
+        """
+        Compose video using MoviePy with effects from main project.
+
+        Args:
+            audio_path: Path to audio file
+            visual_paths: List of image/video paths
+            output_path: Output video path
+            width: Video width
+            height: Video height
+
+        Returns:
+            Tuple of (success: bool, message: str)
+        """
+        if not MOVIEPY_AVAILABLE:
+            self.add_log("MoviePy not available, using ffmpeg", 'warning')
+            return self.compose_video(audio_path, visual_paths, output_path, width, height)
+
+        try:
+            from PIL import Image
+
+            # Get audio duration
+            if audio_path and os.path.exists(audio_path):
+                audio_clip = AudioFileClip(audio_path)
+                total_duration = audio_clip.duration
+            else:
+                audio_clip = None
+                total_duration = len(visual_paths) * 3  # 3 seconds per visual
+
+            if not visual_paths:
+                # Create black background with audio
+                from moviepy import ColorClip
+                video = ColorClip(size=(width, height), color=(0, 0, 0), duration=total_duration)
+                if audio_clip:
+                    video = video.with_audio(audio_clip)
+                video.write_videofile(output_path, codec='libx264', audio_codec='aac', fps=24)
+                return True, "Created audio-only video"
+
+            # Calculate duration per visual
+            num_visuals = len(visual_paths)
+            visual_duration = total_duration / num_visuals
+
+            # Separate images and videos
+            image_exts = ('.jpg', '.jpeg', '.png', '.webp', '.bmp')
+            video_exts = ('.mp4', '.mov', '.avi', '.mkv', '.webm')
+
+            clips = []
+
+            for i, visual_path in enumerate(visual_paths):
+                if visual_path.lower().endswith(image_exts):
+                    # Create image clip
+                    clip = ImageClip(visual_path, duration=visual_duration)
+
+                    # Resize to fit dimensions
+                    try:
+                        clip = clip.resized((width, height))
+                    except:
+                        clip = clip.resize((width, height))
+
+                elif visual_path.lower().endswith(video_exts):
+                    # Load video clip
+                    clip = VideoFileClip(visual_path)
+
+                    # Resize and trim
+                    try:
+                        clip = clip.resized((width, height))
+                    except:
+                        clip = clip.resize((width, height))
+
+                    if clip.duration > visual_duration:
+                        clip = clip.subclipped(0, visual_duration)
+                    elif clip.duration < visual_duration:
+                        clip = clip.with_duration(visual_duration)
+                else:
+                    continue
+
+                # Apply effects from settings
+                clip = self.apply_clip_effects(clip, i, num_visuals, visual_duration)
+
+                clips.append(clip)
+
+            if not clips:
+                return False, "No valid visual clips created"
+
+            # Concatenate all clips
+            final_video = concatenate_videoclips(clips, method="compose")
+
+            # Apply global effects
+            final_video = self.apply_global_effects(final_video)
+
+            # Add audio
+            if audio_clip:
+                final_video = final_video.with_audio(audio_clip)
+
+            # Write output
+            final_video.write_videofile(
+                output_path,
+                codec='libx264',
+                audio_codec='aac',
+                fps=24,
+                preset='medium',
+                threads=4
+            )
+
+            # Cleanup
+            final_video.close()
+            if audio_clip:
+                audio_clip.close()
+            for clip in clips:
+                clip.close()
+
+            return True, f"Video composed with effects: {output_path}"
+
+        except Exception as e:
+            logger.error(f"MoviePy composition failed: {e}")
+            return False, f"MoviePy composition error: {str(e)}"
+
+    def apply_clip_effects(self, clip, clip_index, total_clips, clip_duration):
+        """Apply effects to individual clip based on settings"""
+        try:
+            # Get transition settings
+            fade_in = self.settings.get('transition_fade_in', False)
+            fade_out = self.settings.get('transition_fade_out', False)
+            fade_duration = self.settings.get('transition_fade_in_duration', 0.5)
+
+            # Apply fade transitions
+            if fade_in and clip_index == 0:
+                try:
+                    clip = clip.with_effects([FadeIn(fade_duration)])
+                except:
+                    try:
+                        clip = clip.fadein(fade_duration)
+                    except:
+                        pass
+
+            if fade_out and clip_index == total_clips - 1:
+                try:
+                    clip = clip.with_effects([FadeOut(fade_duration)])
+                except:
+                    try:
+                        clip = clip.fadeout(fade_duration)
+                    except:
+                        pass
+
+            # Apply zoom effect if enabled
+            if self.settings.get('transition_zoom_in', False) and EFFECTS_AVAILABLE:
+                zoom_duration = self.settings.get('transition_zoom_in_duration', 1.0)
+                zoom_scale = self.settings.get('transition_zoom_scale', 1.3)
+                clip = TransitionEffects.create_zoom_transition(clip, zoom_in=True,
+                                                                duration=zoom_duration,
+                                                                zoom_scale=zoom_scale)
+
+            return clip
+        except Exception as e:
+            logger.warning(f"Failed to apply clip effects: {e}")
+            return clip
+
+    def apply_global_effects(self, video):
+        """Apply global effects to the entire video"""
+        try:
+            if not EFFECTS_AVAILABLE:
+                return video
+
+            # Color grading
+            if self.settings.get('color_grade_enabled', False):
+                grade_type = self.settings.get('color_grade_type', 'cinematic')
+                intensity = self.settings.get('color_grade_intensity', 0.5)
+
+                def apply_grade(get_frame, t):
+                    frame = get_frame(t)
+                    return VideoEffects.apply_color_grade(frame, grade_type, intensity)
+
+                try:
+                    video = video.transform(apply_grade)
+                except:
+                    video = video.fl(apply_grade)
+
+            # Vignette
+            if self.settings.get('vignette_enabled', False):
+                intensity = self.settings.get('vignette_intensity', 0.4)
+
+                def apply_vignette(get_frame, t):
+                    frame = get_frame(t)
+                    return VideoEffects.apply_vignette(frame, intensity)
+
+                try:
+                    video = video.transform(apply_vignette)
+                except:
+                    video = video.fl(apply_vignette)
+
+            # Film grain
+            if self.settings.get('film_grain_enabled', False):
+                intensity = self.settings.get('film_grain_intensity', 0.15)
+
+                def apply_grain(get_frame, t):
+                    frame = get_frame(t)
+                    return VideoEffects.apply_film_grain(frame, intensity)
+
+                try:
+                    video = video.transform(apply_grain)
+                except:
+                    video = video.fl(apply_grain)
+
+            return video
+        except Exception as e:
+            logger.warning(f"Failed to apply global effects: {e}")
+            return video
 
     def upload_to_youtube(self, video_path, title, description, account):
         """
