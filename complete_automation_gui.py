@@ -3378,6 +3378,12 @@ class VideoAutomationGUI:
                         # Initialize NeuTTS helper
                         helper = NeuTTSHelper(server_url)
 
+                        # Load voice library from saved file
+                        lib_success, lib_msg = helper.load_voice_library('neutts_voices.json')
+                        if not lib_success:
+                            self.preview_status_label.config(text=f"❌ Failed to load voices: {lib_msg}")
+                            return
+
                         # Generate speech - returns (success, message)
                         success, message = helper.generate_speech(
                             text=test_text,
