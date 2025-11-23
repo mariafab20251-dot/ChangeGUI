@@ -395,6 +395,11 @@ class AutomationDashboard:
                  font=('Segoe UI', 10, 'bold'), padx=20, pady=10,
                  command=self.load_template).pack(side='left', padx=5)
 
+        tk.Button(btn_frame, text="💾 Export Config",
+                 bg=DashboardStyles.ACCENT_WARNING, fg='white',
+                 font=('Segoe UI', 10, 'bold'), padx=20, pady=10,
+                 command=self.export_project_config).pack(side='left', padx=5)
+
         # Output Settings
         output_frame = tk.Frame(tab, bg=DashboardStyles.BG_CARD)
         output_frame.pack(fill='x', padx=20, pady=10)
@@ -1341,6 +1346,16 @@ class AutomationDashboard:
                  font=('Segoe UI', 10, 'bold'), padx=15, pady=8,
                  command=self.clear_queue).pack(side='left', padx=5)
 
+        tk.Button(btn_frame, text="👁️ Preview",
+                 bg=DashboardStyles.ACCENT_INFO, fg='white',
+                 font=('Segoe UI', 10, 'bold'), padx=15, pady=8,
+                 command=self.preview_video).pack(side='left', padx=5)
+
+        tk.Button(btn_frame, text="💾 Save",
+                 bg=DashboardStyles.BG_INPUT, fg=DashboardStyles.TEXT_LIGHT,
+                 font=('Segoe UI', 10, 'bold'), padx=15, pady=8,
+                 command=self.save_queue_item).pack(side='left', padx=5)
+
         # Queue list
         queue_frame = tk.Frame(tab, bg=DashboardStyles.BG_CARD)
         queue_frame.pack(fill='both', expand=True, padx=20, pady=10)
@@ -1716,6 +1731,113 @@ class AutomationDashboard:
             self.log_text.delete('1.0', 'end')
             self.add_log("Log cleared", 'info')
 
+    def preview_video(self):
+        """Preview a generated video from the queue"""
+        import subprocess
+        import platform
+
+        # Get selected item from queue
+        selection = self.queue_tree.selection()
+        if not selection:
+            messagebox.showwarning("No Selection", "Please select a completed project to preview.")
+            return
+
+        # Get project info
+        items = self.queue_tree.get_children()
+        index = items.index(selection[0])
+        queue = self.settings.get('queue', [])
+
+        if index >= len(queue):
+            messagebox.showerror("Error", "Invalid queue item.")
+            return
+
+        project = queue[index]
+
+        # Check if project is completed
+        if project.get('status') != 'completed':
+            messagebox.showwarning("Not Ready", "Please wait for the project to complete before previewing.")
+            return
+
+        # Find the generated video file
+        output_dir = self.settings.get('output_dir', '')
+        if not output_dir:
+            messagebox.showerror("No Output", "Output directory not configured.")
+            return
+
+        # Look for video files matching project name
+        video_files = []
+        for f in os.listdir(output_dir):
+            if f.startswith(project.get('name', '')) and f.endswith('.mp4'):
+                video_files.append(os.path.join(output_dir, f))
+
+        if not video_files:
+            # Try to find any recent mp4 files
+            import glob
+            video_files = glob.glob(os.path.join(output_dir, '*.mp4'))
+            video_files.sort(key=os.path.getmtime, reverse=True)
+
+        if not video_files:
+            messagebox.showinfo("No Videos", "No video files found. The project may not have generated any videos yet.")
+            return
+
+        # If multiple videos, let user select
+        if len(video_files) > 1:
+            # Create selection dialog
+            dialog = tk.Toplevel(self.window)
+            dialog.title("Select Video to Preview")
+            dialog.geometry("500x400")
+            dialog.configure(bg=DashboardStyles.BG_DARK)
+            dialog.transient(self.window)
+            dialog.grab_set()
+
+            tk.Label(dialog, text="Select a video to preview:",
+                    bg=DashboardStyles.BG_DARK, fg=DashboardStyles.TEXT_WHITE,
+                    font=('Segoe UI', 12, 'bold')).pack(pady=(20, 10))
+
+            listbox = tk.Listbox(dialog, bg=DashboardStyles.BG_INPUT,
+                                fg=DashboardStyles.TEXT_LIGHT,
+                                font=('Segoe UI', 10),
+                                selectbackground=DashboardStyles.ACCENT_INFO,
+                                height=12)
+            listbox.pack(fill='both', expand=True, padx=20, pady=10)
+
+            for f in video_files:
+                listbox.insert('end', os.path.basename(f))
+
+            listbox.selection_set(0)
+
+            def play_selected():
+                sel = listbox.curselection()
+                if sel:
+                    self.open_video_player(video_files[sel[0]])
+                dialog.destroy()
+
+            tk.Button(dialog, text="Play Video",
+                     bg=DashboardStyles.ACCENT_PRIMARY, fg='white',
+                     font=('Segoe UI', 10, 'bold'), padx=20, pady=8,
+                     command=play_selected).pack(pady=15)
+        else:
+            self.open_video_player(video_files[0])
+
+    def open_video_player(self, video_path):
+        """Open video in system default player"""
+        import subprocess
+        import platform
+
+        try:
+            system = platform.system()
+            if system == 'Windows':
+                os.startfile(video_path)
+            elif system == 'Darwin':  # macOS
+                subprocess.run(['open', video_path])
+            else:  # Linux
+                subprocess.run(['xdg-open', video_path])
+
+            self.add_log(f"Opened preview: {os.path.basename(video_path)}", 'info')
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not open video player: {e}")
+
     def execute_pipeline(self, project, index):
         """Execute the full automation pipeline for a project"""
         import random
@@ -1839,9 +1961,77 @@ class AutomationDashboard:
             elif voice_source == 'kokoro':
                 # Use Kokoro TTS (local)
                 try:
-                    # Kokoro integration would go here
-                    logger.info("Kokoro TTS - placeholder for local generation")
+                    # Try importing kokoro
+                    try:
+                        from kokoro import KPipeline
+                        import soundfile as sf
+
+                        # Initialize Kokoro pipeline
+                        voice = self.settings.get('kokoro_voice', 'af_bella')
+                        pipeline = KPipeline(lang_code='a')
+
+                        # Generate audio
+                        generator = pipeline(
+                            script,
+                            voice=voice,
+                            speed=self.settings.get('kokoro_speed', 1.0)
+                        )
+
+                        # Collect all audio segments
+                        all_audio = []
+                        for i, (gs, ps, audio) in enumerate(generator):
+                            all_audio.append(audio)
+
+                        if all_audio:
+                            # Concatenate audio segments
+                            import numpy as np
+                            full_audio = np.concatenate(all_audio)
+
+                            # Save to file
+                            audio_path = os.path.join(output_dir, f"{project['name']}_{video_num}_voice.wav")
+                            sf.write(audio_path, full_audio, 24000)
+
+                            self.add_log(f"✓ Kokoro voice generated", 'success')
+                            logger.info(f"Kokoro voice generated: {audio_path}")
+                        else:
+                            self.add_log("Kokoro generated no audio", 'warning')
+
+                    except ImportError:
+                        # Try gradio_client approach for Kokoro web UI
+                        try:
+                            from gradio_client import Client
+
+                            kokoro_url = self.settings.get('kokoro_url', 'http://127.0.0.1:7861')
+                            client = Client(kokoro_url)
+
+                            # Call Kokoro API
+                            result = client.predict(
+                                script,
+                                self.settings.get('kokoro_voice', 'af_bella'),
+                                self.settings.get('kokoro_speed', 1.0),
+                                api_name="/generate"
+                            )
+
+                            if result:
+                                # Handle result
+                                if isinstance(result, str):
+                                    audio_path = result
+                                elif isinstance(result, tuple):
+                                    for item in result:
+                                        if isinstance(item, str) and (item.endswith('.wav') or item.endswith('.mp3')):
+                                            audio_path = item
+                                            break
+
+                                if audio_path:
+                                    self.add_log(f"✓ Kokoro voice generated", 'success')
+                                    logger.info(f"Kokoro voice generated: {audio_path}")
+
+                        except Exception as e:
+                            self.add_log(f"Kokoro failed: {str(e)[:50]}", 'error')
+                            logger.error(f"Kokoro gradio_client failed: {e}")
+
                 except Exception as e:
+                    self.add_log(f"Kokoro failed: {str(e)[:50]}", 'error')
                     logger.error(f"Kokoro voice generation failed: {e}")
 
             elif voice_source == 'import':
@@ -1964,7 +2154,181 @@ class AutomationDashboard:
 
             elif visual_source in ['nanobanana', 'sora', 'kling', 'hailuo']:
                 # Cloud API visual generation
-                logger.info(f"Cloud visual API ({visual_source}) - placeholder")
+                self.add_log(f"Generating visuals via {visual_source} API...", 'info')
+
+                # Generate prompts from script for image generation
+                image_prompts = self.extract_visual_prompts(script, num_images=5)
+
+                if visual_source == 'nanobanana':
+                    # Nano Banana / Replicate API
+                    api_key = self.settings.get('nanobanana_api_key', '')
+                    if api_key:
+                        for i, prompt in enumerate(image_prompts):
+                            try:
+                                response = requests.post(
+                                    'https://api.replicate.com/v1/predictions',
+                                    headers={
+                                        'Authorization': f'Token {api_key}',
+                                        'Content-Type': 'application/json'
+                                    },
+                                    json={
+                                        'version': 'stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b',
+                                        'input': {
+                                            'prompt': prompt,
+                                            'width': width,
+                                            'height': height,
+                                            'num_outputs': 1
+                                        }
+                                    },
+                                    timeout=30
+                                )
+
+                                if response.status_code == 201:
+                                    prediction = response.json()
+                                    pred_id = prediction.get('id', '')
+
+                                    # Poll for completion
+                                    for _ in range(60):  # Max 2 minutes
+                                        time.sleep(2)
+                                        status_response = requests.get(
+                                            f'https://api.replicate.com/v1/predictions/{pred_id}',
+                                            headers={'Authorization': f'Token {api_key}'},
+                                            timeout=10
+                                        )
+                                        if status_response.status_code == 200:
+                                            status_data = status_response.json()
+                                            if status_data.get('status') == 'succeeded':
+                                                output = status_data.get('output', [])
+                                                if output:
+                                                    img_url = output[0] if isinstance(output, list) else output
+                                                    img_response = requests.get(img_url, timeout=30)
+                                                    if img_response.status_code == 200:
+                                                        img_path = os.path.join(output_dir, f"{project['name']}_{video_num}_img{i}.png")
+                                                        with open(img_path, 'wb') as f:
+                                                            f.write(img_response.content)
+                                                        visual_paths.append(img_path)
+                                                break
+                                            elif status_data.get('status') == 'failed':
+                                                break
+                            except Exception as e:
+                                logger.error(f"Nano Banana generation failed: {e}")
+
+                elif visual_source == 'sora':
+                    # OpenAI Sora API (when available)
+                    api_key = self.settings.get('openai_api_key', '')
+                    if api_key:
+                        self.add_log("Sora API - using DALL-E 3 as fallback", 'info')
+                        for i, prompt in enumerate(image_prompts[:3]):  # Limit to 3 for cost
+                            try:
+                                response = requests.post(
+                                    'https://api.openai.com/v1/images/generations',
+                                    headers={
+                                        'Authorization': f'Bearer {api_key}',
+                                        'Content-Type': 'application/json'
+                                    },
+                                    json={
+                                        'model': 'dall-e-3',
+                                        'prompt': prompt,
+                                        'n': 1,
+                                        'size': '1024x1792' if height > width else '1792x1024',
+                                        'quality': 'standard'
+                                    },
+                                    timeout=60
+                                )
+
+                                if response.status_code == 200:
+                                    data = response.json()
+                                    img_url = data['data'][0]['url']
+                                    img_response = requests.get(img_url, timeout=30)
+                                    if img_response.status_code == 200:
+                                        img_path = os.path.join(output_dir, f"{project['name']}_{video_num}_dalle{i}.png")
+                                        with open(img_path, 'wb') as f:
+                                            f.write(img_response.content)
+                                        visual_paths.append(img_path)
+                            except Exception as e:
+                                logger.error(f"DALL-E generation failed: {e}")
+
+                elif visual_source == 'kling':
+                    # Kling AI API
+                    api_key = self.settings.get('kling_api_key', '')
+                    if api_key:
+                        for i, prompt in enumerate(image_prompts):
+                            try:
+                                # Kling API endpoint (placeholder - update with actual endpoint)
+                                response = requests.post(
+                                    'https://api.klingai.com/v1/images/generations',
+                                    headers={
+                                        'Authorization': f'Bearer {api_key}',
+                                        'Content-Type': 'application/json'
+                                    },
+                                    json={
+                                        'prompt': prompt,
+                                        'aspect_ratio': '9:16' if height > width else '16:9',
+                                        'image_count': 1
+                                    },
+                                    timeout=60
+                                )
+
+                                if response.status_code == 200:
+                                    data = response.json()
+                                    if 'images' in data and data['images']:
+                                        img_url = data['images'][0].get('url', '')
+                                        if img_url:
+                                            img_response = requests.get(img_url, timeout=30)
+                                            if img_response.status_code == 200:
+                                                img_path = os.path.join(output_dir, f"{project['name']}_{video_num}_kling{i}.png")
+                                                with open(img_path, 'wb') as f:
+                                                    f.write(img_response.content)
+                                                visual_paths.append(img_path)
+                            except Exception as e:
+                                logger.error(f"Kling generation failed: {e}")
+
+                elif visual_source == 'hailuo':
+                    # Hailuo/MiniMax API
+                    api_key = self.settings.get('hailuo_api_key', '')
+                    if api_key:
+                        for i, prompt in enumerate(image_prompts):
+                            try:
+                                response = requests.post(
+                                    'https://api.minimax.chat/v1/text_to_image',
+                                    headers={
+                                        'Authorization': f'Bearer {api_key}',
+                                        'Content-Type': 'application/json'
+                                    },
+                                    json={
+                                        'prompt': prompt,
+                                        'model': 'image-01',
+                                        'aspect_ratio': '9:16' if height > width else '16:9'
+                                    },
+                                    timeout=60
+                                )
+
+                                if response.status_code == 200:
+                                    data = response.json()
+                                    if 'data' in data and data['data']:
+                                        # Handle base64 or URL response
+                                        img_data = data['data'][0]
+                                        if 'url' in img_data:
+                                            img_response = requests.get(img_data['url'], timeout=30)
+                                            if img_response.status_code == 200:
+                                                img_path = os.path.join(output_dir, f"{project['name']}_{video_num}_hailuo{i}.png")
+                                                with open(img_path, 'wb') as f:
+                                                    f.write(img_response.content)
+                                                visual_paths.append(img_path)
+                                        elif 'b64_json' in img_data:
+                                            import base64
+                                            img_bytes = base64.b64decode(img_data['b64_json'])
+                                            img_path = os.path.join(output_dir, f"{project['name']}_{video_num}_hailuo{i}.png")
+                                            with open(img_path, 'wb') as f:
+                                                f.write(img_bytes)
+                                            visual_paths.append(img_path)
+                            except Exception as e:
+                                logger.error(f"Hailuo generation failed: {e}")
+
+                if visual_paths:
+                    self.add_log(f"✓ Generated {len(visual_paths)} images via {visual_source}", 'success')
+                else:
+                    self.add_log(f"No images generated - check {visual_source} API key", 'warning')
 
             # Step 4: Compose Video (90%)
             self.update_queue_item(index, '🎬 Compose', f'{int((v/num_videos)*100 + 75)}%')
@@ -2455,6 +2819,153 @@ class AutomationDashboard:
 
         except Exception as e:
             return False, f"Facebook upload failed: {str(e)}"
+
+    def extract_visual_prompts(self, script, num_images=5):
+        """
+        Extract or generate visual prompts from a script.
+
+        Args:
+            script: The script text
+            num_images: Number of image prompts to generate
+
+        Returns:
+            List of image generation prompts
+        """
+        if not script:
+            return ["cinematic scene, dramatic lighting, 4k, high quality"] * num_images
+
+        # Split script into sentences
+        import re
+        sentences = re.split(r'[.!?]+', script)
+        sentences = [s.strip() for s in sentences if s.strip() and len(s.strip()) > 20]
+
+        prompts = []
+
+        # Use LLM to generate visual prompts if available
+        provider = self.settings.get('llm_provider', '')
+        if provider and self.settings.get(f'{provider}_api_key', ''):
+            try:
+                system_prompt = """You are a visual prompt generator for AI image generation.
+                Given a script, create vivid, detailed image prompts that would make compelling visuals.
+                Each prompt should be 1-2 sentences describing a scene that matches the script content.
+                Include visual style details like: cinematic, dramatic lighting, detailed, 4k, etc."""
+
+                user_prompt = f"""Generate {num_images} image prompts for this script:
+
+{script[:1000]}
+
+Return ONLY the prompts, one per line, no numbering or extra text."""
+
+                result, error = self.call_llm_api(provider, system_prompt, user_prompt)
+                if result and not error:
+                    prompts = [p.strip() for p in result.strip().split('\n') if p.strip()]
+                    prompts = prompts[:num_images]
+            except Exception as e:
+                logger.error(f"LLM prompt generation failed: {e}")
+
+        # Fallback: Create prompts from script sentences
+        if not prompts:
+            for i in range(num_images):
+                if i < len(sentences):
+                    # Take key sentence and add visual modifiers
+                    base = sentences[i * len(sentences) // num_images][:100]
+                    prompt = f"{base}, cinematic scene, dramatic lighting, detailed, 4k, high quality"
+                else:
+                    prompt = "cinematic abstract scene, dramatic lighting, moody atmosphere, 4k"
+                prompts.append(prompt)
+
+        return prompts
+
+    def export_project_config(self):
+        """Export current dashboard configuration as JSON"""
+        import datetime
+
+        # Create export data
+        export_data = {
+            'export_date': datetime.datetime.now().isoformat(),
+            'version': '1.0',
+            'settings': {
+                'output_dir': self.settings.get('output_dir', ''),
+                'default_video_type': self.settings.get('default_video_type', 'shorts'),
+                'video_quality': self.settings.get('video_quality', 'medium'),
+                'llm_provider': self.settings.get('llm_provider', ''),
+            },
+            'voice_settings': {
+                'elevenlabs_voice_id': self.settings.get('elevenlabs_voice_id', ''),
+                'elevenlabs_stability': self.settings.get('elevenlabs_stability', 0.5),
+                'elevenlabs_similarity': self.settings.get('elevenlabs_similarity', 0.75),
+                'neutts_url': self.settings.get('neutts_url', 'http://127.0.0.1:7860'),
+                'neutts_speed': self.settings.get('neutts_speed', 1.0),
+                'kokoro_voice': self.settings.get('kokoro_voice', 'af_bella'),
+                'kokoro_speed': self.settings.get('kokoro_speed', 1.0),
+            },
+            'visual_settings': {
+                'comfyui_url': self.settings.get('comfyui_url', 'http://127.0.0.1:8188'),
+                'comfyui_workflow': self.settings.get('comfyui_workflow', ''),
+                'local_clips_folder': self.settings.get('local_clips_folder', ''),
+            },
+            'accounts': [
+                {'platform': a['platform'], 'name': a.get('name', a['platform'])}
+                for a in self.settings.get('accounts', [])
+            ],
+            'queue': self.settings.get('queue', [])
+        }
+
+        # Ask for save location
+        file = filedialog.asksaveasfilename(
+            title="Export Configuration",
+            defaultextension=".json",
+            filetypes=[('JSON Files', '*.json'), ('All Files', '*.*')],
+            initialfile=f"automation_config_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        )
+
+        if file:
+            try:
+                with open(file, 'w') as f:
+                    json.dump(export_data, f, indent=2)
+                self.add_log(f"✓ Configuration exported to {os.path.basename(file)}", 'success')
+                messagebox.showinfo("Export Complete", f"Configuration saved to:\n{file}")
+            except Exception as e:
+                self.add_log(f"Export failed: {str(e)}", 'error')
+                messagebox.showerror("Export Failed", f"Error: {str(e)}")
+
+    def save_queue_item(self, index=None):
+        """Save a specific queue item or selected item as JSON"""
+        queue = self.settings.get('queue', [])
+
+        if index is None:
+            # Get selected item from treeview
+            selection = self.queue_tree.selection()
+            if not selection:
+                messagebox.showwarning("No Selection", "Please select a queue item to save.")
+                return
+            # Get index from selection
+            items = self.queue_tree.get_children()
+            index = items.index(selection[0])
+
+        if index >= len(queue):
+            messagebox.showerror("Error", "Invalid queue item index.")
+            return
+
+        project = queue[index]
+
+        # Ask for save location
+        file = filedialog.asksaveasfilename(
+            title="Save Project",
+            defaultextension=".json",
+            filetypes=[('JSON Files', '*.json'), ('All Files', '*.*')],
+            initialfile=f"{project.get('name', 'project')}.json"
+        )
+
+        if file:
+            try:
+                with open(file, 'w') as f:
+                    json.dump(project, f, indent=2)
+                self.add_log(f"✓ Project saved to {os.path.basename(file)}", 'success')
+                messagebox.showinfo("Save Complete", f"Project saved to:\n{file}")
+            except Exception as e:
+                self.add_log(f"Save failed: {str(e)}", 'error')
+                messagebox.showerror("Save Failed", f"Error: {str(e)}")
 
     def import_project(self):
         """Import existing project"""
