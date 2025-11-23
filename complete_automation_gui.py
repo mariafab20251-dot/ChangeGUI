@@ -1489,6 +1489,38 @@ class VideoAutomationGUI:
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
                 font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(5, 0))
 
+        # Kokoro Pitch Control
+        kokoro_pitch_frame = tk.Frame(self.kokoro_settings_frame, bg=AppStyles.BG_CARD)
+        kokoro_pitch_frame.pack(fill='x', pady=8)
+
+        tk.Label(kokoro_pitch_frame, text='Kokoro Pitch (semitones):',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(0, 5))
+
+        kokoro_pitch_slider_frame = tk.Frame(kokoro_pitch_frame, bg=AppStyles.BG_CARD)
+        kokoro_pitch_slider_frame.pack(fill='x')
+
+        tk.Label(kokoro_pitch_slider_frame, text='Lower',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8)).pack(side='left')
+
+        self.kokoro_pitch_var = tk.IntVar(value=self.settings.get('kokoro_pitch', 0))
+        kokoro_pitch_slider = tk.Scale(kokoro_pitch_slider_frame, from_=-12, to=12,
+                                       resolution=1, orient='horizontal',
+                                       variable=self.kokoro_pitch_var,
+                                       bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                                       highlightthickness=0, troughcolor=AppStyles.BG_INPUT,
+                                       command=lambda v: self.update_setting('kokoro_pitch', int(v)))
+        kokoro_pitch_slider.pack(side='left', fill='x', expand=True, padx=5)
+
+        tk.Label(kokoro_pitch_slider_frame, text='Higher',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8)).pack(side='left')
+
+        tk.Label(kokoro_pitch_frame, text='ℹ️ -12 = 1 octave lower, +12 = 1 octave higher',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(5, 0))
+
         # Model Path (optional - for custom installations)
         model_path_frame = tk.Frame(self.kokoro_settings_frame, bg=AppStyles.BG_CARD)
         model_path_frame.pack(fill='x', pady=8)
@@ -1709,8 +1741,113 @@ class VideoAutomationGUI:
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
                 font=('Segoe UI', 8)).pack(side='left', padx=(10, 0))
 
+        # NeuTTS Pitch Control
+        neutts_pitch_frame = tk.Frame(self.neutts_settings_frame, bg=AppStyles.BG_CARD)
+        neutts_pitch_frame.pack(fill='x', pady=8)
+
+        tk.Label(neutts_pitch_frame, text='NeuTTS Pitch (semitones):',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(0, 5))
+
+        neutts_pitch_slider_frame = tk.Frame(neutts_pitch_frame, bg=AppStyles.BG_CARD)
+        neutts_pitch_slider_frame.pack(fill='x')
+
+        tk.Label(neutts_pitch_slider_frame, text='Lower',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8)).pack(side='left')
+
+        self.neutts_pitch_var = tk.IntVar(value=self.settings.get('neutts_pitch', 0))
+        neutts_pitch_slider = tk.Scale(neutts_pitch_slider_frame, from_=-12, to=12,
+                                       resolution=1, orient='horizontal',
+                                       variable=self.neutts_pitch_var,
+                                       bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                                       highlightthickness=0, troughcolor=AppStyles.BG_INPUT,
+                                       command=lambda v: self.update_setting('neutts_pitch', int(v)))
+        neutts_pitch_slider.pack(side='left', fill='x', expand=True, padx=5)
+
+        tk.Label(neutts_pitch_slider_frame, text='Higher',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8)).pack(side='left')
+
+        tk.Label(neutts_pitch_frame, text='ℹ️ -12 = 1 octave lower, +12 = 1 octave higher',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(5, 0))
+
         # Speed slider
         self.create_slider_control(tts_card, 'Speech Speed (WPM):', 'tts_speed', 100, 250, 150)
+
+        # Pitch control for Cloud TTS
+        pitch_frame = tk.Frame(tts_card, bg=AppStyles.BG_CARD)
+        pitch_frame.pack(fill='x', padx=20, pady=8)
+
+        tk.Label(pitch_frame, text='🎵 Voice Pitch (Hz):',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(0, 5))
+
+        pitch_slider_frame = tk.Frame(pitch_frame, bg=AppStyles.BG_CARD)
+        pitch_slider_frame.pack(fill='x')
+
+        tk.Label(pitch_slider_frame, text='Lower',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8)).pack(side='left')
+
+        self.tts_pitch_var = tk.IntVar(value=self.settings.get('tts_pitch', 0))
+        tts_pitch_slider = tk.Scale(pitch_slider_frame, from_=-50, to=50,
+                                    resolution=5, orient='horizontal',
+                                    variable=self.tts_pitch_var,
+                                    bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                                    highlightthickness=0, troughcolor=AppStyles.BG_INPUT,
+                                    command=lambda v: self.update_setting('tts_pitch', int(v)))
+        tts_pitch_slider.pack(side='left', fill='x', expand=True, padx=5)
+
+        tk.Label(pitch_slider_frame, text='Higher',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8)).pack(side='left')
+
+        tk.Label(pitch_frame, text='ℹ️ Adjust voice pitch: -50Hz (deeper) to +50Hz (higher). 0 = default.',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(5, 0))
+
+        # ═══════════════════════════════════════════════════════════
+        # VOICE EFFECTS SECTION
+        # ═══════════════════════════════════════════════════════════
+        effects_card = tk.Frame(tts_card, bg=AppStyles.BG_INPUT, pady=15, padx=20)
+        effects_card.pack(fill='x', padx=15, pady=(15, 10))
+
+        tk.Label(effects_card, text='🎭 Voice Effects',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 11, 'bold')).pack(anchor='w', pady=(0, 5))
+
+        tk.Label(effects_card, text='Apply audio effects to transform the voice',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 9)).pack(anchor='w', pady=(0, 10))
+
+        # Voice effect selection
+        self.voice_effect_var = tk.StringVar(value=self.settings.get('voice_effect', 'none'))
+
+        effects_list = [
+            ('none', '🚫 None (Original Voice)'),
+            ('deep', '🔊 Deep Voice (-12 semitones)'),
+            ('high', '🎵 High Voice (+12 semitones)'),
+            ('robot', '🤖 Robot Voice'),
+            ('echo', '🔈 Echo/Reverb'),
+            ('whisper', '🤫 Whisper Effect'),
+            ('radio', '📻 Radio/Telephone'),
+            ('chipmunk', '🐿️ Chipmunk (+18 semitones)')
+        ]
+
+        for value, text in effects_list:
+            tk.Radiobutton(effects_card, text=text,
+                          variable=self.voice_effect_var, value=value,
+                          bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                          font=('Segoe UI', 9),
+                          activebackground=AppStyles.BG_INPUT,
+                          selectcolor=AppStyles.BG_CARD,
+                          command=lambda: self.update_setting('voice_effect', self.voice_effect_var.get())).pack(anchor='w', pady=2)
+
+        tk.Label(effects_card, text='ℹ️ Effects are applied using FFmpeg audio filters during processing',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(10, 0))
 
         # ═══════════════════════════════════════════════════════════
         # VOICE PREVIEW SECTION (NEW!)
@@ -3084,16 +3221,54 @@ class VideoAutomationGUI:
                     wav_path = preview_file.with_suffix('.wav')
                     sf.write(str(wav_path), audio, sample_rate)
 
-                    # Convert to MP3
-                    subprocess.run([
-                        'ffmpeg', '-y', '-i', str(wav_path),
-                        '-acodec', 'libmp3lame', '-q:a', '2',
-                        str(preview_file)
-                    ], capture_output=True, check=True)
+                    # Get pitch and voice effect settings
+                    pitch_semitones = self.settings.get('kokoro_pitch', 0)
+                    voice_effect = self.settings.get('voice_effect', 'none')
+
+                    # Build FFmpeg filter chain
+                    filters = []
+
+                    # Apply pitch shift if not zero
+                    if pitch_semitones != 0:
+                        # Calculate pitch factor: 2^(semitones/12)
+                        pitch_factor = 2 ** (pitch_semitones / 12)
+                        filters.append(f"asetrate={sample_rate}*{pitch_factor},aresample={sample_rate}")
+
+                    # Apply voice effects
+                    if voice_effect == 'deep':
+                        if pitch_semitones == 0:  # Only apply if not already pitch shifted
+                            filters.append(f"asetrate={sample_rate}*0.5,aresample={sample_rate}")
+                    elif voice_effect == 'high':
+                        if pitch_semitones == 0:
+                            filters.append(f"asetrate={sample_rate}*2,aresample={sample_rate}")
+                    elif voice_effect == 'robot':
+                        filters.append("afftfilt=real='hypot(re,im)*sin(0)':imag='hypot(re,im)*cos(0)':win_size=512:overlap=0.75")
+                    elif voice_effect == 'echo':
+                        filters.append("aecho=0.8:0.88:60:0.4")
+                    elif voice_effect == 'whisper':
+                        filters.append("highpass=f=1000,lowpass=f=3000,volume=1.5")
+                    elif voice_effect == 'radio':
+                        filters.append("highpass=f=300,lowpass=f=3400,equalizer=f=1000:t=h:w=200:g=3")
+                    elif voice_effect == 'chipmunk':
+                        if pitch_semitones == 0:
+                            filters.append(f"asetrate={sample_rate}*2.5,aresample={sample_rate}")
+
+                    # Build FFmpeg command
+                    ffmpeg_cmd = ['ffmpeg', '-y', '-i', str(wav_path)]
+
+                    if filters:
+                        filter_chain = ','.join(filters)
+                        ffmpeg_cmd.extend(['-af', filter_chain])
+
+                    ffmpeg_cmd.extend(['-acodec', 'libmp3lame', '-q:a', '2', str(preview_file)])
+
+                    subprocess.run(ffmpeg_cmd, capture_output=True, check=True)
                     wav_path.unlink()
 
                     voice_display = voice_setting
-                    self.preview_status_label.config(text=f"▶ Playing Kokoro: {voice}")
+                    effect_label = f" + {voice_effect}" if voice_effect != 'none' else ""
+                    pitch_label = f" (pitch: {pitch_semitones:+d})" if pitch_semitones != 0 else ""
+                    self.preview_status_label.config(text=f"▶ Playing Kokoro: {voice}{pitch_label}{effect_label}")
 
                 else:
                     # Use Cloud TTS (edge-tts)
@@ -3124,18 +3299,56 @@ class VideoAutomationGUI:
 
                     preview_file = Path(temp_dir) / f"tts_preview_{voice_key}.mp3"
                     speed = self.settings.get('tts_speed', 150)
+                    pitch = self.settings.get('tts_pitch', 0)
 
                     # Generate audio using edge-tts
                     async def generate_audio():
                         rate_percent = int((speed - 150) / 150 * 100)
                         rate = f"{rate_percent:+d}%"
-                        communicate = edge_tts.Communicate(test_text, voice_id, rate=rate)
+                        pitch_str = f"{pitch:+d}Hz"
+                        communicate = edge_tts.Communicate(test_text, voice_id, rate=rate, pitch=pitch_str)
                         await communicate.save(str(preview_file))
 
                     asyncio.run(generate_audio())
 
+                    # Apply voice effects using FFmpeg
+                    voice_effect = self.settings.get('voice_effect', 'none')
+                    if voice_effect != 'none':
+                        effect_file = preview_file.with_suffix('.effect.mp3')
+                        filters = []
+
+                        if voice_effect == 'deep':
+                            filters.append("asetrate=44100*0.5,aresample=44100")
+                        elif voice_effect == 'high':
+                            filters.append("asetrate=44100*2,aresample=44100")
+                        elif voice_effect == 'robot':
+                            filters.append("afftfilt=real='hypot(re,im)*sin(0)':imag='hypot(re,im)*cos(0)':win_size=512:overlap=0.75")
+                        elif voice_effect == 'echo':
+                            filters.append("aecho=0.8:0.88:60:0.4")
+                        elif voice_effect == 'whisper':
+                            filters.append("highpass=f=1000,lowpass=f=3000,volume=1.5")
+                        elif voice_effect == 'radio':
+                            filters.append("highpass=f=300,lowpass=f=3400,equalizer=f=1000:t=h:w=200:g=3")
+                        elif voice_effect == 'chipmunk':
+                            filters.append("asetrate=44100*2.5,aresample=44100")
+
+                        if filters:
+                            filter_chain = ','.join(filters)
+                            ffmpeg_cmd = [
+                                'ffmpeg', '-y', '-i', str(preview_file),
+                                '-af', filter_chain,
+                                '-acodec', 'libmp3lame', '-q:a', '2',
+                                str(effect_file)
+                            ]
+                            subprocess.run(ffmpeg_cmd, capture_output=True, check=True)
+                            # Replace original with effected version
+                            preview_file.unlink()
+                            effect_file.rename(preview_file)
+
                     voice_display = TTSGenerator.VOICE_NAMES.get(voice_key, voice_key) if TTSGenerator else voice_key
-                    self.preview_status_label.config(text=f"▶ Playing: {voice_display}")
+                    effect_label = f" + {voice_effect}" if voice_effect != 'none' else ""
+                    pitch_label = f" (pitch: {pitch:+d}Hz)" if pitch != 0 else ""
+                    self.preview_status_label.config(text=f"▶ Playing: {voice_display}{pitch_label}{effect_label}")
 
                 # Play audio based on platform
                 system = platform.system()
