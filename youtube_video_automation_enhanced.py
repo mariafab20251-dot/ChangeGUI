@@ -1734,18 +1734,48 @@ class TTSGenerator:
                 return False, []
 
             print(f"[TTS] Generating NeuTTS voiceover with voice: {voice_name}")
+            print(f"[TTS] Text: {clean_text[:100]}..." if len(clean_text) > 100 else f"[TTS] Text: {clean_text}")
 
-            # Generate speech
+            # Generate speech to WAV first, then convert to MP3
+            # NeuTTS generates WAV files, so we need a temp WAV file
+            wav_path = output_path.with_suffix('.wav')
+
             success, message = helper.generate_speech(
                 text=clean_text,
                 voice_name=voice_name,
-                output_path=str(output_path),
-                speed=speed
+                output_path=str(wav_path),
+                speed=speed,
+                pitch=1.0
             )
 
             if not success:
                 print(f"[ERROR] NeuTTS generation failed: {message}")
                 return False, []
+
+            # Convert WAV to MP3 if output format is MP3
+            if output_path.suffix.lower() == '.mp3':
+                try:
+                    import subprocess
+                    print(f"[TTS] Converting WAV to MP3: {output_path.name}")
+                    result = subprocess.run([
+                        'ffmpeg', '-y', '-i', str(wav_path),
+                        '-acodec', 'libmp3lame', '-q:a', '2',
+                        str(output_path)
+                    ], capture_output=True, text=True, check=True)
+
+                    # Remove WAV file after successful conversion
+                    if wav_path.exists():
+                        wav_path.unlink()
+
+                    print(f"[OK] Converted to MP3: {output_path.name}")
+                except subprocess.CalledProcessError as e:
+                    print(f"[ERROR] FFmpeg conversion failed: {e.stderr}")
+                    return False, []
+            else:
+                # Output is already WAV, just rename if needed
+                if wav_path != output_path:
+                    import shutil
+                    shutil.move(str(wav_path), str(output_path))
 
             # Generate word timings (estimated based on text)
             words = clean_text.split()
