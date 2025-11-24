@@ -885,7 +885,7 @@ class VideoAutomationGUI:
 
         # Column 0: Checkboxes
         checkbox_card = self.create_grid_card(grid_container, "🎨 Visual Effects & Enhancements", row=0, col=0, rowspan=10)
-        self.create_effect_grid(checkbox_card, "", all_effects, columns=1)
+        self.create_effect_grid(checkbox_card, "", all_effects, columns=2)
 
         # Column 1: RGB Glitch, Gradient, Particles
         chroma_card = self.create_grid_card(grid_container, "🌈 RGB Glitch", row=0, col=1)
@@ -1188,25 +1188,16 @@ class VideoAutomationGUI:
         self.setup_mousewheel_scroll(canvas, content)
 
         # ═══════════════════════════════════════════════════════════
-        # 4-COLUMN GRID LAYOUT: Left = Audio Sources, Right = TTS Settings
+        # 4-COLUMN GRID LAYOUT
         # ═══════════════════════════════════════════════════════════
-        main_container = tk.Frame(content, bg=AppStyles.BG_CARD)
-        main_container.pack(fill='both', expand=True, padx=15, pady=10)
+        grid_container = tk.Frame(content, bg=AppStyles.BG_CARD)
+        grid_container.pack(fill='both', expand=True, padx=15, pady=10)
 
-        # Left column for audio sources (Original, BGM, Voiceover)
-        col1_frame = tk.Frame(main_container, bg=AppStyles.BG_CARD)
-        col1_frame.pack(side='left', fill='both', expand=True, padx=(0, 10))
+        # Configure 4 columns
+        for col in range(4):
+            grid_container.columnconfigure(col, weight=1, uniform='audio_col')
 
-        # Right column for TTS settings
-        col3_frame = tk.Frame(main_container, bg=AppStyles.BG_CARD)
-        col3_frame.pack(side='left', fill='both', expand=True)
-
-        # LEFT COLUMN - Audio Sources
-        grid_container = tk.Frame(col1_frame, bg=AppStyles.BG_CARD)
-        grid_container.pack(fill='both', expand=True)
-        grid_container.columnconfigure(0, weight=1)
-
-        # Original Audio Settings (Row 0)
+        # Column 0: Original Audio
         original_card = self.create_grid_card(grid_container, "🎧 Original Audio", row=0, col=0)
 
         mute_var = tk.BooleanVar(value=self.settings.get('mute_original_audio', False))
@@ -1219,7 +1210,7 @@ class VideoAutomationGUI:
 
         self.create_slider_control(original_card, 'Volume:', 'original_audio_volume', 0.0, 1.0, 0.5, resolution=0.1)
 
-        # BGM Settings (Row 1)
+        # Column 1: Background Music
         bgm_card = self.create_grid_card(grid_container, "🎵 Background Music", row=0, col=1)
 
         bgm_var = tk.BooleanVar(value=self.settings.get('add_custom_bgm', False))
@@ -1262,7 +1253,7 @@ class VideoAutomationGUI:
         # Volume slider
         self.create_slider_control(bgm_card, 'Volume:', 'bgm_volume', 0.0, 1.0, 0.3, resolution=0.1)
 
-        # Voiceover Settings (Row 2)
+        # Column 2: Voiceover
         vo_card = self.create_grid_card(grid_container, "🎙️ Voiceover", row=0, col=2)
 
         vo_var = tk.BooleanVar(value=self.settings.get('add_voiceover', False))
@@ -1296,12 +1287,7 @@ class VideoAutomationGUI:
                     padx=20, pady=6,
                     command=self.browse_voiceover_folder).pack(side='left', padx=(5, 0))
 
-        # RIGHT COLUMN - TTS Settings
-        grid_container = tk.Frame(col3_frame, bg=AppStyles.BG_CARD)
-        grid_container.pack(fill='both', expand=True)
-        grid_container.columnconfigure(0, weight=1)
-
-        # TTS Settings (Row 0)
+        # Column 3: TTS Settings
         tts_card = self.create_grid_card(grid_container, "🗣️ TTS Settings", row=0, col=3)
 
         tts_var = tk.BooleanVar(value=self.settings.get('use_tts_voiceover', True))
@@ -3256,6 +3242,10 @@ class VideoAutomationGUI:
             if key.startswith(f'{prefix}_'):
                 self.update_text_preview(prefix)
                 break
+
+        # Update caption preview if it's a caption setting
+        if key.startswith('caption_'):
+            self.update_caption_preview()
 
     def update_text_preview(self, prefix):
         """Update the live preview for a text section"""
