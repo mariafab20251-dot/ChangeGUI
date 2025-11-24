@@ -3338,33 +3338,39 @@ class VideoAutomationGUI:
             is_active = (i == 2) and highlight_enabled
             color = highlight_color if is_active else inactive_color
             size = highlight_font_size if is_active else caption_font_size
-            font = ('Segoe UI Bold' if is_active else 'Segoe UI', size)
+            font_name = 'Segoe UI Bold' if is_active else 'Segoe UI'
+
+            # Create a temporary text to measure width
+            temp_text = canvas.create_text(x, y, text=word, font=(font_name, size), anchor='w')
+            bbox = canvas.bbox(temp_text)
+            canvas.delete(temp_text)
+
+            if not bbox:
+                # Fallback if bbox fails - estimate width
+                word_width = len(word) * size * 0.6
+            else:
+                word_width = bbox[2] - bbox[0]
+
+            # Draw background if enabled
+            if bg_enabled:
+                text_height = size * 1.5
+                canvas.create_rectangle(x-5, y-text_height//2-3, x+word_width+5, y+text_height//2+3,
+                                      fill=bg_color, outline='')
 
             # Draw stroke if enabled
             if stroke_enabled:
-                for dx, dy in [(-1,-1), (-1,1), (1,-1), (1,1)]:
-                    canvas.create_text(x+dx, y+dy, text=word, font=font,
-                                     fill=stroke_color, tags='preview')
+                stroke_width = 2
+                for dx in range(-stroke_width, stroke_width+1):
+                    for dy in range(-stroke_width, stroke_width+1):
+                        if dx != 0 or dy != 0:
+                            canvas.create_text(x+dx, y+dy, text=word, font=(font_name, size),
+                                             fill=stroke_color, anchor='w')
 
-            # Draw main text
-            text_id = canvas.create_text(x, y, text=word, font=font, fill=color, tags='preview', anchor='w')
+            # Draw main text on top
+            canvas.create_text(x, y, text=word, font=(font_name, size), fill=color, anchor='w')
 
-            # Draw background if enabled (after text so we can get bbox)
-            if bg_enabled:
-                bbox = canvas.bbox(text_id)
-                if bbox:
-                    canvas.create_rectangle(bbox[0]-5, bbox[1]-3, bbox[2]+5, bbox[3]+3,
-                                          fill=bg_color, outline='')
-                    # Redraw text on top of background
-                    canvas.tag_raise(text_id)
-
-            # Calculate actual text width and move x position
-            bbox = canvas.bbox(text_id)
-            if bbox:
-                word_width = bbox[2] - bbox[0]
-                x += word_width + 15  # Add proper spacing between words
-            else:
-                x += 100  # Fallback if bbox fails
+            # Move x position for next word
+            x += word_width + 15
 
     def apply_caption_preset(self):
         """Apply selected caption preset"""
