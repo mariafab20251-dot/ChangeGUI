@@ -1193,9 +1193,9 @@ class VideoAutomationGUI:
         grid_container = tk.Frame(content, bg=AppStyles.BG_CARD)
         grid_container.pack(fill='both', expand=True, padx=10, pady=5)
 
-        # Configure 4 columns
+        # Configure 4 columns - no uniform to allow flexible widths
         for col in range(4):
-            grid_container.columnconfigure(col, weight=1, uniform='audio_col')
+            grid_container.columnconfigure(col, weight=1)
 
         # Column 0: Original Audio
         original_card = self.create_grid_card(grid_container, "🎧 Original Audio", row=0, col=0)
