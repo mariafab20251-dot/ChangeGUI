@@ -3340,13 +3340,6 @@ class VideoAutomationGUI:
             size = highlight_font_size if is_active else caption_font_size
             font = ('Segoe UI Bold' if is_active else 'Segoe UI', size)
 
-            # Draw background if enabled
-            if bg_enabled:
-                bbox = canvas.bbox(canvas.create_text(x, y, text=word, font=font))
-                if bbox:
-                    canvas.create_rectangle(bbox[0]-5, bbox[1]-3, bbox[2]+5, bbox[3]+3,
-                                          fill=bg_color, outline='')
-
             # Draw stroke if enabled
             if stroke_enabled:
                 for dx, dy in [(-1,-1), (-1,1), (1,-1), (1,1)]:
@@ -3354,9 +3347,24 @@ class VideoAutomationGUI:
                                      fill=stroke_color, tags='preview')
 
             # Draw main text
-            canvas.create_text(x, y, text=word, font=font, fill=color, tags='preview')
+            text_id = canvas.create_text(x, y, text=word, font=font, fill=color, tags='preview', anchor='w')
 
-            x += len(word) * (size // 2) + 20
+            # Draw background if enabled (after text so we can get bbox)
+            if bg_enabled:
+                bbox = canvas.bbox(text_id)
+                if bbox:
+                    canvas.create_rectangle(bbox[0]-5, bbox[1]-3, bbox[2]+5, bbox[3]+3,
+                                          fill=bg_color, outline='')
+                    # Redraw text on top of background
+                    canvas.tag_raise(text_id)
+
+            # Calculate actual text width and move x position
+            bbox = canvas.bbox(text_id)
+            if bbox:
+                word_width = bbox[2] - bbox[0]
+                x += word_width + 15  # Add proper spacing between words
+            else:
+                x += 100  # Fallback if bbox fails
 
     def apply_caption_preset(self):
         """Apply selected caption preset"""
