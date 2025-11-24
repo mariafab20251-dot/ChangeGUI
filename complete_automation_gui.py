@@ -1127,6 +1127,115 @@ class VideoAutomationGUI:
         # Height slider
         self.create_slider_control(progress_card, 'Bar Height:', 'progress_bar_height', 2, 15, 5, value_format=lambda v: f"{int(v)}px")
 
+        # ═══════════════════════════════════════════════════════════
+        # REGION BLUR SECTION
+        # ═══════════════════════════════════════════════════════════
+        blur_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
+        blur_card.pack(fill='x', padx=15, pady=(15, 0))
+
+        tk.Label(blur_card, text='🌫️ Region Blur',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 13, 'bold')).pack(anchor='w', pady=(0, 5))
+
+        tk.Label(blur_card, text='Blur specific areas of the video with optional color tint',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 9)).pack(anchor='w', pady=(0, 15))
+
+        # Enable blur checkbox
+        blur_var = tk.BooleanVar(value=self.settings.get('region_blur_enabled', False))
+        tk.Checkbutton(blur_card, text='Enable Region Blur',
+                      variable=blur_var, bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 10, 'bold'),
+                      activebackground=AppStyles.BG_INPUT,
+                      selectcolor=AppStyles.BG_CARD,
+                      command=lambda: self.update_setting('region_blur_enabled', blur_var.get())).pack(anchor='w', pady=(0, 10))
+
+        # Region selection
+        region_frame = tk.Frame(blur_card, bg=AppStyles.BG_INPUT)
+        region_frame.pack(fill='x', pady=(0, 10))
+
+        tk.Label(region_frame, text='Blur Region:',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
+
+        self.blur_region_var = tk.StringVar(value=self.settings.get('blur_region', 'bottom'))
+        blur_region_dropdown = ttk.Combobox(region_frame, textvariable=self.blur_region_var,
+                                           values=['top', 'bottom', 'left', 'right', 'center', 'top_bottom', 'left_right'],
+                                           state='readonly', width=15)
+        blur_region_dropdown.pack(side='left')
+        blur_region_dropdown.bind('<<ComboboxSelected>>',
+                                 lambda e: self.update_setting('blur_region', self.blur_region_var.get()))
+
+        tk.Label(region_frame, text='(top_bottom = both edges)',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(side='left', padx=(10, 0))
+
+        # Region size (percentage of video)
+        self.create_slider_control(blur_card, 'Region Size:', 'blur_region_size', 10, 50, 30, value_format=lambda v: f"{int(v)}%")
+
+        tk.Label(blur_card, text='ℹ️ Percentage of video height/width to blur',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(0, 10))
+
+        # Blur intensity
+        self.create_slider_control(blur_card, 'Blur Intensity:', 'blur_intensity', 1, 50, 15, value_format=lambda v: f"{int(v)}")
+
+        # Enable color tint
+        tint_var = tk.BooleanVar(value=self.settings.get('blur_color_tint_enabled', False))
+        tk.Checkbutton(blur_card, text='Add Color Tint to Blur',
+                      variable=tint_var, bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 10),
+                      activebackground=AppStyles.BG_INPUT,
+                      selectcolor=AppStyles.BG_CARD,
+                      command=lambda: self.update_setting('blur_color_tint_enabled', tint_var.get())).pack(anchor='w', pady=(10, 10))
+
+        # Tint color picker
+        tint_color_frame = tk.Frame(blur_card, bg=AppStyles.BG_INPUT)
+        tint_color_frame.pack(fill='x', pady=(0, 10))
+
+        tk.Label(tint_color_frame, text='Tint Color:',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
+
+        self.blur_tint_color_var = tk.StringVar(value=self.settings.get('blur_tint_color', '#000000'))
+
+        tint_preview = tk.Frame(tint_color_frame, bg=self.blur_tint_color_var.get(), width=30, height=20,
+                               relief='solid', borderwidth=1)
+        tint_preview.pack(side='left', padx=(0, 5))
+
+        tk.Entry(tint_color_frame, textvariable=self.blur_tint_color_var, width=8,
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9), relief='flat').pack(side='left', padx=5)
+
+        def pick_tint_color():
+            color = colorchooser.askcolor(title="Choose Blur Tint Color")
+            if color[1]:
+                self.blur_tint_color_var.set(color[1])
+                tint_preview.config(bg=color[1])
+                self.update_setting('blur_tint_color', color[1])
+
+        ModernButton(tint_color_frame, text='Pick',
+                    bg_color=AppStyles.ACCENT_INFO,
+                    font=('Segoe UI', 9, 'bold'),
+                    padx=12, pady=5,
+                    command=pick_tint_color).pack(side='left', padx=5)
+
+        # Tint opacity
+        self.create_slider_control(blur_card, 'Tint Opacity:', 'blur_tint_opacity', 0, 100, 50, value_format=lambda v: f"{int(v)}%")
+
+        # Feather/Gradient edge
+        feather_var = tk.BooleanVar(value=self.settings.get('blur_feather_edge', True))
+        tk.Checkbutton(blur_card, text='Feather Edge (Smooth Gradient)',
+                      variable=feather_var, bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 9),
+                      activebackground=AppStyles.BG_INPUT,
+                      selectcolor=AppStyles.BG_CARD,
+                      command=lambda: self.update_setting('blur_feather_edge', feather_var.get())).pack(anchor='w', pady=(5, 0))
+
+        tk.Label(blur_card, text='ℹ️ Creates smooth transition between blurred and clear areas',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(5, 0))
+
         # Watermark/Logo Section
         watermark_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
         watermark_card.pack(fill='x', padx=15, pady=(15, 0))
