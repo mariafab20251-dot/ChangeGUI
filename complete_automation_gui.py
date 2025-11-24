@@ -2896,7 +2896,7 @@ class VideoAutomationGUI:
         # Font Size slider
         self.create_slider_control(parent, 'Font Size:', f'{prefix}_font_size', 10, 100, 30)
 
-        # Font Family selection
+        # Font Family selection with system fonts
         font_frame = tk.Frame(parent, bg=AppStyles.BG_CARD)
         font_frame.pack(fill='x', padx=20, pady=8)
 
@@ -2904,14 +2904,60 @@ class VideoAutomationGUI:
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                 font=('Segoe UI', 10)).pack(side='left')
 
-        font_families = ['Arial', 'Impact', 'Helvetica', 'Times New Roman', 'Verdana',
-                        'Georgia', 'Comic Sans MS', 'Trebuchet MS', 'Courier New', 'Roboto']
+        # Load system fonts from Windows fonts folder
+        font_families = self.get_system_fonts(prefix)
         font_var = tk.StringVar(value=self.settings.get(f'{prefix}_font_family', 'Arial'))
         font_combo = ttk.Combobox(font_frame, textvariable=font_var, values=font_families,
-                                  state='readonly', width=15)
+                                  width=20)
         font_combo.pack(side='right', padx=5)
         font_combo.bind('<<ComboboxSelected>>',
                        lambda e, p=prefix, v=font_var: self.update_setting(f'{p}_font_family', v.get()))
+
+        # Store reference to combo for refresh
+        setattr(self, f'{prefix}_font_combo', font_combo)
+
+        # Custom fonts folder option
+        custom_font_frame = tk.Frame(parent, bg=AppStyles.BG_CARD)
+        custom_font_frame.pack(fill='x', padx=20, pady=4)
+
+        tk.Label(custom_font_frame, text='Custom Fonts:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9)).pack(side='left')
+
+        custom_font_var = tk.StringVar(value=self.settings.get(f'{prefix}_custom_fonts_folder', ''))
+        custom_font_entry = tk.Entry(custom_font_frame, textvariable=custom_font_var,
+                                     bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                                     font=('Segoe UI', 8), relief='flat', width=15)
+        custom_font_entry.pack(side='left', padx=5)
+
+        def browse_custom_fonts():
+            folder = filedialog.askdirectory(title=f"Select Custom Fonts Folder for {prefix.title()}")
+            if folder:
+                custom_font_var.set(folder)
+                self.update_setting(f'{prefix}_custom_fonts_folder', folder)
+                # Refresh font list
+                new_fonts = self.get_system_fonts(prefix)
+                font_combo['values'] = new_fonts
+                logger.info(f"Custom fonts folder for {prefix}: {folder}")
+
+        ModernButton(custom_font_frame, text='📁',
+                    bg_color=AppStyles.ACCENT_INFO,
+                    font=('Segoe UI', 8, 'bold'),
+                    padx=8, pady=4,
+                    command=browse_custom_fonts).pack(side='left', padx=2)
+
+        def clear_custom_fonts():
+            custom_font_var.set('')
+            self.update_setting(f'{prefix}_custom_fonts_folder', '')
+            # Refresh with system fonts only
+            new_fonts = self.get_system_fonts(prefix)
+            font_combo['values'] = new_fonts
+
+        ModernButton(custom_font_frame, text='✕',
+                    bg_color=AppStyles.ACCENT_DANGER,
+                    font=('Segoe UI', 8, 'bold'),
+                    padx=6, pady=4,
+                    command=clear_custom_fonts).pack(side='left', padx=2)
 
         # Font Style (Bold, Italic)
         style_frame = tk.Frame(parent, bg=AppStyles.BG_CARD)
@@ -3018,6 +3064,44 @@ class VideoAutomationGUI:
 
         # Outline thickness
         self.create_slider_control(parent, 'Outline Size:', f'{prefix}_outline_size', 0, 10, 2)
+
+    def get_system_fonts(self, prefix=None):
+        """Get list of fonts from Windows fonts folder and custom folder"""
+        fonts = set()
+
+        # Windows fonts folder
+        windows_fonts_path = Path('C:/Windows/Fonts')
+        if windows_fonts_path.exists():
+            for font_file in windows_fonts_path.glob('*.ttf'):
+                font_name = font_file.stem
+                # Clean up font name (remove style suffixes for display)
+                base_name = font_name.split('-')[0].replace('_', ' ')
+                fonts.add(base_name)
+            for font_file in windows_fonts_path.glob('*.otf'):
+                font_name = font_file.stem
+                base_name = font_name.split('-')[0].replace('_', ' ')
+                fonts.add(base_name)
+
+        # Custom fonts folder for this prefix
+        if prefix:
+            custom_folder = self.settings.get(f'{prefix}_custom_fonts_folder', '')
+            if custom_folder and Path(custom_folder).exists():
+                custom_path = Path(custom_folder)
+                for font_file in custom_path.glob('*.ttf'):
+                    font_name = font_file.stem
+                    base_name = font_name.split('-')[0].replace('_', ' ')
+                    fonts.add(f"[Custom] {base_name}")
+                for font_file in custom_path.glob('*.otf'):
+                    font_name = font_file.stem
+                    base_name = font_name.split('-')[0].replace('_', ' ')
+                    fonts.add(f"[Custom] {base_name}")
+
+        # Fallback fonts if none found
+        if not fonts:
+            fonts = {'Arial', 'Impact', 'Helvetica', 'Times New Roman', 'Verdana',
+                    'Georgia', 'Comic Sans MS', 'Trebuchet MS', 'Courier New'}
+
+        return sorted(list(fonts))
 
     def pick_bg_color(self, prefix, var, preview_frame):
         """Open background color picker"""
