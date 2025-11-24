@@ -4533,8 +4533,107 @@ class VideoQuoteAutomation:
         # Debug: Check caption and TTS settings
         print(f"DEBUG: enable_captions={self.settings.get('enable_captions', False)}, use_tts_voiceover={self.settings.get('use_tts_voiceover', False)}, TTS_AVAILABLE={TTS_AVAILABLE}")
 
+        # Option 0: Use original audio with effects applied (skip TTS)
+        if self.settings.get('use_original_audio', False):
+            print("[OK] Using original audio with effects...")
+
+            # Extract original audio from video
+            if video.audio:
+                import subprocess
+
+                effects_folder = self.output_folder / "audio_effects"
+                effects_folder.mkdir(exist_ok=True)
+
+                # Create temporary audio files
+                original_audio_path = effects_folder / f"original_audio_{video_index + 1}.wav"
+                processed_audio_path = effects_folder / f"processed_audio_{video_index + 1}.mp3"
+
+                try:
+                    # Export original audio to WAV
+                    video.audio.write_audiofile(str(original_audio_path), codec='pcm_s16le', verbose=False, logger=None)
+                    print(f"  → Extracted original audio to {original_audio_path.name}")
+
+                    # Get effect settings
+                    voice_effect = self.settings.get('voice_effect', 'none')
+                    tts_engine = self.settings.get('tts_engine', 'cloud')
+
+                    # Get pitch setting based on TTS engine
+                    pitch_semitones = 0
+                    if tts_engine == 'local':
+                        pitch_semitones = self.settings.get('kokoro_pitch', 0)
+                    elif tts_engine == 'neutts':
+                        pitch_semitones = self.settings.get('neutts_pitch', 0)
+
+                    # Build FFmpeg filter chain
+                    filters = []
+                    sample_rate = 44100  # Standard audio sample rate
+
+                    # Apply pitch shift if not zero
+                    if pitch_semitones != 0:
+                        pitch_factor = 2 ** (pitch_semitones / 12)
+                        filters.append(f"asetrate={sample_rate}*{pitch_factor},aresample={sample_rate}")
+                        print(f"  → Applying pitch shift: {pitch_semitones:+d} semitones")
+
+                    # Apply voice effects
+                    if voice_effect == 'deep':
+                        if pitch_semitones == 0:
+                            filters.append(f"asetrate={sample_rate}*0.5,aresample={sample_rate}")
+                        print(f"  → Applying effect: Deep Voice")
+                    elif voice_effect == 'high':
+                        if pitch_semitones == 0:
+                            filters.append(f"asetrate={sample_rate}*2,aresample={sample_rate}")
+                        print(f"  → Applying effect: High Voice")
+                    elif voice_effect == 'robot':
+                        filters.append("afftfilt=real='hypot(re,im)*sin(0)':imag='hypot(re,im)*cos(0)':win_size=512:overlap=0.75")
+                        print(f"  → Applying effect: Robot Voice")
+                    elif voice_effect == 'echo':
+                        filters.append("aecho=0.8:0.88:60:0.4")
+                        print(f"  → Applying effect: Echo/Reverb")
+                    elif voice_effect == 'whisper':
+                        filters.append("highpass=f=1000,lowpass=f=3000,volume=1.5")
+                        print(f"  → Applying effect: Whisper")
+                    elif voice_effect == 'radio':
+                        filters.append("highpass=f=300,lowpass=f=3400,equalizer=f=1000:t=h:w=200:g=3")
+                        print(f"  → Applying effect: Radio/Telephone")
+                    elif voice_effect == 'chipmunk':
+                        if pitch_semitones == 0:
+                            filters.append(f"asetrate={sample_rate}*2.5,aresample={sample_rate}")
+                        print(f"  → Applying effect: Chipmunk")
+
+                    # Build FFmpeg command
+                    ffmpeg_cmd = ['ffmpeg', '-y', '-i', str(original_audio_path)]
+
+                    if filters:
+                        filter_chain = ','.join(filters)
+                        ffmpeg_cmd.extend(['-af', filter_chain])
+
+                    ffmpeg_cmd.extend(['-acodec', 'libmp3lame', '-q:a', '2', str(processed_audio_path)])
+
+                    # Run FFmpeg to apply effects
+                    result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
+
+                    if result.returncode == 0 and processed_audio_path.exists():
+                        voiceover_file = processed_audio_path
+                        print(f"[OK] Audio effects applied successfully: {processed_audio_path.name}")
+                    else:
+                        print(f"[WARNING] FFmpeg failed to apply effects: {result.stderr}")
+                        # Fallback to original audio without effects
+                        voiceover_file = original_audio_path
+
+                    # Clean up original WAV if we have processed audio
+                    if processed_audio_path.exists() and original_audio_path.exists():
+                        try:
+                            original_audio_path.unlink()
+                        except:
+                            pass
+
+                except Exception as e:
+                    print(f"[WARNING] Could not process original audio: {e}")
+            else:
+                print(f"[WARNING] Video has no audio to process")
+
         # Option 1: Generate TTS voiceover from text
-        if self.settings.get('use_tts_voiceover', False) and TTS_AVAILABLE:
+        elif self.settings.get('use_tts_voiceover', False) and TTS_AVAILABLE:
             tts_folder = self.output_folder / "tts_voiceovers"
             tts_folder.mkdir(exist_ok=True)
 
