@@ -873,28 +873,35 @@ class VideoAutomationGUI:
             ('add_confetti', '🎉 Confetti'),
         ]
 
-        # Create horizontal grid layout (4 columns) for checkboxes
-        self.create_effect_grid(content, "🎨 Visual Effects & Enhancements", all_effects, columns=4)
+        # ═══════════════════════════════════════════════════════════
+        # 2-COLUMN LAYOUT: Left = Controls, Right = Empty/Reserved
+        # ═══════════════════════════════════════════════════════════
+        main_container = tk.Frame(content, bg=AppStyles.BG_CARD)
+        main_container.pack(fill='both', expand=True, padx=15, pady=10)
+
+        # Left column for all controls
+        left_column = tk.Frame(main_container, bg=AppStyles.BG_CARD)
+        left_column.pack(side='left', fill='both', expand=True, padx=(0, 10))
+
+        # Right column (reserved for future use)
+        right_column = tk.Frame(main_container, bg=AppStyles.BG_CARD)
+        right_column.pack(side='left', fill='both', expand=True)
+
+        # Visual Effects & Enhancements checkboxes on left
+        self.create_effect_grid(left_column, "🎨 Visual Effects & Enhancements", all_effects, columns=2)
+
+        # Vertical stack of control cards on left
+        settings_grid = tk.Frame(left_column, bg=AppStyles.BG_CARD)
+        settings_grid.pack(fill='both', expand=True, pady=10)
+
+        # Single column layout - all cards stacked vertically
+        settings_grid.columnconfigure(0, weight=1)
 
         # ═══════════════════════════════════════════════════════════
-        # HORIZONTAL GRID LAYOUT FOR SETTINGS (3 columns)
-        # ═══════════════════════════════════════════════════════════
-        settings_grid = tk.Frame(content, bg=AppStyles.BG_CARD)
-        settings_grid.pack(fill='both', expand=True, padx=15, pady=10)
-
-        # Configure 3-column grid with equal weights
-        for col in range(3):
-            settings_grid.columnconfigure(col, weight=1, uniform='effects_col')
-
-        # Configure rows to expand evenly
-        for row in range(4):  # 4 rows of cards
-            settings_grid.rowconfigure(row, weight=1)
-
-        # ═══════════════════════════════════════════════════════════
-        # ROW 0: Chromatic Aberration | Gradient Overlay | Particle Effects
+        # VERTICAL STACK OF CONTROL CARDS
         # ═══════════════════════════════════════════════════════════
 
-        # Chromatic Aberration Settings (Row 0, Col 0)
+        # Chromatic Aberration Settings (Row 0)
         chroma_card = self.create_grid_card(settings_grid, "🌈 RGB Glitch", row=0, col=0)
 
         tk.Label(chroma_card, text='Trendy RGB split effect',
@@ -918,8 +925,8 @@ class VideoAutomationGUI:
 
         self.create_slider_control(chroma_card, 'Intensity:', 'chromatic_intensity', 1, 20, 5, value_format=lambda v: f"{int(v)}px")
 
-        # Gradient Overlay Settings (Row 0, Col 1)
-        gradient_card = self.create_grid_card(settings_grid, "🌅 Gradient Overlay", row=0, col=1)
+        # Gradient Overlay Settings (Row 1)
+        gradient_card = self.create_grid_card(settings_grid, "🌅 Gradient Overlay", row=1, col=0)
 
         tk.Label(gradient_card, text='Cinematic gradient effects',
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
@@ -942,8 +949,8 @@ class VideoAutomationGUI:
 
         self.create_slider_control(gradient_card, 'Intensity:', 'gradient_intensity', 0.1, 0.8, 0.3, resolution=0.1)
 
-        # Particle Effects Settings (Row 0, Col 2)
-        particle_card = self.create_grid_card(settings_grid, "✨ Particle Effects", row=0, col=2)
+        # Particle Effects Settings (Row 2)
+        particle_card = self.create_grid_card(settings_grid, "✨ Particle Effects", row=2, col=0)
 
         tk.Label(particle_card, text='Magical floating particles',
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
@@ -951,26 +958,22 @@ class VideoAutomationGUI:
 
         self.create_slider_control(particle_card, 'Glitter:', 'glitter_intensity', 0.1, 1.0, 0.5, resolution=0.1)
 
-        # ═══════════════════════════════════════════════════════════
-        # ROW 1: Text Glow | Text Animations | CTA Overlay
-        # ═══════════════════════════════════════════════════════════
-
-        # Text Glow Settings (Row 1, Col 0)
-        glow_card = self.create_grid_card(settings_grid, "✨ Text Glow & Neon", row=1, col=0)
+        # Text Glow Settings (Row 3)
+        glow_card = self.create_grid_card(settings_grid, "✨ Text Glow & Neon", row=3, col=0)
 
         self.create_slider_control(glow_card, 'Glow:', 'glow_intensity', 1, 20, 8)
         self.create_color_picker(glow_card, 'Glow Color:', 'glow_color', '#ffffff')
         self.create_color_picker(glow_card, 'Neon Color:', 'neon_color', '#00ff88')
 
-        # Text Entrance Animations (Row 1, Col 1)
-        entrance_card = self.create_grid_card(settings_grid, "💫 Text Animations", row=1, col=1)
+        # Text Entrance Animations (Row 4)
+        entrance_card = self.create_grid_card(settings_grid, "💫 Text Animations", row=4, col=0)
 
         self.create_slider_control(entrance_card, 'Fade:', 'text_fade_duration', 0.1, 2.0, 0.4, resolution=0.1, value_format=lambda v: f"{v:.1f}s")
         self.create_slider_control(entrance_card, 'Slide:', 'text_slide_distance', 20, 200, 50, value_format=lambda v: f"{int(v)}px")
         self.create_slider_control(entrance_card, 'Bounce:', 'text_bounce_intensity', 1.0, 1.5, 1.15, resolution=0.05)
 
-        # CTA Overlay (Row 1, Col 2)
-        cta_card = self.create_grid_card(settings_grid, "💬 CTA Overlay", row=1, col=2)
+        # CTA Overlay (Row 5)
+        cta_card = self.create_grid_card(settings_grid, "💬 CTA Overlay", row=5, col=0)
 
         cta_var = tk.BooleanVar(value=self.settings.get('cta_overlay_enabled', False))
         tk.Checkbutton(cta_card, text='Enable CTA',
@@ -1011,12 +1014,8 @@ class VideoAutomationGUI:
         self.create_slider_control(cta_card, 'Start:', 'cta_overlay_start_time', 0, 10, 3.0, resolution=0.5, value_format=lambda v: f"{v:.1f}s")
         self.create_slider_control(cta_card, 'Duration:', 'cta_overlay_duration', 1, 10, 3.0, resolution=0.5, value_format=lambda v: f"{v:.1f}s")
 
-        # ═══════════════════════════════════════════════════════════
-        # ROW 2: Progress Bar | Watermark | (empty)
-        # ═══════════════════════════════════════════════════════════
-
-        # Progress Bar (Row 2, Col 0)
-        progress_card = self.create_grid_card(settings_grid, "📊 Progress Bar", row=2, col=0)
+        # Progress Bar (Row 6)
+        progress_card = self.create_grid_card(settings_grid, "📊 Progress Bar", row=6, col=0)
 
         progress_var = tk.BooleanVar(value=self.settings.get('progress_bar', False))
         tk.Checkbutton(progress_card, text='Enable',
@@ -1037,8 +1036,8 @@ class VideoAutomationGUI:
         self.create_color_picker(progress_card, 'Color:', 'progress_color', '#00ff40')
         self.create_slider_control(progress_card, 'Height:', 'progress_bar_height', 2, 15, 5, value_format=lambda v: f"{int(v)}px")
 
-        # Watermark (Row 2, Col 1)
-        watermark_card = self.create_grid_card(settings_grid, "🏷️ Watermark", row=2, col=1)
+        # Watermark (Row 7)
+        watermark_card = self.create_grid_card(settings_grid, "🏷️ Watermark", row=7, col=0)
 
         watermark_var = tk.BooleanVar(value=self.settings.get('watermark_enabled', False))
         tk.Checkbutton(watermark_card, text='Enable',
@@ -1074,12 +1073,8 @@ class VideoAutomationGUI:
         self.create_slider_control(watermark_card, 'Opacity:', 'watermark_opacity', 0, 100, 70)
         self.create_slider_control(watermark_card, 'Size:', 'watermark_scale', 0.05, 0.5, 0.15, resolution=0.01, value_format=lambda v: f"{int(v*100)}%")
 
-        # ═══════════════════════════════════════════════════════════
-        # ROW 3: Region Blur (spans 2 cols) | Blur Text (1 col)
-        # ═══════════════════════════════════════════════════════════
-
-        # Region Blur Settings (Row 3, Col 0)
-        blur_card = self.create_grid_card(settings_grid, "🌫️ Region Blur", row=3, col=0)
+        # Region Blur Settings (Row 8)
+        blur_card = self.create_grid_card(settings_grid, "🌫️ Region Blur", row=8, col=0)
 
         blur_var = tk.BooleanVar(value=self.settings.get('region_blur_enabled', False))
         tk.Checkbutton(blur_card, text='Enable',
@@ -1137,8 +1132,8 @@ class VideoAutomationGUI:
                       selectcolor=AppStyles.BG_INPUT,
                       command=lambda: self.update_setting('blur_feather_edge', feather_var.get())).pack(anchor='w', padx=15, pady=3)
 
-        # Blur Text Overlay (Row 3, Col 1-2) - Full text controls like Quote Settings
-        blur_text_card = self.create_grid_card(settings_grid, "📝 Blur Text Overlay", row=3, col=1, colspan=2)
+        # Blur Text Overlay (Row 9) - Full text controls like Quote Settings
+        blur_text_card = self.create_grid_card(settings_grid, "📝 Blur Text Overlay", row=9, col=0)
 
         # Text content input (add before other controls)
         content_frame = tk.Frame(blur_text_card, bg=AppStyles.BG_CARD)
