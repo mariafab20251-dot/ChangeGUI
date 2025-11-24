@@ -1137,91 +1137,26 @@ class VideoAutomationGUI:
                       selectcolor=AppStyles.BG_INPUT,
                       command=lambda: self.update_setting('blur_feather_edge', feather_var.get())).pack(anchor='w', padx=15, pady=3)
 
-        # Blur Text Overlay (Row 3, Col 1-2)
-        blur_text_card = self.create_grid_card(settings_grid, "📝 Blur Text", row=3, col=1, colspan=2)
+        # Blur Text Overlay (Row 3, Col 1-2) - Full text controls like Quote Settings
+        blur_text_card = self.create_grid_card(settings_grid, "📝 Blur Text Overlay", row=3, col=1, colspan=2)
 
-        blur_text_var = tk.BooleanVar(value=self.settings.get('blur_text_enabled', False))
-        tk.Checkbutton(blur_text_card, text='Enable Text on Blur',
-                      variable=blur_text_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
-                      font=('Segoe UI', 9, 'bold'),
-                      activebackground=AppStyles.BG_CARD,
-                      selectcolor=AppStyles.BG_INPUT,
-                      command=lambda: self.update_setting('blur_text_enabled', blur_text_var.get())).pack(anchor='w', padx=15, pady=5)
+        # Text content input (add before other controls)
+        content_frame = tk.Frame(blur_text_card, bg=AppStyles.BG_CARD)
+        content_frame.pack(fill='x', padx=20, pady=8)
 
-        # Live Preview
-        preview_frame = tk.Frame(blur_text_card, bg='#1a1a2e', relief='sunken', bd=1)
-        preview_frame.pack(fill='x', padx=15, pady=5)
-        self.blur_preview_canvas = tk.Canvas(preview_frame, height=40, bg='#1a1a2e', highlightthickness=0)
-        self.blur_preview_canvas.pack(fill='x', padx=3, pady=3)
-        self.blur_preview_text_id = self.blur_preview_canvas.create_text(
-            150, 20, text=self.settings.get('blur_text_content', 'Sample'),
-            fill=self.settings.get('blur_text_color', '#FFFFFF'),
-            font=(self.settings.get('blur_text_font', 'Arial'), 12, 'bold'))
+        tk.Label(content_frame, text='Text Content:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(0, 5))
 
-        def on_blur_canvas_resize(event):
-            self.blur_preview_canvas.coords(self.blur_preview_text_id, event.width // 2, 20)
-        self.blur_preview_canvas.bind('<Configure>', on_blur_canvas_resize)
+        blur_text_content_var = tk.StringVar(value=self.settings.get('blur_text_content', 'Your Text Here'))
+        content_entry = tk.Entry(content_frame, textvariable=blur_text_content_var,
+                                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                                font=('Segoe UI', 10), relief='flat', bd=2)
+        content_entry.pack(fill='x', ipady=6)
+        content_entry.bind('<FocusOut>', lambda e: self.update_setting('blur_text_content', blur_text_content_var.get()))
 
-        # Text input
-        text_frame = tk.Frame(blur_text_card, bg=AppStyles.BG_CARD)
-        text_frame.pack(fill='x', padx=15, pady=3)
-        tk.Label(text_frame, text='Text:', bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 9)).pack(side='left')
-        self.blur_text_content_var = tk.StringVar(value=self.settings.get('blur_text_content', 'Your Text'))
-        blur_text_entry = tk.Entry(text_frame, textvariable=self.blur_text_content_var, bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 8), width=20)
-        blur_text_entry.pack(side='left', padx=5)
-
-        def update_blur_text_content(event=None):
-            text = self.blur_text_content_var.get()
-            self.update_setting('blur_text_content', text)
-            self.blur_preview_canvas.itemconfig(self.blur_preview_text_id, text=text)
-        blur_text_entry.bind('<KeyRelease>', update_blur_text_content)
-
-        # Font and color row
-        font_color_frame = tk.Frame(blur_text_card, bg=AppStyles.BG_CARD)
-        font_color_frame.pack(fill='x', padx=15, pady=3)
-
-        tk.Label(font_color_frame, text='Font:', bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 9)).pack(side='left')
-        blur_fonts = self.get_system_fonts()
-        self.blur_text_font_var = tk.StringVar(value=self.settings.get('blur_text_font', 'Arial'))
-        blur_font_combo = ttk.Combobox(font_color_frame, textvariable=self.blur_text_font_var, values=blur_fonts, width=12)
-        blur_font_combo.pack(side='left', padx=3)
-
-        def update_blur_font(event=None):
-            font = self.blur_text_font_var.get()
-            if font.startswith('[Custom] '):
-                font = font[9:]
-            self.update_setting('blur_text_font', font)
-            self.blur_preview_canvas.itemconfig(self.blur_preview_text_id, font=(font, 12, 'bold'))
-        blur_font_combo.bind('<<ComboboxSelected>>', update_blur_font)
-
-        # Text color
-        self.blur_text_color_var = tk.StringVar(value=self.settings.get('blur_text_color', '#FFFFFF'))
-        blur_text_preview = tk.Frame(font_color_frame, bg=self.blur_text_color_var.get(), width=20, height=15, relief='solid', borderwidth=1)
-        blur_text_preview.pack(side='left', padx=(10, 3))
-
-        def pick_blur_text_color():
-            color = colorchooser.askcolor(title="Choose Blur Text Color")
-            if color[1]:
-                self.blur_text_color_var.set(color[1])
-                blur_text_preview.config(bg=color[1])
-                self.update_setting('blur_text_color', color[1])
-                self.blur_preview_canvas.itemconfig(self.blur_preview_text_id, fill=color[1])
-
-        ModernButton(font_color_frame, text='🎨', bg_color=AppStyles.ACCENT_INFO, font=('Segoe UI', 8), padx=6, pady=2, command=pick_blur_text_color).pack(side='left', padx=3)
-
-        # Size and position row
-        size_pos_frame = tk.Frame(blur_text_card, bg=AppStyles.BG_CARD)
-        size_pos_frame.pack(fill='x', padx=15, pady=3)
-
-        self.create_slider_control(blur_text_card, 'Size:', 'blur_text_size', 12, 72, 24, value_format=lambda v: f"{int(v)}px")
-
-        pos_frame = tk.Frame(blur_text_card, bg=AppStyles.BG_CARD)
-        pos_frame.pack(fill='x', padx=15, pady=3)
-        tk.Label(pos_frame, text='Position:', bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 9)).pack(side='left')
-        self.blur_text_position_var = tk.StringVar(value=self.settings.get('blur_text_position', 'center'))
-        blur_text_pos = ttk.Combobox(pos_frame, textvariable=self.blur_text_position_var, values=['top', 'center', 'bottom'], state='readonly', width=8)
-        blur_text_pos.pack(side='left', padx=5)
-        blur_text_pos.bind('<<ComboboxSelected>>', lambda e: self.update_setting('blur_text_position', self.blur_text_position_var.get()))
+        # Use the same comprehensive text controls as Quote Settings
+        self.create_text_controls(blur_text_card, 'blur_text')
 
     def browse_watermark(self):
         """Browse for watermark image file"""
@@ -1368,10 +1303,19 @@ class VideoAutomationGUI:
                       selectcolor=AppStyles.BG_INPUT,
                       command=lambda: self.update_setting('use_tts_voiceover', tts_var.get())).pack(anchor='w', padx=20, pady=10)
 
+        # Use Original Audio option (skip TTS but still apply effects)
+        use_original_audio_var = tk.BooleanVar(value=self.settings.get('use_original_audio', False))
+        tk.Checkbutton(tts_card, text='Use Original Audio (Skip TTS, Apply Effects Only)',
+                      variable=use_original_audio_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 10, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('use_original_audio', use_original_audio_var.get())).pack(anchor='w', padx=20, pady=10)
+
         # Info
         info_frame = tk.Frame(tts_card, bg=AppStyles.BG_CARD)
         info_frame.pack(fill='x', padx=20, pady=(0, 10))
-        tk.Label(info_frame, text='ℹ️ Automatically converts quote text to speech using natural AI voices.',
+        tk.Label(info_frame, text='ℹ️ TTS: Converts quote text to speech using AI voices.\n   Use Original Audio: Keeps video audio, applies voice/pitch effects.',
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
                 font=('Segoe UI', 9), justify='left').pack(anchor='w', padx=15, pady=5)
 
