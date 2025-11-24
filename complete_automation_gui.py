@@ -2918,6 +2918,12 @@ class VideoAutomationGUI:
         value_label.config(text=display_value)
         self.update_setting(key, val if val < 10 else int(val))
 
+        # Trigger preview update for text settings
+        for prefix in ['title', 'quote', 'cta']:
+            if key.startswith(f'{prefix}_'):
+                self.update_text_preview(prefix)
+                break
+
     def create_text_controls(self, parent, prefix):
         """Create text controls for title/quote/cta"""
 
@@ -2986,8 +2992,12 @@ class VideoAutomationGUI:
         font_combo = ttk.Combobox(font_frame, textvariable=font_var, values=font_families,
                                   width=20)
         font_combo.pack(side='right', padx=5)
-        font_combo.bind('<<ComboboxSelected>>',
-                       lambda e, p=prefix, v=font_var: self.update_setting(f'{p}_font_family', v.get()))
+
+        def on_font_change(event, p=prefix, v=font_var):
+            self.update_setting(f'{p}_font_family', v.get())
+            self.update_text_preview(p)
+
+        font_combo.bind('<<ComboboxSelected>>', on_font_change)
 
         # Store reference to combo for refresh
         setattr(self, f'{prefix}_font_combo', font_combo)
@@ -3044,20 +3054,30 @@ class VideoAutomationGUI:
                 font=('Segoe UI', 10)).pack(side='left')
 
         bold_var = tk.BooleanVar(value=self.settings.get(f'{prefix}_font_bold', True))
+
+        def on_bold_change(p=prefix, v=bold_var):
+            self.update_setting(f'{p}_font_bold', v.get())
+            self.update_text_preview(p)
+
         tk.Checkbutton(style_frame, text='Bold',
                       variable=bold_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                       font=('Segoe UI', 9),
                       activebackground=AppStyles.BG_CARD,
                       selectcolor=AppStyles.BG_INPUT,
-                      command=lambda p=prefix, v=bold_var: self.update_setting(f'{p}_font_bold', v.get())).pack(side='left', padx=10)
+                      command=on_bold_change).pack(side='left', padx=10)
 
         italic_var = tk.BooleanVar(value=self.settings.get(f'{prefix}_font_italic', False))
+
+        def on_italic_change(p=prefix, v=italic_var):
+            self.update_setting(f'{p}_font_italic', v.get())
+            self.update_text_preview(p)
+
         tk.Checkbutton(style_frame, text='Italic',
                       variable=italic_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                       font=('Segoe UI', 9),
                       activebackground=AppStyles.BG_CARD,
                       selectcolor=AppStyles.BG_INPUT,
-                      command=lambda p=prefix, v=italic_var: self.update_setting(f'{p}_font_italic', v.get())).pack(side='left', padx=10)
+                      command=on_italic_change).pack(side='left', padx=10)
 
         # Text Color picker
         color_frame = tk.Frame(parent, bg=AppStyles.BG_CARD)
@@ -3131,12 +3151,17 @@ class VideoAutomationGUI:
         outline_frame.pack(fill='x', padx=20, pady=8)
 
         outline_var = tk.BooleanVar(value=self.settings.get(f'{prefix}_outline', True))
+
+        def on_outline_change(p=prefix, v=outline_var):
+            self.update_setting(f'{p}_outline', v.get())
+            self.update_text_preview(p)
+
         tk.Checkbutton(outline_frame, text='Text Outline',
                       variable=outline_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                       font=('Segoe UI', 9),
                       activebackground=AppStyles.BG_CARD,
                       selectcolor=AppStyles.BG_INPUT,
-                      command=lambda p=prefix, v=outline_var: self.update_setting(f'{p}_outline', v.get())).pack(side='left')
+                      command=on_outline_change).pack(side='left')
 
         # Outline Color picker
         outline_color_frame = tk.Frame(parent, bg=AppStyles.BG_CARD)
@@ -3162,6 +3187,7 @@ class VideoAutomationGUI:
                 outline_color_var.set(color[1])
                 outline_preview.config(bg=color[1])
                 self.update_setting(f'{prefix}_outline_color', color[1])
+                self.update_text_preview(prefix)
 
         ModernButton(outline_color_frame, text='Pick Color',
                     bg_color=AppStyles.ACCENT_INFO,
@@ -3217,6 +3243,7 @@ class VideoAutomationGUI:
             var.set(color[1])
             preview_frame.config(bg=color[1])
             self.update_setting(f'{prefix}_bg_color', color[1])
+            self.update_text_preview(prefix)
 
     def update_setting(self, key, value):
         """Update a setting value"""
@@ -3246,6 +3273,8 @@ class VideoAutomationGUI:
                 font_size = min(int(self.settings.get(f'{prefix}_font_size', 30)) // 2, 18)
                 text_color = self.settings.get(f'{prefix}_text_color', '#FFFFFF')
                 bg_color = self.settings.get(f'{prefix}_bg_color', '#000000')
+                outline_color = self.settings.get(f'{prefix}_outline_color', '#000000')
+                outline_enabled = self.settings.get(f'{prefix}_outline', True)
                 is_bold = self.settings.get(f'{prefix}_font_bold', True)
                 is_italic = self.settings.get(f'{prefix}_font_italic', False)
 
@@ -3259,10 +3288,34 @@ class VideoAutomationGUI:
 
                 # Update canvas background (simulated text background)
                 bg_opacity = self.settings.get(f'{prefix}_bg_opacity', 80) / 100
-                # For simplicity, just change canvas bg to show effect
                 canvas.config(bg=bg_color if bg_opacity > 0.5 else '#1a1a2e')
 
-                # Update text properties
+                # Clear existing outline text items if any
+                outline_tag = f'{prefix}_outline'
+                canvas.delete(outline_tag)
+
+                # Get text position from main text item
+                coords = canvas.coords(text_id)
+                if coords:
+                    x, y = coords[0], coords[1]
+
+                    # Draw outline if enabled and color differs from text color
+                    if outline_enabled and outline_color != text_color:
+                        # Draw outline by creating text at offset positions
+                        for dx, dy in [(-1, -1), (-1, 1), (1, -1), (1, 1),
+                                      (-1, 0), (1, 0), (0, -1), (0, 1)]:
+                            canvas.create_text(
+                                x + dx, y + dy,
+                                text=sample_text,
+                                fill=outline_color,
+                                font=(font_family, font_size, style),
+                                tags=outline_tag
+                            )
+
+                    # Lower outline items below main text
+                    canvas.tag_lower(outline_tag)
+
+                # Update main text properties
                 canvas.itemconfig(text_id,
                                  fill=text_color,
                                  font=(font_family, font_size, style))
@@ -3277,6 +3330,7 @@ class VideoAutomationGUI:
             var.set(color[1])
             preview_frame.config(bg=color[1])
             self.update_setting(f'{prefix}_text_color', color[1])
+            self.update_text_preview(prefix)
 
     def create_color_picker(self, parent, label_text, setting_key, default_color):
         """Create a modern color picker control"""
