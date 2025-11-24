@@ -2884,6 +2884,46 @@ class VideoAutomationGUI:
 
     def create_text_controls(self, parent, prefix):
         """Create text controls for title/quote/cta"""
+
+        # Live Preview Panel at the top
+        preview_container = tk.Frame(parent, bg=AppStyles.BG_CARD)
+        preview_container.pack(fill='x', padx=20, pady=(10, 5))
+
+        tk.Label(preview_container, text='📺 Live Preview:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'bold')).pack(anchor='w')
+
+        preview_frame = tk.Frame(preview_container, bg='#1a1a2e', relief='sunken', bd=2)
+        preview_frame.pack(fill='x', pady=(2, 0))
+
+        # Preview canvas
+        preview_canvas = tk.Canvas(preview_frame, height=50, bg='#1a1a2e', highlightthickness=0)
+        preview_canvas.pack(fill='x', padx=5, pady=5)
+
+        # Sample text for preview
+        sample_texts = {'title': 'Sample Title', 'quote': '"Sample Quote"', 'cta': 'Follow Now!'}
+        sample_text = sample_texts.get(prefix, 'Sample Text')
+
+        # Create preview text item
+        preview_text_id = preview_canvas.create_text(
+            120, 25,
+            text=sample_text,
+            fill=self.settings.get(f'{prefix}_text_color', '#FFFFFF'),
+            font=(self.settings.get(f'{prefix}_font_family', 'Arial'),
+                  min(int(self.settings.get(f'{prefix}_font_size', 30)) // 2, 18),
+                  'bold' if self.settings.get(f'{prefix}_font_bold', True) else 'normal')
+        )
+
+        # Store preview references for updates
+        setattr(self, f'{prefix}_preview_canvas', preview_canvas)
+        setattr(self, f'{prefix}_preview_text_id', preview_text_id)
+        setattr(self, f'{prefix}_sample_text', sample_text)
+
+        # Update preview when canvas is resized
+        def on_canvas_resize(event):
+            preview_canvas.coords(preview_text_id, event.width // 2, 25)
+        preview_canvas.bind('<Configure>', on_canvas_resize)
+
         # Enable checkbox
         enabled_var = tk.BooleanVar(value=self.settings.get(f'{prefix}_enabled', True))
         tk.Checkbutton(parent, text=f'Enable {prefix.title()}',
@@ -3115,6 +3155,53 @@ class VideoAutomationGUI:
         """Update a setting value"""
         self.settings[key] = value
         logger.debug(f"Setting updated: {key} = {value}")
+
+        # Update live preview if it's a text setting
+        for prefix in ['title', 'quote', 'cta']:
+            if key.startswith(f'{prefix}_'):
+                self.update_text_preview(prefix)
+                break
+
+    def update_text_preview(self, prefix):
+        """Update the live preview for a text section"""
+        try:
+            canvas = getattr(self, f'{prefix}_preview_canvas', None)
+            text_id = getattr(self, f'{prefix}_preview_text_id', None)
+            sample_text = getattr(self, f'{prefix}_sample_text', 'Sample')
+
+            if canvas and text_id:
+                # Get current settings
+                font_family = self.settings.get(f'{prefix}_font_family', 'Arial')
+                # Remove [Custom] prefix if present
+                if font_family.startswith('[Custom] '):
+                    font_family = font_family[9:]
+
+                font_size = min(int(self.settings.get(f'{prefix}_font_size', 30)) // 2, 18)
+                text_color = self.settings.get(f'{prefix}_text_color', '#FFFFFF')
+                bg_color = self.settings.get(f'{prefix}_bg_color', '#000000')
+                is_bold = self.settings.get(f'{prefix}_font_bold', True)
+                is_italic = self.settings.get(f'{prefix}_font_italic', False)
+
+                # Build font style
+                style = ''
+                if is_bold:
+                    style += 'bold '
+                if is_italic:
+                    style += 'italic'
+                style = style.strip() or 'normal'
+
+                # Update canvas background (simulated text background)
+                bg_opacity = self.settings.get(f'{prefix}_bg_opacity', 80) / 100
+                # For simplicity, just change canvas bg to show effect
+                canvas.config(bg=bg_color if bg_opacity > 0.5 else '#1a1a2e')
+
+                # Update text properties
+                canvas.itemconfig(text_id,
+                                 fill=text_color,
+                                 font=(font_family, font_size, style))
+
+        except Exception as e:
+            logger.debug(f"Preview update error for {prefix}: {e}")
 
     def pick_color(self, prefix, var, preview_frame):
         """Open color picker"""
