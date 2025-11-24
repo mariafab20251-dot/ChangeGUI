@@ -1135,20 +1135,34 @@ class VideoAutomationGUI:
         # Blur Text Overlay (Row 9) - Full text controls like Quote Settings
         blur_text_card = self.create_grid_card(settings_grid, "📝 Blur Text Overlay", row=9, col=0)
 
-        # Text content input (add before other controls)
+        # Text content input (add before other controls) - Multi-line Text widget
         content_frame = tk.Frame(blur_text_card, bg=AppStyles.BG_CARD)
         content_frame.pack(fill='x', padx=20, pady=8)
 
-        tk.Label(content_frame, text='Text Content:',
+        tk.Label(content_frame, text='Text Content (Multi-line supported):',
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                 font=('Segoe UI', 10)).pack(anchor='w', pady=(0, 5))
 
-        blur_text_content_var = tk.StringVar(value=self.settings.get('blur_text_content', 'Your Text Here'))
-        content_entry = tk.Entry(content_frame, textvariable=blur_text_content_var,
-                                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                                font=('Segoe UI', 10), relief='flat', bd=2)
-        content_entry.pack(fill='x', ipady=6)
-        content_entry.bind('<FocusOut>', lambda e: self.update_setting('blur_text_content', blur_text_content_var.get()))
+        # Use Text widget for multi-line support
+        blur_text_content = tk.Text(content_frame, height=4, wrap='word',
+                                    bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                                    font=('Segoe UI', 10), relief='flat', bd=2,
+                                    insertbackground=AppStyles.TEXT_DARK)
+        blur_text_content.pack(fill='x', pady=(0, 5))
+
+        # Insert existing content
+        current_content = self.settings.get('blur_text_content', 'Your Text Here')
+        blur_text_content.insert('1.0', current_content)
+
+        # Save on focus out
+        def save_blur_text_content(event=None):
+            content = blur_text_content.get('1.0', 'end-1c')
+            self.update_setting('blur_text_content', content)
+
+        blur_text_content.bind('<FocusOut>', save_blur_text_content)
+
+        # Store reference for later access
+        self.blur_text_content_widget = blur_text_content
 
         # Use the same comprehensive text controls as Quote Settings
         self.create_text_controls(blur_text_card, 'blur_text')
@@ -2929,7 +2943,7 @@ class VideoAutomationGUI:
         font_families = self.get_system_fonts(prefix)
         font_var = tk.StringVar(value=self.settings.get(f'{prefix}_font_family', 'Arial'))
         font_combo = ttk.Combobox(font_frame, textvariable=font_var, values=font_families,
-                                  width=20)
+                                  width=35, height=15)
         font_combo.pack(side='right', padx=5)
 
         def on_font_change(event, p=prefix, v=font_var):
@@ -3139,20 +3153,29 @@ class VideoAutomationGUI:
 
     def get_system_fonts(self, prefix=None):
         """Get list of fonts from Windows fonts folder and custom folder"""
+        from tkinter import font as tkFont
         fonts = set()
 
-        # Windows fonts folder
-        windows_fonts_path = Path('C:/Windows/Fonts')
-        if windows_fonts_path.exists():
-            for font_file in windows_fonts_path.glob('*.ttf'):
-                font_name = font_file.stem
-                # Clean up font name (remove style suffixes for display)
-                base_name = font_name.split('-')[0].replace('_', ' ')
-                fonts.add(base_name)
-            for font_file in windows_fonts_path.glob('*.otf'):
-                font_name = font_file.stem
-                base_name = font_name.split('-')[0].replace('_', ' ')
-                fonts.add(base_name)
+        # Get all system fonts that Windows recognizes (actual font family names)
+        try:
+            system_font_families = tkFont.families()
+            # Filter out fonts starting with @ (vertical variants) and add to set
+            for font_name in system_font_families:
+                if not font_name.startswith('@'):
+                    fonts.add(font_name)
+        except Exception as e:
+            logger.warning(f"Could not load system fonts: {e}")
+            # Fallback to scanning font files
+            windows_fonts_path = Path('C:/Windows/Fonts')
+            if windows_fonts_path.exists():
+                for font_file in windows_fonts_path.glob('*.ttf'):
+                    font_name = font_file.stem
+                    base_name = font_name.split('-')[0].replace('_', ' ')
+                    fonts.add(base_name)
+                for font_file in windows_fonts_path.glob('*.otf'):
+                    font_name = font_file.stem
+                    base_name = font_name.split('-')[0].replace('_', ' ')
+                    fonts.add(base_name)
 
         # Custom fonts folder for this prefix
         if prefix:
