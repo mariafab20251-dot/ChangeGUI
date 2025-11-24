@@ -3211,6 +3211,37 @@ class VideoAutomationGUI:
                       selectcolor=AppStyles.BG_INPUT,
                       command=lambda p=prefix, v=outline_var: self.update_setting(f'{p}_outline', v.get())).pack(side='left')
 
+        # Outline Color picker
+        outline_color_frame = tk.Frame(parent, bg=AppStyles.BG_CARD)
+        outline_color_frame.pack(fill='x', padx=20, pady=8)
+
+        tk.Label(outline_color_frame, text='Outline Color:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(side='left')
+
+        outline_color_var = tk.StringVar(value=self.settings.get(f'{prefix}_outline_color', '#000000'))
+
+        outline_preview = tk.Frame(outline_color_frame, bg=outline_color_var.get(), width=40, height=25,
+                                  relief='solid', borderwidth=1)
+        outline_preview.pack(side='right', padx=5)
+
+        tk.Entry(outline_color_frame, textvariable=outline_color_var, width=10,
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9), relief='flat').pack(side='right', padx=5)
+
+        def pick_outline_color():
+            color = colorchooser.askcolor(title=f"Choose {prefix} outline color")
+            if color[1]:
+                outline_color_var.set(color[1])
+                outline_preview.config(bg=color[1])
+                self.update_setting(f'{prefix}_outline_color', color[1])
+
+        ModernButton(outline_color_frame, text='Pick Color',
+                    bg_color=AppStyles.ACCENT_INFO,
+                    font=('Segoe UI', 9, 'bold'),
+                    padx=15, pady=6,
+                    command=pick_outline_color).pack(side='right', padx=5)
+
         # Outline thickness
         self.create_slider_control(parent, 'Outline Size:', f'{prefix}_outline_size', 0, 10, 2)
 
