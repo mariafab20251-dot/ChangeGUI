@@ -2740,11 +2740,11 @@ class VideoAutomationGUI:
 
         return card
 
-    def create_grid_card(self, parent, title, row, col, colspan=1):
+    def create_grid_card(self, parent, title, row, col, colspan=1, rowspan=1):
         """Create a compact card in a grid layout"""
         # Outer frame for shadow effect
         card_outer = tk.Frame(parent, bg=AppStyles.BORDER_LIGHT, pady=1, padx=1)
-        card_outer.grid(row=row, column=col, columnspan=colspan, padx=5, pady=5, sticky='nsew')
+        card_outer.grid(row=row, column=col, columnspan=colspan, rowspan=rowspan, padx=5, pady=5, sticky='nsew')
 
         # Inner card
         card = tk.Frame(card_outer, bg=AppStyles.BG_CARD, relief='flat')
