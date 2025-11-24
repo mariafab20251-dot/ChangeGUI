@@ -181,6 +181,7 @@ class NeuTTSHelper:
                        pitch: float = 1.0) -> Tuple[bool, str]:
         """
         Generate speech from text using cloned voice via Gradio API
+        Automatically handles multi-sentence text by processing each sentence separately
 
         Args:
             text: Text to convert to speech
@@ -202,6 +203,127 @@ class NeuTTSHelper:
             if voice_name not in self.voices_library:
                 return False, f"Voice '{voice_name}' not found in library"
 
+            # Split text into sentences to handle NeuTTS server limitation
+            # NeuTTS server appears to only process first sentence, so we split and concatenate
+            sentences = self._split_into_sentences(text)
+            print(f"[NeuTTS DEBUG] Split into {len(sentences)} sentence(s)")
+
+            # If only one sentence, process normally
+            if len(sentences) <= 1:
+                return self._generate_single_speech(text, voice_name, output_path, speed, pitch)
+
+            # Multiple sentences - process each and concatenate
+            import os
+            import tempfile
+            import subprocess
+
+            temp_dir = tempfile.mkdtemp()
+            temp_files = []
+
+            try:
+                # Generate audio for each sentence
+                for i, sentence in enumerate(sentences):
+                    if not sentence.strip():
+                        continue
+
+                    temp_file = os.path.join(temp_dir, f"sentence_{i:03d}.wav")
+                    print(f"[NeuTTS DEBUG] Processing sentence {i+1}/{len(sentences)}: {sentence[:50]}...")
+
+                    success, msg = self._generate_single_speech(
+                        sentence.strip(),
+                        voice_name,
+                        temp_file,
+                        speed,
+                        pitch
+                    )
+
+                    if not success:
+                        # Cleanup and return error
+                        for f in temp_files:
+                            if os.path.exists(f):
+                                os.remove(f)
+                        os.rmdir(temp_dir)
+                        return False, f"Failed on sentence {i+1}: {msg}"
+
+                    temp_files.append(temp_file)
+
+                # Concatenate all audio files using ffmpeg
+                if len(temp_files) == 0:
+                    return False, "No audio generated"
+
+                if len(temp_files) == 1:
+                    # Only one file, just copy it
+                    import shutil
+                    shutil.copy(temp_files[0], output_path)
+                else:
+                    # Create concat file list for ffmpeg
+                    concat_file = os.path.join(temp_dir, "concat_list.txt")
+                    with open(concat_file, 'w') as f:
+                        for temp_file in temp_files:
+                            f.write(f"file '{temp_file}'\n")
+
+                    # Concatenate using ffmpeg
+                    print(f"[NeuTTS DEBUG] Concatenating {len(temp_files)} audio files")
+                    result = subprocess.run([
+                        'ffmpeg', '-y', '-f', 'concat', '-safe', '0',
+                        '-i', concat_file, '-c', 'copy', output_path
+                    ], capture_output=True, text=True)
+
+                    if result.returncode != 0:
+                        print(f"[NeuTTS DEBUG] FFmpeg concat error: {result.stderr}")
+                        return False, f"Failed to concatenate audio: {result.stderr}"
+
+                # Cleanup temp files
+                for f in temp_files:
+                    if os.path.exists(f):
+                        os.remove(f)
+                if os.path.exists(concat_file):
+                    os.remove(concat_file)
+                os.rmdir(temp_dir)
+
+                file_size = os.path.getsize(output_path)
+                print(f"[NeuTTS DEBUG] Final concatenated audio: {output_path}, Size: {file_size} bytes")
+                return True, f"✓ Speech generated from {len(sentences)} sentences: {output_path}"
+
+            except Exception as e:
+                # Cleanup on error
+                for f in temp_files:
+                    if os.path.exists(f):
+                        os.remove(f)
+                if os.path.exists(temp_dir):
+                    os.rmdir(temp_dir)
+                raise e
+
+        except Exception as e:
+            return False, f"✗ Exception: {str(e)}"
+
+    def _split_into_sentences(self, text: str) -> List[str]:
+        """
+        Split text into sentences for processing
+        Handles common sentence endings: . ! ?
+        """
+        import re
+        # Split on sentence boundaries but keep the punctuation
+        sentences = re.split(r'(?<=[.!?])\s+', text)
+        return [s.strip() for s in sentences if s.strip()]
+
+    def _generate_single_speech(self,
+                                text: str,
+                                voice_name: str,
+                                output_path: str,
+                                speed: float = 1.0,
+                                pitch: float = 1.0) -> Tuple[bool, str]:
+        """
+        Generate speech for a single sentence/chunk using Gradio API
+        Internal method called by generate_speech
+
+        Returns:
+            Tuple of (success: bool, message: str)
+        """
+        try:
+            import os
+            import shutil
+
             # Try using gradio_client first (most reliable)
             try:
                 from gradio_client import Client
@@ -216,7 +338,6 @@ class NeuTTSHelper:
                 print(f"[NeuTTS DEBUG] Result type: {type(result)}, Result: {str(result)[:200]}")
 
                 # Handle different result types
-                import shutil
                 audio_file = None
 
                 # Result could be string, tuple, or list
