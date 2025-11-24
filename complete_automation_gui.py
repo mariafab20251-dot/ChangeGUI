@@ -874,27 +874,27 @@ class VideoAutomationGUI:
         ]
 
         # ═══════════════════════════════════════════════════════════
-        # 2-COLUMN LAYOUT: Left = Controls, Right = Empty/Reserved
+        # 2-COLUMN LAYOUT: Left = Checkboxes, Right = Control Cards
         # ═══════════════════════════════════════════════════════════
         main_container = tk.Frame(content, bg=AppStyles.BG_CARD)
         main_container.pack(fill='both', expand=True, padx=15, pady=10)
 
-        # Left column for all controls
+        # Left column for checkboxes only
         left_column = tk.Frame(main_container, bg=AppStyles.BG_CARD)
-        left_column.pack(side='left', fill='both', expand=True, padx=(0, 10))
+        left_column.pack(side='left', fill='both', expand=False, padx=(0, 15))
 
-        # Right column (reserved for future use)
+        # Right column for control cards
         right_column = tk.Frame(main_container, bg=AppStyles.BG_CARD)
         right_column.pack(side='left', fill='both', expand=True)
 
         # Visual Effects & Enhancements checkboxes on left
         self.create_effect_grid(left_column, "🎨 Visual Effects & Enhancements", all_effects, columns=2)
 
-        # Vertical stack of control cards on left
-        settings_grid = tk.Frame(left_column, bg=AppStyles.BG_CARD)
-        settings_grid.pack(fill='both', expand=True, pady=10)
+        # Vertical stack of control cards on RIGHT side
+        settings_grid = tk.Frame(right_column, bg=AppStyles.BG_CARD)
+        settings_grid.pack(fill='both', expand=True, pady=0)
 
-        # Single column layout - all cards stacked vertically
+        # Single column layout - all cards stacked vertically on right
         settings_grid.columnconfigure(0, weight=1)
 
         # ═══════════════════════════════════════════════════════════
