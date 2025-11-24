@@ -179,6 +179,158 @@ class VideoEffects:
         return (frame * (1 - intensity)).astype('uint8')
 
     @staticmethod
+    def apply_region_blur(frame, settings):
+        """Apply blur to a specific region of the frame with optional color tint and text"""
+        if not settings.get('region_blur_enabled', False):
+            return frame
+
+        try:
+            from PIL import Image, ImageFilter, ImageDraw, ImageFont
+            import numpy as np
+
+            h, w = frame.shape[:2]
+            img = Image.fromarray(frame.astype('uint8'), 'RGB')
+
+            # Get blur settings
+            region = settings.get('blur_region', 'bottom')
+            region_size = settings.get('blur_region_size', 30) / 100  # Convert to decimal
+            intensity = settings.get('blur_intensity', 15)
+            feather = settings.get('blur_feather_edge', True)
+
+            # Calculate region coordinates based on selection
+            regions_to_blur = []
+
+            if region == 'top':
+                regions_to_blur.append((0, 0, w, int(h * region_size)))
+            elif region == 'bottom':
+                regions_to_blur.append((0, int(h * (1 - region_size)), w, h))
+            elif region == 'left':
+                regions_to_blur.append((0, 0, int(w * region_size), h))
+            elif region == 'right':
+                regions_to_blur.append((int(w * (1 - region_size)), 0, w, h))
+            elif region == 'center':
+                margin = (1 - region_size) / 2
+                regions_to_blur.append((int(w * margin), int(h * margin),
+                                       int(w * (1 - margin)), int(h * (1 - margin))))
+            elif region == 'top_bottom':
+                size = region_size / 2
+                regions_to_blur.append((0, 0, w, int(h * size)))  # Top
+                regions_to_blur.append((0, int(h * (1 - size)), w, h))  # Bottom
+            elif region == 'left_right':
+                size = region_size / 2
+                regions_to_blur.append((0, 0, int(w * size), h))  # Left
+                regions_to_blur.append((int(w * (1 - size)), 0, w, h))  # Right
+
+            # Apply blur to each region
+            for x1, y1, x2, y2 in regions_to_blur:
+                # Extract region
+                region_img = img.crop((x1, y1, x2, y2))
+
+                # Apply gaussian blur
+                blurred = region_img.filter(ImageFilter.GaussianBlur(radius=intensity))
+
+                # Apply color tint if enabled
+                if settings.get('blur_color_tint_enabled', False):
+                    tint_color = settings.get('blur_tint_color', '#000000')
+                    tint_opacity = settings.get('blur_tint_opacity', 50) / 100
+
+                    # Create tint overlay
+                    tint_layer = Image.new('RGB', blurred.size, tint_color)
+                    blurred = Image.blend(blurred, tint_layer, tint_opacity)
+
+                # Apply feathered edge if enabled
+                if feather and region not in ['center']:
+                    # Create gradient mask for smooth transition
+                    mask = Image.new('L', blurred.size, 255)
+                    mask_draw = ImageDraw.Draw(mask)
+
+                    # Feather amount (pixels)
+                    feather_px = min(blurred.size[0], blurred.size[1]) // 4
+
+                    if region in ['top', 'top_bottom'] and y1 == 0:
+                        # Gradient from top to bottom
+                        for i in range(feather_px):
+                            alpha = int(255 * (feather_px - i) / feather_px)
+                            y_pos = blurred.size[1] - feather_px + i
+                            mask_draw.line([(0, y_pos), (blurred.size[0], y_pos)], fill=alpha)
+                    elif region in ['bottom', 'top_bottom'] and y2 == h:
+                        # Gradient from bottom to top
+                        for i in range(feather_px):
+                            alpha = int(255 * (feather_px - i) / feather_px)
+                            mask_draw.line([(0, i), (blurred.size[0], i)], fill=alpha)
+
+                    # Apply mask to original region
+                    original_region = img.crop((x1, y1, x2, y2))
+                    blurred = Image.composite(blurred, original_region, mask)
+
+                # Paste blurred region back
+                img.paste(blurred, (x1, y1))
+
+            # Add text on blur if enabled
+            if settings.get('blur_text_enabled', False):
+                text_content = settings.get('blur_text_content', '')
+                if text_content:
+                    draw = ImageDraw.Draw(img)
+
+                    # Get text settings
+                    font_name = settings.get('blur_text_font', 'Arial')
+                    font_size = settings.get('blur_text_size', 24)
+                    text_color = settings.get('blur_text_color', '#FFFFFF')
+                    text_position = settings.get('blur_text_position', 'center')
+
+                    # Try to load font
+                    try:
+                        # Try system font paths
+                        font_paths = [
+                            f"C:/Windows/Fonts/{font_name}.ttf",
+                            f"C:/Windows/Fonts/{font_name.lower()}.ttf",
+                            f"/usr/share/fonts/truetype/{font_name.lower()}.ttf",
+                        ]
+                        font = None
+                        for path in font_paths:
+                            try:
+                                font = ImageFont.truetype(path, font_size)
+                                break
+                            except:
+                                continue
+                        if not font:
+                            font = ImageFont.load_default()
+                    except:
+                        font = ImageFont.load_default()
+
+                    # Get text size
+                    bbox = draw.textbbox((0, 0), text_content, font=font)
+                    text_width = bbox[2] - bbox[0]
+                    text_height = bbox[3] - bbox[1]
+
+                    # Calculate text position based on blur region
+                    if regions_to_blur:
+                        x1, y1, x2, y2 = regions_to_blur[0]
+                        region_center_x = (x1 + x2) // 2
+                        region_center_y = (y1 + y2) // 2
+
+                        text_x = region_center_x - text_width // 2
+
+                        if text_position == 'top':
+                            text_y = y1 + 10
+                        elif text_position == 'bottom':
+                            text_y = y2 - text_height - 10
+                        else:  # center
+                            text_y = region_center_y - text_height // 2
+
+                        # Draw text with outline for better visibility
+                        outline_color = '#000000'
+                        for dx, dy in [(-2, -2), (-2, 2), (2, -2), (2, 2), (-2, 0), (2, 0), (0, -2), (0, 2)]:
+                            draw.text((text_x + dx, text_y + dy), text_content, font=font, fill=outline_color)
+                        draw.text((text_x, text_y), text_content, font=font, fill=text_color)
+
+            return np.array(img)
+
+        except Exception as e:
+            print(f"Region blur error: {e}")
+            return frame
+
+    @staticmethod
     def apply_gradient_overlay(frame, gradient_type='top_to_bottom', intensity=0.3):
         """Apply gradient overlay effect"""
         frame = frame.copy()
@@ -4151,6 +4303,15 @@ class VideoQuoteAutomation:
                 video = video.image_transform(lambda frame: VideoEffects.apply_gradient_overlay(frame, gradient_type, intensity))
             except AttributeError:
                 video = video.fl_image(lambda frame: VideoEffects.apply_gradient_overlay(frame, gradient_type, intensity))
+
+        # Apply region blur effect
+        if self.settings.get('region_blur_enabled', False):
+            print("  → Applying region blur effect...")
+            settings = self.settings
+            try:
+                video = video.image_transform(lambda frame: VideoEffects.apply_region_blur(frame, settings))
+            except AttributeError:
+                video = video.fl_image(lambda frame: VideoEffects.apply_region_blur(frame, settings))
 
         # Apply selective blur for watermark/logo hiding
         if self.settings.get('blur_watermark_enabled', False):
