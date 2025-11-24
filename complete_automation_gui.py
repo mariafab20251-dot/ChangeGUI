@@ -2052,6 +2052,114 @@ class VideoAutomationGUI:
 
         self.create_slider_control(audio_enhance_card, 'Ducking Amount:', 'audio_ducking_amount', 0.1, 0.8, 0.3, resolution=0.1, value_format=lambda v: f"{int(v*100)}%")
 
+        # ═══════════════════════════════════════════════════════════
+        # STANDALONE VOICEOVER GENERATION
+        # ═══════════════════════════════════════════════════════════
+        standalone_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
+        standalone_card.pack(fill='x', padx=15, pady=(15, 15))
+
+        tk.Label(standalone_card, text='🎤 Standalone Voiceover Generator',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 13, 'bold')).pack(anchor='w', pady=(0, 5))
+
+        tk.Label(standalone_card, text='Generate voiceovers from text files without video processing',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 9)).pack(anchor='w', pady=(0, 15))
+
+        # Input File Selection
+        input_frame = tk.Frame(standalone_card, bg=AppStyles.BG_INPUT)
+        input_frame.pack(fill='x', pady=(0, 10))
+
+        tk.Label(input_frame, text='Input Text File:',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(0, 5))
+
+        file_input_row = tk.Frame(input_frame, bg=AppStyles.BG_INPUT)
+        file_input_row.pack(fill='x')
+
+        self.standalone_file_var = tk.StringVar()
+        tk.Entry(file_input_row, textvariable=self.standalone_file_var,
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9), relief='flat', bd=2).pack(side='left', fill='x', expand=True, ipady=6)
+
+        ModernButton(file_input_row, text='📄 Browse File',
+                    bg_color=AppStyles.ACCENT_INFO,
+                    font=('Segoe UI', 9, 'bold'),
+                    padx=15, pady=6,
+                    command=self.browse_standalone_file).pack(side='left', padx=(5, 0))
+
+        # Input Folder Selection
+        folder_frame = tk.Frame(standalone_card, bg=AppStyles.BG_INPUT)
+        folder_frame.pack(fill='x', pady=(0, 10))
+
+        tk.Label(folder_frame, text='Or Input Folder (processes all .txt files):',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(0, 5))
+
+        folder_input_row = tk.Frame(folder_frame, bg=AppStyles.BG_INPUT)
+        folder_input_row.pack(fill='x')
+
+        self.standalone_folder_var = tk.StringVar()
+        tk.Entry(folder_input_row, textvariable=self.standalone_folder_var,
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9), relief='flat', bd=2).pack(side='left', fill='x', expand=True, ipady=6)
+
+        ModernButton(folder_input_row, text='📁 Browse Folder',
+                    bg_color=AppStyles.ACCENT_PRIMARY,
+                    font=('Segoe UI', 9, 'bold'),
+                    padx=15, pady=6,
+                    command=self.browse_standalone_folder).pack(side='left', padx=(5, 0))
+
+        # Output Folder Selection
+        output_frame = tk.Frame(standalone_card, bg=AppStyles.BG_INPUT)
+        output_frame.pack(fill='x', pady=(0, 10))
+
+        tk.Label(output_frame, text='Output Folder for Audio Files:',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(0, 5))
+
+        output_input_row = tk.Frame(output_frame, bg=AppStyles.BG_INPUT)
+        output_input_row.pack(fill='x')
+
+        self.standalone_output_var = tk.StringVar()
+        tk.Entry(output_input_row, textvariable=self.standalone_output_var,
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9), relief='flat', bd=2).pack(side='left', fill='x', expand=True, ipady=6)
+
+        ModernButton(output_input_row, text='📁 Browse',
+                    bg_color=AppStyles.ACCENT_SUCCESS,
+                    font=('Segoe UI', 9, 'bold'),
+                    padx=15, pady=6,
+                    command=self.browse_standalone_output).pack(side='left', padx=(5, 0))
+
+        # Info label
+        tk.Label(standalone_card, text='ℹ️ Uses current TTS settings (engine, voice, speed, pitch, effects)',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(5, 10))
+
+        # Generate Button and Progress
+        btn_frame = tk.Frame(standalone_card, bg=AppStyles.BG_INPUT)
+        btn_frame.pack(fill='x', pady=(0, 10))
+
+        ModernButton(btn_frame, text='🎙️ Generate Voiceovers',
+                    bg_color=AppStyles.ACCENT_SUCCESS,
+                    font=('Segoe UI', 11, 'bold'),
+                    padx=30, pady=12,
+                    command=self.generate_standalone_voiceovers).pack(side='left')
+
+        ModernButton(btn_frame, text='⏹ Stop',
+                    bg_color=AppStyles.ACCENT_DANGER,
+                    font=('Segoe UI', 11, 'bold'),
+                    padx=20, pady=12,
+                    command=self.stop_standalone_generation).pack(side='left', padx=(10, 0))
+
+        # Progress label
+        self.standalone_progress_label = tk.Label(standalone_card, text="",
+                                                 bg=AppStyles.BG_INPUT,
+                                                 fg=AppStyles.TEXT_MEDIUM,
+                                                 font=('Segoe UI', 9))
+        self.standalone_progress_label.pack(anchor='w', pady=(5, 0))
+
         # Initialize frame visibility based on selected engine
         self.on_tts_engine_change()
 
@@ -3321,6 +3429,259 @@ class VideoAutomationGUI:
             self.voiceover_text_var.set(file)
             self.update_setting('voiceover_text_file', file)
             logger.info(f"Voiceover text file selected: {file}")
+
+    # ═══════════════════════════════════════════════════════════
+    # STANDALONE VOICEOVER GENERATION FUNCTIONS
+    # ═══════════════════════════════════════════════════════════
+
+    def browse_standalone_file(self):
+        """Browse for a single text file for standalone voiceover"""
+        file = filedialog.askopenfilename(title="Select Text File",
+                                         filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
+        if file:
+            self.standalone_file_var.set(file)
+            self.standalone_folder_var.set('')  # Clear folder if file selected
+            logger.info(f"Standalone voiceover file selected: {file}")
+
+    def browse_standalone_folder(self):
+        """Browse for folder containing text files"""
+        folder = filedialog.askdirectory(title="Select Folder with Text Files")
+        if folder:
+            self.standalone_folder_var.set(folder)
+            self.standalone_file_var.set('')  # Clear file if folder selected
+            logger.info(f"Standalone voiceover folder selected: {folder}")
+
+    def browse_standalone_output(self):
+        """Browse for output folder for generated voiceovers"""
+        folder = filedialog.askdirectory(title="Select Output Folder for Audio Files")
+        if folder:
+            self.standalone_output_var.set(folder)
+            logger.info(f"Standalone output folder selected: {folder}")
+
+    def stop_standalone_generation(self):
+        """Stop standalone voiceover generation"""
+        self.standalone_stop_flag = True
+        self.standalone_progress_label.config(text="⏹ Stopping...")
+
+    def generate_standalone_voiceovers(self):
+        """Generate voiceovers from text file(s) using current TTS settings"""
+        import subprocess
+
+        # Check inputs
+        input_file = self.standalone_file_var.get().strip()
+        input_folder = self.standalone_folder_var.get().strip()
+        output_folder = self.standalone_output_var.get().strip()
+
+        if not input_file and not input_folder:
+            messagebox.showerror("Error", "Please select an input text file or folder")
+            return
+
+        if not output_folder:
+            messagebox.showerror("Error", "Please select an output folder for audio files")
+            return
+
+        # Create output folder if needed
+        output_path = Path(output_folder)
+        output_path.mkdir(parents=True, exist_ok=True)
+
+        # Get list of files to process
+        files_to_process = []
+        if input_file:
+            files_to_process = [Path(input_file)]
+        elif input_folder:
+            folder_path = Path(input_folder)
+            files_to_process = list(folder_path.glob('*.txt'))
+            if not files_to_process:
+                messagebox.showwarning("Warning", "No .txt files found in the selected folder")
+                return
+
+        # Get TTS settings
+        tts_engine = self.settings.get('tts_engine', 'cloud')
+
+        self.standalone_stop_flag = False
+        self.standalone_progress_label.config(text=f"🔄 Starting... ({len(files_to_process)} files)")
+        self.root.update()
+
+        def generate_voiceovers():
+            try:
+                for i, text_file in enumerate(files_to_process):
+                    if self.standalone_stop_flag:
+                        self.standalone_progress_label.config(text="⏹ Stopped by user")
+                        return
+
+                    # Update progress
+                    self.standalone_progress_label.config(
+                        text=f"🔄 Processing {i+1}/{len(files_to_process)}: {text_file.name}"
+                    )
+                    self.root.update()
+
+                    # Read text content
+                    try:
+                        with open(text_file, 'r', encoding='utf-8') as f:
+                            text_content = f.read().strip()
+                        if not text_content:
+                            logger.warning(f"Empty file: {text_file}")
+                            continue
+                    except Exception as e:
+                        logger.error(f"Error reading {text_file}: {e}")
+                        continue
+
+                    # Output file path
+                    output_file = output_path / f"{text_file.stem}.mp3"
+                    wav_file = output_path / f"{text_file.stem}.wav"
+
+                    try:
+                        if tts_engine == 'cloud':
+                            # Use Edge TTS
+                            import edge_tts
+                            import asyncio
+
+                            voice_key = self.settings.get('tts_voice', 'aria')
+                            if TTSGenerator:
+                                voice_id = TTSGenerator.VOICES.get(voice_key, 'en-US-AriaNeural')
+                            else:
+                                voice_id = 'en-US-AriaNeural'
+
+                            speed = self.settings.get('tts_speed', 150)
+                            pitch = self.settings.get('tts_pitch', 0)
+
+                            async def generate_audio():
+                                rate_percent = int((speed - 150) / 150 * 100)
+                                rate = f"{rate_percent:+d}%"
+                                pitch_str = f"{pitch:+d}Hz"
+                                communicate = edge_tts.Communicate(text_content, voice_id, rate=rate, pitch=pitch_str)
+                                await communicate.save(str(output_file))
+
+                            asyncio.run(generate_audio())
+
+                        elif tts_engine == 'local':
+                            # Use Kokoro TTS
+                            from kokoro_onnx import Kokoro
+                            import soundfile as sf
+
+                            voice_setting = self.settings.get('kokoro_voice', 'af_bella')
+                            if ' - ' in voice_setting:
+                                voice = voice_setting.split(' - ')[0].strip()
+                            else:
+                                voice = voice_setting
+                            speed = float(self.settings.get('kokoro_speed', 1.0))
+
+                            # Find Kokoro model
+                            model_path = self.settings.get('kokoro_model_path', '')
+                            search_paths = [
+                                model_path,
+                                os.path.join(os.path.dirname(os.path.abspath(__file__)), 'VoiceModules', 'KokoroTTS'),
+                                os.path.dirname(os.path.abspath(__file__)),
+                            ]
+
+                            kokoro = None
+                            for base_path in search_paths:
+                                if not base_path or not os.path.exists(base_path):
+                                    continue
+                                for model_name in ['kokoro-v0_19.onnx', 'kokoro-v1.0.onnx', 'kokoro.onnx']:
+                                    model_file = os.path.join(base_path, model_name)
+                                    if os.path.exists(model_file):
+                                        for voices_name in ['voices-multilingual.bin', 'voices-v1.0.bin', 'voices.bin']:
+                                            voices_file = os.path.join(base_path, voices_name)
+                                            if os.path.exists(voices_file):
+                                                kokoro = Kokoro(model_file, voices_file)
+                                                break
+                                    if kokoro:
+                                        break
+                                if kokoro:
+                                    break
+
+                            if kokoro:
+                                audio, sample_rate = kokoro.create(text=text_content, voice=voice, speed=speed)
+                                sf.write(str(wav_file), audio, sample_rate)
+                                # Convert to MP3
+                                subprocess.run([
+                                    'ffmpeg', '-y', '-i', str(wav_file),
+                                    '-acodec', 'libmp3lame', '-q:a', '2',
+                                    str(output_file)
+                                ], capture_output=True, check=True)
+                                wav_file.unlink()
+
+                        elif tts_engine == 'neutts':
+                            # Use NeuTTS
+                            if NeuTTSHelper:
+                                server_url = self.settings.get('neutts_server_url', 'http://localhost:7860')
+                                helper = NeuTTSHelper(server_url)
+                                helper.load_voice_library('neutts_voices.json')
+
+                                selected_voice = self.settings.get('neutts_voice', '')
+                                speed = float(self.settings.get('neutts_speed', 1.0))
+
+                                success, message = helper.generate_speech(
+                                    text=text_content,
+                                    voice_name=selected_voice,
+                                    output_path=str(wav_file),
+                                    speed=speed,
+                                    pitch=1.0
+                                )
+
+                                if success:
+                                    # Convert to MP3
+                                    subprocess.run([
+                                        'ffmpeg', '-y', '-i', str(wav_file),
+                                        '-acodec', 'libmp3lame', '-q:a', '2',
+                                        str(output_file)
+                                    ], capture_output=True, check=True)
+                                    if wav_file.exists():
+                                        wav_file.unlink()
+
+                        # Apply voice effects if selected
+                        voice_effect = self.settings.get('voice_effect', 'none')
+                        if voice_effect != 'none' and output_file.exists():
+                            effect_file = output_path / f"{text_file.stem}_effect.mp3"
+                            filters = []
+
+                            if voice_effect == 'deep':
+                                filters.append("asetrate=44100*0.5,aresample=44100")
+                            elif voice_effect == 'high':
+                                filters.append("asetrate=44100*2,aresample=44100")
+                            elif voice_effect == 'robot':
+                                filters.append("afftfilt=real='hypot(re,im)*sin(0)':imag='hypot(re,im)*cos(0)':win_size=512:overlap=0.75")
+                            elif voice_effect == 'echo':
+                                filters.append("aecho=0.8:0.88:60:0.4")
+                            elif voice_effect == 'whisper':
+                                filters.append("highpass=f=1000,lowpass=f=3000,volume=1.5")
+                            elif voice_effect == 'radio':
+                                filters.append("highpass=f=300,lowpass=f=3400,equalizer=f=1000:t=h:w=200:g=3")
+                            elif voice_effect == 'chipmunk':
+                                filters.append("asetrate=44100*2.5,aresample=44100")
+
+                            if filters:
+                                filter_chain = ','.join(filters)
+                                subprocess.run([
+                                    'ffmpeg', '-y', '-i', str(output_file),
+                                    '-af', filter_chain,
+                                    '-acodec', 'libmp3lame', '-q:a', '2',
+                                    str(effect_file)
+                                ], capture_output=True, check=True)
+                                output_file.unlink()
+                                effect_file.rename(output_file)
+
+                        logger.info(f"Generated voiceover: {output_file}")
+
+                    except Exception as e:
+                        logger.error(f"Error generating voiceover for {text_file}: {e}")
+                        continue
+
+                # Done
+                self.standalone_progress_label.config(
+                    text=f"✅ Completed! {len(files_to_process)} files processed. Output: {output_folder}"
+                )
+                messagebox.showinfo("Success", f"Generated {len(files_to_process)} voiceover(s)\nOutput folder: {output_folder}")
+
+            except Exception as e:
+                self.standalone_progress_label.config(text=f"❌ Error: {str(e)}")
+                logger.error(f"Standalone voiceover error: {e}")
+                messagebox.showerror("Error", str(e))
+
+        # Run in background thread
+        thread = threading.Thread(target=generate_voiceovers, daemon=True)
+        thread.start()
 
     def play_voice_preview(self):
         """Generate and play voice preview"""
