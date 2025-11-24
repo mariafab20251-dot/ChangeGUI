@@ -2185,17 +2185,52 @@ class VideoAutomationGUI:
         # Enable mouse wheel scrolling
         self.setup_mousewheel_scroll(canvas, content)
 
-        # Create horizontal grid container (3 columns)
-        grid_container = tk.Frame(content, bg=AppStyles.BG_CARD)
-        grid_container.pack(fill='both', expand=True, padx=15, pady=10)
+        # ═══════════════════════════════════════════════════════════
+        # LIVE PREVIEW - Shows how captions will look with current settings
+        # ═══════════════════════════════════════════════════════════
+        preview_container = tk.Frame(content, bg=AppStyles.BG_CARD)
+        preview_container.pack(fill='x', padx=15, pady=(10, 15))
 
-        # Configure grid columns
-        for col in range(3):
-            grid_container.columnconfigure(col, weight=1, uniform='caption_col')
+        preview_card = tk.Frame(preview_container, bg=AppStyles.BG_INPUT, relief='solid', borderwidth=2)
+        preview_card.pack(fill='x', padx=5, pady=5)
 
-        # ROW 0: Enable Captions | Preset | Emoji Theme
-        # Enable Captions
-        cap_card = self.create_grid_card(grid_container, "💬 Enable Captions", row=0, col=0)
+        tk.Label(preview_card, text='🎬 Live Caption Preview',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 12, 'bold')).pack(anchor='w', padx=15, pady=(10, 5))
+
+        tk.Label(preview_card, text='See how your captions will appear on the video with all settings applied',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 9)).pack(anchor='w', padx=15, pady=(0, 10))
+
+        # Preview canvas
+        self.caption_preview_canvas = tk.Canvas(preview_card, width=700, height=120,
+                                               bg='#1a1a1a', highlightthickness=0)
+        self.caption_preview_canvas.pack(padx=15, pady=(0, 15))
+
+        # Initialize with sample text
+        self.update_caption_preview()
+
+        # ═══════════════════════════════════════════════════════════
+        # 2-COLUMN LAYOUT: Left = Settings, Right = Styling
+        # ═══════════════════════════════════════════════════════════
+        main_container = tk.Frame(content, bg=AppStyles.BG_CARD)
+        main_container.pack(fill='both', expand=True, padx=15, pady=10)
+
+        # Left column for basic settings
+        left_column = tk.Frame(main_container, bg=AppStyles.BG_CARD)
+        left_column.pack(side='left', fill='both', expand=True, padx=(0, 10))
+
+        # Right column for styling
+        right_column = tk.Frame(main_container, bg=AppStyles.BG_CARD)
+        right_column.pack(side='left', fill='both', expand=True)
+
+        # LEFT COLUMN - Basic Settings
+        left_grid = tk.Frame(left_column, bg=AppStyles.BG_CARD)
+        left_grid.pack(fill='both', expand=True)
+        left_grid.columnconfigure(0, weight=1)
+
+        # Enable Captions (Row 0)
+        cap_card = self.create_grid_card(left_grid, "💬 Enable Captions", row=0, col=0)
 
         caption_var = tk.BooleanVar(value=self.settings.get('enable_captions', True))
         tk.Checkbutton(cap_card, text='Enable Word-by-Word Captions',
@@ -2211,8 +2246,8 @@ class VideoAutomationGUI:
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
                 font=('Segoe UI', 8), justify='left').pack(anchor='w', padx=10, pady=3)
 
-        # Caption Style Presets
-        preset_card = self.create_grid_card(grid_container, "🎨 Presets", row=0, col=1)
+        # Caption Style Presets (Row 1)
+        preset_card = self.create_grid_card(left_grid, "🎨 Presets", row=1, col=0)
 
         preset_frame = tk.Frame(preset_card, bg=AppStyles.BG_CARD)
         preset_frame.pack(fill='x', padx=12, pady=6)
@@ -2285,8 +2320,8 @@ class VideoAutomationGUI:
                     padx=15, pady=4,
                     command=self.apply_caption_preset).pack(pady=3)
 
-        # Emoji Theme
-        emoji_card = self.create_grid_card(grid_container, "😊 Emoji", row=0, col=2)
+        # Emoji Theme (Row 2)
+        emoji_card = self.create_grid_card(left_grid, "😊 Emoji", row=2, col=0)
 
         emoji_frame = tk.Frame(emoji_card, bg=AppStyles.BG_CARD)
         emoji_frame.pack(fill='x', padx=12, pady=6)
@@ -2353,9 +2388,8 @@ class VideoAutomationGUI:
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
                 font=('Segoe UI', 8, 'italic'), justify='left').pack(anchor='w', padx=10, pady=5)
 
-        # ROW 1: Global Settings | Regular Captions | CapCut Highlighted
-        # Global Settings
-        global_card = self.create_grid_card(grid_container, "🌍 Global Settings", row=1, col=0)
+        # Global Settings (Row 3)
+        global_card = self.create_grid_card(left_grid, "🌍 Global Settings", row=3, col=0)
 
         # Caption Layout
         layout_frame = tk.Frame(global_card, bg=AppStyles.BG_CARD)
@@ -2409,8 +2443,13 @@ class VideoAutomationGUI:
         # Words per line
         self.create_slider_control(global_card, 'Words Per Caption:', 'caption_words_per_line', 1, 5, 3)
 
-        # Regular Caption Settings
-        regular_card = self.create_grid_card(grid_container, "📝 Regular Captions", row=1, col=1)
+        # RIGHT COLUMN - Styling
+        right_grid = tk.Frame(right_column, bg=AppStyles.BG_CARD)
+        right_grid.pack(fill='both', expand=True)
+        right_grid.columnconfigure(0, weight=1)
+
+        # Regular Caption Settings (Row 0)
+        regular_card = self.create_grid_card(right_grid, "📝 Regular Captions", row=0, col=0)
 
         # Font style
         font_frame = tk.Frame(regular_card, bg=AppStyles.BG_CARD)
@@ -2443,7 +2482,7 @@ class VideoAutomationGUI:
         self.create_slider_control(regular_card, 'Opacity:', 'caption_bg_opacity', 0, 255, 180)
 
         # CapCut-Style Highlighting
-        capcut_card = self.create_grid_card(grid_container, "✨ CapCut Highlighting", row=1, col=2)
+        capcut_card = self.create_grid_card(right_grid, "✨ CapCut Highlighting", row=1, col=0)
 
         highlight_var = tk.BooleanVar(value=self.settings.get('caption_highlight_enabled', False))
         tk.Checkbutton(capcut_card, text='✨ Enable Word-by-Word Highlighting (like TikTok/Instagram)',
@@ -2504,7 +2543,7 @@ class VideoAutomationGUI:
 
         # ROW 2: Text Stroke (full width)
         # Stroke/Outline
-        stroke_card = self.create_grid_card(grid_container, "🖊️ Text Stroke/Outline", row=2, col=0, colspan=3)
+        stroke_card = self.create_grid_card(right_grid, "🖊️ Text Stroke/Outline", row=2, col=0)
 
         stroke_var = tk.BooleanVar(value=self.settings.get('caption_stroke_enabled', False))
         tk.Checkbutton(stroke_card, text='Enable Text Stroke/Outline',
@@ -3347,10 +3386,68 @@ class VideoAutomationGUI:
             preview_frame.config(bg=color[1])
             self.update_setting(setting_key, color[1])
 
+    def update_caption_preview(self):
+        """Update the live preview of captions with current settings"""
+        if not hasattr(self, 'caption_preview_canvas'):
+            return
+
+        canvas = self.caption_preview_canvas
+        canvas.delete('all')
+
+        # Get current settings
+        highlight_enabled = self.settings.get('caption_highlight_enabled', False)
+        font_style = self.settings.get('caption_font_style', 'segoeui.ttf')
+        highlight_font_size = int(self.settings.get('caption_highlight_font_size', 42))
+        caption_font_size = int(self.settings.get('caption_font_size', 38))
+
+        # Colors
+        highlight_color = self.settings.get('caption_highlight_color', '#FFD700')
+        inactive_color = self.settings.get('caption_inactive_color', '#FFFFFF')
+        bg_enabled = self.settings.get('caption_bg_enabled', False)
+        bg_color = self.settings.get('caption_bg_color', '#000000')
+        stroke_enabled = self.settings.get('caption_stroke_enabled', False)
+        stroke_color = self.settings.get('caption_active_stroke_color', '#000000')
+
+        # Sample text
+        sample_words = ["This", "Is", "Your", "Caption", "Preview"]
+
+        # Draw preview
+        x_start = 50
+        y = 60
+        x = x_start
+
+        for i, word in enumerate(sample_words):
+            # Determine if this is the "active" word (middle word for demo)
+            is_active = (i == 2) and highlight_enabled
+            color = highlight_color if is_active else inactive_color
+            size = highlight_font_size if is_active else caption_font_size
+            font = ('Segoe UI Bold' if is_active else 'Segoe UI', size)
+
+            # Draw background if enabled
+            if bg_enabled:
+                bbox = canvas.bbox(canvas.create_text(x, y, text=word, font=font))
+                if bbox:
+                    canvas.create_rectangle(bbox[0]-5, bbox[1]-3, bbox[2]+5, bbox[3]+3,
+                                          fill=bg_color, outline='')
+
+            # Draw stroke if enabled
+            if stroke_enabled:
+                for dx, dy in [(-1,-1), (-1,1), (1,-1), (1,1)]:
+                    canvas.create_text(x+dx, y+dy, text=word, font=font,
+                                     fill=stroke_color, tags='preview')
+
+            # Draw main text
+            canvas.create_text(x, y, text=word, font=font, fill=color, tags='preview')
+
+            x += len(word) * (size // 2) + 20
+
     def apply_caption_preset(self):
         """Apply selected caption preset"""
         preset = self.caption_preset_var.get()
         logger.info(f"Applying caption preset: {preset}")
+
+        # Update preview after applying preset
+        self.update_caption_preview()
 
         # Preset configurations (simplified versions - user can customize further)
         preset_configs = {
