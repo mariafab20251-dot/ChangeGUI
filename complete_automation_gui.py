@@ -879,9 +879,9 @@ class VideoAutomationGUI:
         grid_container = tk.Frame(content, bg=AppStyles.BG_CARD)
         grid_container.pack(fill='both', expand=True, padx=15, pady=10)
 
-        # Configure 4 columns
+        # Configure 4 columns - no uniform to allow flexible widths
         for col in range(4):
-            grid_container.columnconfigure(col, weight=1, uniform='col')
+            grid_container.columnconfigure(col, weight=1)
 
         # Column 0: Checkboxes
         checkbox_card = self.create_grid_card(grid_container, "🎨 Visual Effects & Enhancements", row=0, col=0, rowspan=10)
