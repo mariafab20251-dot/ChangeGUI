@@ -2788,6 +2788,47 @@ class VideoAutomationGUI:
         # Font Size slider
         self.create_slider_control(parent, 'Font Size:', f'{prefix}_font_size', 10, 100, 30)
 
+        # Font Family selection
+        font_frame = tk.Frame(parent, bg=AppStyles.BG_CARD)
+        font_frame.pack(fill='x', padx=20, pady=8)
+
+        tk.Label(font_frame, text='Font Family:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(side='left')
+
+        font_families = ['Arial', 'Impact', 'Helvetica', 'Times New Roman', 'Verdana',
+                        'Georgia', 'Comic Sans MS', 'Trebuchet MS', 'Courier New', 'Roboto']
+        font_var = tk.StringVar(value=self.settings.get(f'{prefix}_font_family', 'Arial'))
+        font_combo = ttk.Combobox(font_frame, textvariable=font_var, values=font_families,
+                                  state='readonly', width=15)
+        font_combo.pack(side='right', padx=5)
+        font_combo.bind('<<ComboboxSelected>>',
+                       lambda e, p=prefix, v=font_var: self.update_setting(f'{p}_font_family', v.get()))
+
+        # Font Style (Bold, Italic)
+        style_frame = tk.Frame(parent, bg=AppStyles.BG_CARD)
+        style_frame.pack(fill='x', padx=20, pady=8)
+
+        tk.Label(style_frame, text='Font Style:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(side='left')
+
+        bold_var = tk.BooleanVar(value=self.settings.get(f'{prefix}_font_bold', True))
+        tk.Checkbutton(style_frame, text='Bold',
+                      variable=bold_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 9),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda p=prefix, v=bold_var: self.update_setting(f'{p}_font_bold', v.get())).pack(side='left', padx=10)
+
+        italic_var = tk.BooleanVar(value=self.settings.get(f'{prefix}_font_italic', False))
+        tk.Checkbutton(style_frame, text='Italic',
+                      variable=italic_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 9),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda p=prefix, v=italic_var: self.update_setting(f'{p}_font_italic', v.get())).pack(side='left', padx=10)
+
         # Text Color picker
         color_frame = tk.Frame(parent, bg=AppStyles.BG_CARD)
         color_frame.pack(fill='x', padx=20, pady=8)
@@ -2811,6 +2852,72 @@ class VideoAutomationGUI:
                     font=('Segoe UI', 9, 'bold'),
                     padx=15, pady=6,
                     command=lambda p=prefix, v=color_var, cp=color_preview: self.pick_color(p, v, cp)).pack(side='right', padx=5)
+
+        # Background Color picker
+        bg_color_frame = tk.Frame(parent, bg=AppStyles.BG_CARD)
+        bg_color_frame.pack(fill='x', padx=20, pady=8)
+
+        tk.Label(bg_color_frame, text='Background:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(side='left')
+
+        bg_color_var = tk.StringVar(value=self.settings.get(f'{prefix}_bg_color', '#000000'))
+
+        bg_preview = tk.Frame(bg_color_frame, bg=bg_color_var.get(), width=40, height=25,
+                             relief='solid', borderwidth=1)
+        bg_preview.pack(side='right', padx=5)
+
+        tk.Entry(bg_color_frame, textvariable=bg_color_var, width=10,
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9), relief='flat').pack(side='right', padx=5)
+
+        ModernButton(bg_color_frame, text='Pick Color',
+                    bg_color=AppStyles.ACCENT_INFO,
+                    font=('Segoe UI', 9, 'bold'),
+                    padx=15, pady=6,
+                    command=lambda p=prefix, v=bg_color_var, cp=bg_preview: self.pick_bg_color(p, v, cp)).pack(side='right', padx=5)
+
+        # Background Opacity
+        self.create_slider_control(parent, 'BG Opacity:', f'{prefix}_bg_opacity', 0, 100, 80, value_format=lambda v: f"{int(v)}%")
+
+        # Text Position
+        pos_frame = tk.Frame(parent, bg=AppStyles.BG_CARD)
+        pos_frame.pack(fill='x', padx=20, pady=8)
+
+        tk.Label(pos_frame, text='Position:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(side='left')
+
+        positions = ['top', 'center', 'bottom']
+        pos_var = tk.StringVar(value=self.settings.get(f'{prefix}_position', 'center'))
+        pos_combo = ttk.Combobox(pos_frame, textvariable=pos_var, values=positions,
+                                 state='readonly', width=10)
+        pos_combo.pack(side='right', padx=5)
+        pos_combo.bind('<<ComboboxSelected>>',
+                      lambda e, p=prefix, v=pos_var: self.update_setting(f'{p}_position', v.get()))
+
+        # Outline/Stroke
+        outline_frame = tk.Frame(parent, bg=AppStyles.BG_CARD)
+        outline_frame.pack(fill='x', padx=20, pady=8)
+
+        outline_var = tk.BooleanVar(value=self.settings.get(f'{prefix}_outline', True))
+        tk.Checkbutton(outline_frame, text='Text Outline',
+                      variable=outline_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 9),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda p=prefix, v=outline_var: self.update_setting(f'{p}_outline', v.get())).pack(side='left')
+
+        # Outline thickness
+        self.create_slider_control(parent, 'Outline Size:', f'{prefix}_outline_size', 0, 10, 2)
+
+    def pick_bg_color(self, prefix, var, preview_frame):
+        """Open background color picker"""
+        color = colorchooser.askcolor(title=f"Choose {prefix} background color")
+        if color[1]:
+            var.set(color[1])
+            preview_frame.config(bg=color[1])
+            self.update_setting(f'{prefix}_bg_color', color[1])
 
     def update_setting(self, key, value):
         """Update a setting value"""
