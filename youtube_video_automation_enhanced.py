@@ -180,24 +180,25 @@ class VideoEffects:
 
     @staticmethod
     def apply_region_blur(frame, settings):
-        """Apply blur to a specific region of the frame with optional color tint and text"""
+        """Apply blur to a specific region of the frame with optional color tint and text (OPTIMIZED)"""
         if not settings.get('region_blur_enabled', False):
             return frame
 
         try:
-            from PIL import Image, ImageFilter, ImageDraw, ImageFont
+            import cv2
             import numpy as np
 
+            frame = frame.copy()
             h, w = frame.shape[:2]
-            img = Image.fromarray(frame.astype('uint8'), 'RGB')
 
             # Get blur settings
             region = settings.get('blur_region', 'bottom')
-            region_size = settings.get('blur_region_size', 30) / 100  # Convert to decimal
-            intensity = settings.get('blur_intensity', 15)
-            feather = settings.get('blur_feather_edge', True)
+            region_size = settings.get('blur_region_size', 30) / 100
+            intensity = int(settings.get('blur_intensity', 15))
+            # Ensure kernel size is odd
+            kernel_size = intensity * 2 + 1
 
-            # Calculate region coordinates based on selection
+            # Calculate region coordinates
             regions_to_blur = []
 
             if region == 'top':
@@ -214,117 +215,94 @@ class VideoEffects:
                                        int(w * (1 - margin)), int(h * (1 - margin))))
             elif region == 'top_bottom':
                 size = region_size / 2
-                regions_to_blur.append((0, 0, w, int(h * size)))  # Top
-                regions_to_blur.append((0, int(h * (1 - size)), w, h))  # Bottom
+                regions_to_blur.append((0, 0, w, int(h * size)))
+                regions_to_blur.append((0, int(h * (1 - size)), w, h))
             elif region == 'left_right':
                 size = region_size / 2
-                regions_to_blur.append((0, 0, int(w * size), h))  # Left
-                regions_to_blur.append((int(w * (1 - size)), 0, w, h))  # Right
+                regions_to_blur.append((0, 0, int(w * size), h))
+                regions_to_blur.append((int(w * (1 - size)), 0, w, h))
 
-            # Apply blur to each region
+            # Apply blur using cv2 (FAST)
             for x1, y1, x2, y2 in regions_to_blur:
-                # Extract region
-                region_img = img.crop((x1, y1, x2, y2))
+                if x2 <= x1 or y2 <= y1:
+                    continue
 
-                # Apply gaussian blur
-                blurred = region_img.filter(ImageFilter.GaussianBlur(radius=intensity))
+                # Extract and blur region with cv2
+                roi = frame[y1:y2, x1:x2]
+                blurred = cv2.GaussianBlur(roi, (kernel_size, kernel_size), 0)
 
                 # Apply color tint if enabled
                 if settings.get('blur_color_tint_enabled', False):
                     tint_color = settings.get('blur_tint_color', '#000000')
                     tint_opacity = settings.get('blur_tint_opacity', 50) / 100
 
+                    # Convert hex to BGR
+                    tint_rgb = tuple(int(tint_color[i:i+2], 16) for i in (1, 3, 5))
+                    tint_bgr = (tint_rgb[2], tint_rgb[1], tint_rgb[0])
+
                     # Create tint overlay
-                    tint_layer = Image.new('RGB', blurred.size, tint_color)
-                    blurred = Image.blend(blurred, tint_layer, tint_opacity)
+                    tint_layer = np.full_like(blurred, tint_bgr, dtype=np.uint8)
+                    blurred = cv2.addWeighted(blurred, 1 - tint_opacity, tint_layer, tint_opacity, 0)
 
                 # Apply feathered edge if enabled
-                if feather and region not in ['center']:
-                    # Create gradient mask for smooth transition
-                    mask = Image.new('L', blurred.size, 255)
-                    mask_draw = ImageDraw.Draw(mask)
+                if settings.get('blur_feather_edge', True) and region not in ['center']:
+                    feather_px = min(blurred.shape[0], blurred.shape[1]) // 4
+                    if feather_px > 0:
+                        # Create gradient mask
+                        mask = np.ones(blurred.shape[:2], dtype=np.float32)
 
-                    # Feather amount (pixels)
-                    feather_px = min(blurred.size[0], blurred.size[1]) // 4
+                        if region in ['top', 'top_bottom'] and y1 == 0:
+                            gradient = np.linspace(1, 0, feather_px)
+                            for i, val in enumerate(gradient):
+                                if blurred.shape[0] - feather_px + i < blurred.shape[0]:
+                                    mask[blurred.shape[0] - feather_px + i, :] = val
+                        elif region in ['bottom', 'top_bottom'] and y2 == h:
+                            gradient = np.linspace(0, 1, feather_px)
+                            for i, val in enumerate(gradient):
+                                if i < blurred.shape[0]:
+                                    mask[i, :] = val
 
-                    if region in ['top', 'top_bottom'] and y1 == 0:
-                        # Gradient from top to bottom
-                        for i in range(feather_px):
-                            alpha = int(255 * (feather_px - i) / feather_px)
-                            y_pos = blurred.size[1] - feather_px + i
-                            mask_draw.line([(0, y_pos), (blurred.size[0], y_pos)], fill=alpha)
-                    elif region in ['bottom', 'top_bottom'] and y2 == h:
-                        # Gradient from bottom to top
-                        for i in range(feather_px):
-                            alpha = int(255 * (feather_px - i) / feather_px)
-                            mask_draw.line([(0, i), (blurred.size[0], i)], fill=alpha)
+                        # Apply mask
+                        mask = mask[:, :, np.newaxis]
+                        original_roi = frame[y1:y2, x1:x2].astype(np.float32)
+                        blurred = (blurred.astype(np.float32) * mask + original_roi * (1 - mask)).astype(np.uint8)
 
-                    # Apply mask to original region
-                    original_region = img.crop((x1, y1, x2, y2))
-                    blurred = Image.composite(blurred, original_region, mask)
+                frame[y1:y2, x1:x2] = blurred
 
-                # Paste blurred region back
-                img.paste(blurred, (x1, y1))
-
-            # Add text on blur if enabled
+            # Add text on blur if enabled (use cv2 for speed)
             if settings.get('blur_text_enabled', False):
                 text_content = settings.get('blur_text_content', '')
-                if text_content:
-                    draw = ImageDraw.Draw(img)
-
-                    # Get text settings
-                    font_name = settings.get('blur_text_font', 'Arial')
-                    font_size = settings.get('blur_text_size', 24)
+                if text_content and regions_to_blur:
+                    font_size = settings.get('blur_text_size', 24) / 30  # Scale for cv2
                     text_color = settings.get('blur_text_color', '#FFFFFF')
                     text_position = settings.get('blur_text_position', 'center')
 
-                    # Try to load font
-                    try:
-                        # Try system font paths
-                        font_paths = [
-                            f"C:/Windows/Fonts/{font_name}.ttf",
-                            f"C:/Windows/Fonts/{font_name.lower()}.ttf",
-                            f"/usr/share/fonts/truetype/{font_name.lower()}.ttf",
-                        ]
-                        font = None
-                        for path in font_paths:
-                            try:
-                                font = ImageFont.truetype(path, font_size)
-                                break
-                            except:
-                                continue
-                        if not font:
-                            font = ImageFont.load_default()
-                    except:
-                        font = ImageFont.load_default()
+                    # Convert hex to BGR
+                    text_rgb = tuple(int(text_color[i:i+2], 16) for i in (1, 3, 5))
+                    text_bgr = (text_rgb[2], text_rgb[1], text_rgb[0])
 
                     # Get text size
-                    bbox = draw.textbbox((0, 0), text_content, font=font)
-                    text_width = bbox[2] - bbox[0]
-                    text_height = bbox[3] - bbox[1]
+                    font = cv2.FONT_HERSHEY_SIMPLEX
+                    thickness = max(1, int(font_size * 2))
+                    (text_w, text_h), baseline = cv2.getTextSize(text_content, font, font_size, thickness)
 
-                    # Calculate text position based on blur region
-                    if regions_to_blur:
-                        x1, y1, x2, y2 = regions_to_blur[0]
-                        region_center_x = (x1 + x2) // 2
-                        region_center_y = (y1 + y2) // 2
+                    # Calculate position
+                    x1, y1, x2, y2 = regions_to_blur[0]
+                    text_x = (x1 + x2) // 2 - text_w // 2
 
-                        text_x = region_center_x - text_width // 2
+                    if text_position == 'top':
+                        text_y = y1 + text_h + 10
+                    elif text_position == 'bottom':
+                        text_y = y2 - 10
+                    else:  # center
+                        text_y = (y1 + y2) // 2 + text_h // 2
 
-                        if text_position == 'top':
-                            text_y = y1 + 10
-                        elif text_position == 'bottom':
-                            text_y = y2 - text_height - 10
-                        else:  # center
-                            text_y = region_center_y - text_height // 2
+                    # Draw outline
+                    cv2.putText(frame, text_content, (text_x, text_y), font, font_size, (0, 0, 0), thickness + 2)
+                    # Draw text
+                    cv2.putText(frame, text_content, (text_x, text_y), font, font_size, text_bgr, thickness)
 
-                        # Draw text with outline for better visibility
-                        outline_color = '#000000'
-                        for dx, dy in [(-2, -2), (-2, 2), (2, -2), (2, 2), (-2, 0), (2, 0), (0, -2), (0, 2)]:
-                            draw.text((text_x + dx, text_y + dy), text_content, font=font, fill=outline_color)
-                        draw.text((text_x, text_y), text_content, font=font, fill=text_color)
-
-            return np.array(img)
+            return frame
 
         except Exception as e:
             print(f"Region blur error: {e}")

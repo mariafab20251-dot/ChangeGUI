@@ -873,339 +873,246 @@ class VideoAutomationGUI:
             ('add_confetti', '🎉 Confetti'),
         ]
 
-        # Create horizontal grid layout (4 columns)
+        # Create horizontal grid layout (4 columns) for checkboxes
         self.create_effect_grid(content, "🎨 Visual Effects & Enhancements", all_effects, columns=4)
 
-        # Chromatic Aberration Settings
-        chroma_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
-        chroma_card.pack(fill='x', padx=15, pady=(15, 0))
+        # ═══════════════════════════════════════════════════════════
+        # HORIZONTAL GRID LAYOUT FOR SETTINGS (3 columns)
+        # ═══════════════════════════════════════════════════════════
+        settings_grid = tk.Frame(content, bg=AppStyles.BG_CARD)
+        settings_grid.pack(fill='both', expand=True, padx=10, pady=10)
 
-        tk.Label(chroma_card, text='🌈 Chromatic Aberration (RGB Glitch)',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 13, 'bold')).pack(anchor='w', pady=(0, 10))
+        # Configure 3-column grid
+        for col in range(3):
+            settings_grid.columnconfigure(col, weight=1, uniform='effects_col')
 
-        tk.Label(chroma_card, text='ℹ️ Trendy RGB split effect - separates color channels for a glitchy, modern look',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(0, 10))
+        # ═══════════════════════════════════════════════════════════
+        # ROW 0: Chromatic Aberration | Gradient Overlay | Particle Effects
+        # ═══════════════════════════════════════════════════════════
 
-        # Direction
-        dir_frame = tk.Frame(chroma_card, bg=AppStyles.BG_INPUT)
-        dir_frame.pack(fill='x', pady=(0, 10))
+        # Chromatic Aberration Settings (Row 0, Col 0)
+        chroma_card = self.create_grid_card(settings_grid, "🌈 RGB Glitch", row=0, col=0)
+
+        tk.Label(chroma_card, text='Trendy RGB split effect',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', padx=15, pady=(5, 10))
+
+        dir_frame = tk.Frame(chroma_card, bg=AppStyles.BG_CARD)
+        dir_frame.pack(fill='x', padx=15, pady=(0, 5))
 
         tk.Label(dir_frame, text='Direction:',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9)).pack(side='left', padx=(0, 5))
 
         self.chromatic_direction_var = tk.StringVar(value=self.settings.get('chromatic_direction', 'horizontal'))
         chroma_dir_dropdown = ttk.Combobox(dir_frame, textvariable=self.chromatic_direction_var,
                                           values=['horizontal', 'vertical', 'both'],
-                                          state='readonly', width=15)
+                                          state='readonly', width=12)
         chroma_dir_dropdown.pack(side='left')
         chroma_dir_dropdown.bind('<<ComboboxSelected>>',
                                 lambda e: self.update_setting('chromatic_direction', self.chromatic_direction_var.get()))
 
-        tk.Label(dir_frame, text='(Horizontal = left/right split, Vertical = up/down, Both = diagonal)',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 8, 'italic')).pack(side='left', padx=(10, 0))
+        self.create_slider_control(chroma_card, 'Intensity:', 'chromatic_intensity', 1, 20, 5, value_format=lambda v: f"{int(v)}px")
 
-        # Intensity slider
-        self.create_slider_control(chroma_card, 'Intensity (pixel offset):', 'chromatic_intensity', 1, 20, 5, value_format=lambda v: f"{int(v)}px")
+        # Gradient Overlay Settings (Row 0, Col 1)
+        gradient_card = self.create_grid_card(settings_grid, "🌅 Gradient Overlay", row=0, col=1)
 
-        # Particle Effects Settings
-        particle_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
-        particle_card.pack(fill='x', padx=15, pady=(15, 0))
+        tk.Label(gradient_card, text='Cinematic gradient effects',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', padx=15, pady=(5, 10))
 
-        tk.Label(particle_card, text='✨ Particle Effects Settings',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 13, 'bold')).pack(anchor='w', pady=(0, 10))
+        type_frame = tk.Frame(gradient_card, bg=AppStyles.BG_CARD)
+        type_frame.pack(fill='x', padx=15, pady=(0, 5))
 
-        tk.Label(particle_card, text='ℹ️ Add magical floating particles over your videos - perfect for celebrations, motivation, or romance',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(0, 10))
-
-        # Glitter intensity slider
-        self.create_slider_control(particle_card, 'Glitter Intensity:', 'glitter_intensity', 0.1, 1.0, 0.5, resolution=0.1)
-
-        # Gradient Overlay Settings
-        gradient_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
-        gradient_card.pack(fill='x', padx=15, pady=(15, 0))
-
-        tk.Label(gradient_card, text='🌅 Gradient Overlay',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 13, 'bold')).pack(anchor='w', pady=(0, 10))
-
-        tk.Label(gradient_card, text='ℹ️ Add cinematic gradient overlays to darken or lighten specific areas',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(0, 10))
-
-        # Gradient type
-        type_frame = tk.Frame(gradient_card, bg=AppStyles.BG_INPUT)
-        type_frame.pack(fill='x', pady=(0, 10))
-
-        tk.Label(type_frame, text='Gradient Direction:',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
+        tk.Label(type_frame, text='Direction:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9)).pack(side='left', padx=(0, 5))
 
         self.gradient_type_var = tk.StringVar(value=self.settings.get('gradient_type', 'top_to_bottom'))
         gradient_dropdown = ttk.Combobox(type_frame, textvariable=self.gradient_type_var,
                                         values=['top_to_bottom', 'bottom_to_top', 'left_to_right', 'right_to_left', 'radial'],
-                                        state='readonly', width=20)
+                                        state='readonly', width=14)
         gradient_dropdown.pack(side='left')
         gradient_dropdown.bind('<<ComboboxSelected>>',
                               lambda e: self.update_setting('gradient_type', self.gradient_type_var.get()))
 
-        # Gradient intensity
-        self.create_slider_control(gradient_card, 'Gradient Intensity:', 'gradient_intensity', 0.1, 0.8, 0.3, resolution=0.1)
+        self.create_slider_control(gradient_card, 'Intensity:', 'gradient_intensity', 0.1, 0.8, 0.3, resolution=0.1)
 
-        # Text Glow Settings
-        glow_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
-        glow_card.pack(fill='x', padx=15, pady=(15, 0))
+        # Particle Effects Settings (Row 0, Col 2)
+        particle_card = self.create_grid_card(settings_grid, "✨ Particle Effects", row=0, col=2)
 
-        tk.Label(glow_card, text='✨ Text Glow & Neon Effects',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 13, 'bold')).pack(anchor='w', pady=(0, 10))
+        tk.Label(particle_card, text='Magical floating particles',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', padx=15, pady=(5, 10))
 
-        tk.Label(glow_card, text='ℹ️ Add glowing or neon effects to your text overlays for eye-catching style',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(0, 10))
+        self.create_slider_control(particle_card, 'Glitter:', 'glitter_intensity', 0.1, 1.0, 0.5, resolution=0.1)
 
-        # Text Glow intensity
-        self.create_slider_control(glow_card, 'Text Glow Intensity:', 'glow_intensity', 1, 20, 8)
+        # ═══════════════════════════════════════════════════════════
+        # ROW 1: Text Glow | Text Animations | CTA Overlay
+        # ═══════════════════════════════════════════════════════════
 
-        # Glow color picker
+        # Text Glow Settings (Row 1, Col 0)
+        glow_card = self.create_grid_card(settings_grid, "✨ Text Glow & Neon", row=1, col=0)
+
+        self.create_slider_control(glow_card, 'Glow:', 'glow_intensity', 1, 20, 8)
         self.create_color_picker(glow_card, 'Glow Color:', 'glow_color', '#ffffff')
+        self.create_color_picker(glow_card, 'Neon Color:', 'neon_color', '#00ff88')
 
-        # Neon color picker
-        self.create_color_picker(glow_card, 'Neon Glow Color:', 'neon_color', '#00ff88')
+        # Text Entrance Animations (Row 1, Col 1)
+        entrance_card = self.create_grid_card(settings_grid, "💫 Text Animations", row=1, col=1)
 
-        # Text Entrance Animations Settings
-        entrance_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
-        entrance_card.pack(fill='x', padx=15, pady=(15, 0))
+        self.create_slider_control(entrance_card, 'Fade:', 'text_fade_duration', 0.1, 2.0, 0.4, resolution=0.1, value_format=lambda v: f"{v:.1f}s")
+        self.create_slider_control(entrance_card, 'Slide:', 'text_slide_distance', 20, 200, 50, value_format=lambda v: f"{int(v)}px")
+        self.create_slider_control(entrance_card, 'Bounce:', 'text_bounce_intensity', 1.0, 1.5, 1.15, resolution=0.05)
 
-        tk.Label(entrance_card, text='💫 Text Entrance Animations',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 13, 'bold')).pack(anchor='w', pady=(0, 10))
+        # CTA Overlay (Row 1, Col 2)
+        cta_card = self.create_grid_card(settings_grid, "💬 CTA Overlay", row=1, col=2)
 
-        tk.Label(entrance_card, text='ℹ️ Animate how your text overlay appears - fade in, bounce, slide, or glitch entrance',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(0, 10))
-
-        # Fade duration
-        self.create_slider_control(entrance_card, 'Fade In Duration:', 'text_fade_duration', 0.1, 2.0, 0.4, resolution=0.1, value_format=lambda v: f"{v:.1f}s")
-
-        # Slide distance
-        self.create_slider_control(entrance_card, 'Slide Distance:', 'text_slide_distance', 20, 200, 50, value_format=lambda v: f"{int(v)}px")
-
-        # Bounce intensity
-        self.create_slider_control(entrance_card, 'Bounce Intensity:', 'text_bounce_intensity', 1.0, 1.5, 1.15, resolution=0.05)
-
-        # CTA Overlay Section
-        cta_overlay_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
-        cta_overlay_card.pack(fill='x', padx=15, pady=(15, 0))
-
-        tk.Label(cta_overlay_card, text='💬 CTA Overlay (Call-to-Action)',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 13, 'bold')).pack(anchor='w', pady=(0, 10))
-
-        # Enable CTA
         cta_var = tk.BooleanVar(value=self.settings.get('cta_overlay_enabled', False))
-        tk.Checkbutton(cta_overlay_card, text='Show CTA Overlay',
-                      variable=cta_var, bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                      font=('Segoe UI', 10, 'bold'),
-                      activebackground=AppStyles.BG_INPUT,
-                      selectcolor=AppStyles.BG_CARD,
-                      command=lambda: self.update_setting('cta_overlay_enabled', cta_var.get())).pack(anchor='w', pady=(0, 10))
+        tk.Checkbutton(cta_card, text='Enable CTA',
+                      variable=cta_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 9, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('cta_overlay_enabled', cta_var.get())).pack(anchor='w', padx=15, pady=5)
 
-        tk.Label(cta_overlay_card, text='ℹ️ Add animated "Follow for more", "Like & Subscribe" style overlays',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(0, 10))
-
-        # CTA Text
-        text_frame = tk.Frame(cta_overlay_card, bg=AppStyles.BG_INPUT)
-        text_frame.pack(fill='x', pady=(0, 10))
-
-        tk.Label(text_frame, text='CTA Text:',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 10)).pack(anchor='w', pady=(0, 5))
-
+        text_frame = tk.Frame(cta_card, bg=AppStyles.BG_CARD)
+        text_frame.pack(fill='x', padx=15, pady=3)
+        tk.Label(text_frame, text='Text:', bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 9)).pack(side='left')
         self.cta_text_var = tk.StringVar(value=self.settings.get('cta_overlay_text', 'Follow for more! 👉'))
-        cta_text_entry = tk.Entry(text_frame, textvariable=self.cta_text_var,
-                                  bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
-                                  font=('Segoe UI', 10))
-        cta_text_entry.pack(fill='x')
-        cta_text_entry.bind('<FocusOut>', lambda e: self.update_setting('cta_overlay_text', self.cta_text_var.get()))
+        cta_entry = tk.Entry(text_frame, textvariable=self.cta_text_var, bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 8), width=15)
+        cta_entry.pack(side='left', padx=5)
+        cta_entry.bind('<FocusOut>', lambda e: self.update_setting('cta_overlay_text', self.cta_text_var.get()))
 
-        # Position
-        pos_frame = tk.Frame(cta_overlay_card, bg=AppStyles.BG_INPUT)
-        pos_frame.pack(fill='x', pady=(0, 10))
-
-        tk.Label(pos_frame, text='Position:',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
-
+        pos_frame = tk.Frame(cta_card, bg=AppStyles.BG_CARD)
+        pos_frame.pack(fill='x', padx=15, pady=3)
+        tk.Label(pos_frame, text='Pos:', bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 9)).pack(side='left')
         self.cta_position_var = tk.StringVar(value=self.settings.get('cta_overlay_position', 'bottom-center'))
-        cta_pos_dropdown = ttk.Combobox(pos_frame, textvariable=self.cta_position_var,
-                                       values=['top-left', 'top-center', 'top-right',
-                                              'bottom-left', 'bottom-center', 'bottom-right'],
-                                       state='readonly', width=15)
-        cta_pos_dropdown.pack(side='left')
-        cta_pos_dropdown.bind('<<ComboboxSelected>>',
-                             lambda e: self.update_setting('cta_overlay_position', self.cta_position_var.get()))
+        cta_pos = ttk.Combobox(pos_frame, textvariable=self.cta_position_var,
+                              values=['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'],
+                              state='readonly', width=12)
+        cta_pos.pack(side='left', padx=5)
+        cta_pos.bind('<<ComboboxSelected>>', lambda e: self.update_setting('cta_overlay_position', self.cta_position_var.get()))
 
-        # Animation
-        anim_frame = tk.Frame(cta_overlay_card, bg=AppStyles.BG_INPUT)
-        anim_frame.pack(fill='x', pady=(0, 10))
-
-        tk.Label(anim_frame, text='Animation:',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
-
+        anim_frame = tk.Frame(cta_card, bg=AppStyles.BG_CARD)
+        anim_frame.pack(fill='x', padx=15, pady=3)
+        tk.Label(anim_frame, text='Anim:', bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 9)).pack(side='left')
         self.cta_animation_var = tk.StringVar(value=self.settings.get('cta_overlay_animation', 'bounce'))
-        cta_anim_dropdown = ttk.Combobox(anim_frame, textvariable=self.cta_animation_var,
-                                        values=['none', 'bounce', 'pulse', 'slide-in', 'fade-in'],
-                                        state='readonly', width=15)
-        cta_anim_dropdown.pack(side='left')
-        cta_anim_dropdown.bind('<<ComboboxSelected>>',
-                              lambda e: self.update_setting('cta_overlay_animation', self.cta_animation_var.get()))
+        cta_anim = ttk.Combobox(anim_frame, textvariable=self.cta_animation_var,
+                               values=['none', 'bounce', 'pulse', 'slide-in', 'fade-in'],
+                               state='readonly', width=10)
+        cta_anim.pack(side='left', padx=5)
+        cta_anim.bind('<<ComboboxSelected>>', lambda e: self.update_setting('cta_overlay_animation', self.cta_animation_var.get()))
 
-        # Timing sliders
-        self.create_slider_control(cta_overlay_card, 'Start Time:', 'cta_overlay_start_time', 0, 10, 3.0, resolution=0.5, value_format=lambda v: f"{v:.1f}s")
-        self.create_slider_control(cta_overlay_card, 'Duration:', 'cta_overlay_duration', 1, 10, 3.0, resolution=0.5, value_format=lambda v: f"{v:.1f}s")
+        self.create_slider_control(cta_card, 'Start:', 'cta_overlay_start_time', 0, 10, 3.0, resolution=0.5, value_format=lambda v: f"{v:.1f}s")
+        self.create_slider_control(cta_card, 'Duration:', 'cta_overlay_duration', 1, 10, 3.0, resolution=0.5, value_format=lambda v: f"{v:.1f}s")
 
-        # Progress Bar Section
-        progress_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
-        progress_card.pack(fill='x', padx=15, pady=(15, 0))
+        # ═══════════════════════════════════════════════════════════
+        # ROW 2: Progress Bar | Watermark | (empty)
+        # ═══════════════════════════════════════════════════════════
 
-        tk.Label(progress_card, text='📊 Progress Bar',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 13, 'bold')).pack(anchor='w', pady=(0, 10))
+        # Progress Bar (Row 2, Col 0)
+        progress_card = self.create_grid_card(settings_grid, "📊 Progress Bar", row=2, col=0)
 
-        # Enable progress bar
         progress_var = tk.BooleanVar(value=self.settings.get('progress_bar', False))
-        tk.Checkbutton(progress_card, text='Show Progress Bar',
-                      variable=progress_var, bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                      font=('Segoe UI', 10, 'bold'),
-                      activebackground=AppStyles.BG_INPUT,
-                      selectcolor=AppStyles.BG_CARD,
-                      command=lambda: self.update_setting('progress_bar', progress_var.get())).pack(anchor='w', pady=(0, 10))
+        tk.Checkbutton(progress_card, text='Enable',
+                      variable=progress_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 9, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('progress_bar', progress_var.get())).pack(anchor='w', padx=15, pady=5)
 
-        tk.Label(progress_card, text='ℹ️ Shows video progress (popular on social media shorts)',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(0, 10))
-
-        # Position
-        pos_frame = tk.Frame(progress_card, bg=AppStyles.BG_INPUT)
-        pos_frame.pack(fill='x', pady=(0, 10))
-
-        tk.Label(pos_frame, text='Position:',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
-
+        pos_frame = tk.Frame(progress_card, bg=AppStyles.BG_CARD)
+        pos_frame.pack(fill='x', padx=15, pady=3)
+        tk.Label(pos_frame, text='Position:', bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 9)).pack(side='left')
         self.progress_position_var = tk.StringVar(value=self.settings.get('progress_bar_position', 'bottom'))
-        progress_pos_dropdown = ttk.Combobox(pos_frame, textvariable=self.progress_position_var,
-                                            values=['top', 'bottom'],
-                                            state='readonly', width=15)
-        progress_pos_dropdown.pack(side='left')
-        progress_pos_dropdown.bind('<<ComboboxSelected>>',
-                                  lambda e: self.update_setting('progress_bar_position', self.progress_position_var.get()))
+        progress_pos = ttk.Combobox(pos_frame, textvariable=self.progress_position_var, values=['top', 'bottom'], state='readonly', width=8)
+        progress_pos.pack(side='left', padx=5)
+        progress_pos.bind('<<ComboboxSelected>>', lambda e: self.update_setting('progress_bar_position', self.progress_position_var.get()))
 
-        # Color picker button
-        color_frame = tk.Frame(progress_card, bg=AppStyles.BG_INPUT)
-        color_frame.pack(fill='x', pady=(0, 10))
+        self.create_color_picker(progress_card, 'Color:', 'progress_color', '#00ff40')
+        self.create_slider_control(progress_card, 'Height:', 'progress_bar_height', 2, 15, 5, value_format=lambda v: f"{int(v)}px")
 
-        tk.Label(color_frame, text='Color:',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
+        # Watermark (Row 2, Col 1)
+        watermark_card = self.create_grid_card(settings_grid, "🏷️ Watermark", row=2, col=1)
 
-        self.progress_color_var = tk.StringVar(value=self.settings.get('progress_color', '#00ff40'))
-        color_entry = tk.Entry(color_frame, textvariable=self.progress_color_var,
-                              bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
-                              font=('Segoe UI', 9), width=10)
-        color_entry.pack(side='left')
-        color_entry.bind('<FocusOut>', lambda e: self.update_setting('progress_color', self.progress_color_var.get()))
+        watermark_var = tk.BooleanVar(value=self.settings.get('watermark_enabled', False))
+        tk.Checkbutton(watermark_card, text='Enable',
+                      variable=watermark_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 9, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('watermark_enabled', watermark_var.get())).pack(anchor='w', padx=15, pady=5)
 
-        # Height slider
-        self.create_slider_control(progress_card, 'Bar Height:', 'progress_bar_height', 2, 15, 5, value_format=lambda v: f"{int(v)}px")
+        file_frame = tk.Frame(watermark_card, bg=AppStyles.BG_CARD)
+        file_frame.pack(fill='x', padx=15, pady=3)
+        self.watermark_path_var = tk.StringVar(value=self.settings.get('watermark_image_path', ''))
+        watermark_entry = tk.Entry(file_frame, textvariable=self.watermark_path_var,
+                                   bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                                   font=('Segoe UI', 8), width=12)
+        watermark_entry.pack(side='left')
+        ModernButton(file_frame, text='📁',
+                    bg_color=AppStyles.ACCENT_PRIMARY,
+                    font=('Segoe UI', 8, 'bold'),
+                    padx=8, pady=3,
+                    command=self.browse_watermark).pack(side='left', padx=3)
+
+        pos_frame = tk.Frame(watermark_card, bg=AppStyles.BG_CARD)
+        pos_frame.pack(fill='x', padx=15, pady=3)
+        tk.Label(pos_frame, text='Pos:', bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 9)).pack(side='left')
+        self.watermark_position_var = tk.StringVar(value=self.settings.get('watermark_position', 'bottom-right'))
+        watermark_pos = ttk.Combobox(pos_frame, textvariable=self.watermark_position_var,
+                                    values=['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center'],
+                                    state='readonly', width=10)
+        watermark_pos.pack(side='left', padx=5)
+        watermark_pos.bind('<<ComboboxSelected>>', lambda e: self.update_setting('watermark_position', self.watermark_position_var.get()))
+
+        self.create_slider_control(watermark_card, 'Opacity:', 'watermark_opacity', 0, 100, 70)
+        self.create_slider_control(watermark_card, 'Size:', 'watermark_scale', 0.05, 0.5, 0.15, resolution=0.01, value_format=lambda v: f"{int(v*100)}%")
 
         # ═══════════════════════════════════════════════════════════
-        # REGION BLUR SECTION
+        # ROW 3: Region Blur (spans 2 cols) | Blur Text (1 col)
         # ═══════════════════════════════════════════════════════════
-        blur_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
-        blur_card.pack(fill='x', padx=15, pady=(15, 0))
 
-        tk.Label(blur_card, text='🌫️ Region Blur',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 13, 'bold')).pack(anchor='w', pady=(0, 5))
+        # Region Blur Settings (Row 3, Col 0)
+        blur_card = self.create_grid_card(settings_grid, "🌫️ Region Blur", row=3, col=0)
 
-        tk.Label(blur_card, text='Blur specific areas of the video with optional color tint',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 9)).pack(anchor='w', pady=(0, 15))
-
-        # Enable blur checkbox
         blur_var = tk.BooleanVar(value=self.settings.get('region_blur_enabled', False))
-        tk.Checkbutton(blur_card, text='Enable Region Blur',
-                      variable=blur_var, bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                      font=('Segoe UI', 10, 'bold'),
-                      activebackground=AppStyles.BG_INPUT,
-                      selectcolor=AppStyles.BG_CARD,
-                      command=lambda: self.update_setting('region_blur_enabled', blur_var.get())).pack(anchor='w', pady=(0, 10))
+        tk.Checkbutton(blur_card, text='Enable',
+                      variable=blur_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 9, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('region_blur_enabled', blur_var.get())).pack(anchor='w', padx=15, pady=5)
 
-        # Region selection
-        region_frame = tk.Frame(blur_card, bg=AppStyles.BG_INPUT)
-        region_frame.pack(fill='x', pady=(0, 10))
-
-        tk.Label(region_frame, text='Blur Region:',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
-
+        region_frame = tk.Frame(blur_card, bg=AppStyles.BG_CARD)
+        region_frame.pack(fill='x', padx=15, pady=3)
+        tk.Label(region_frame, text='Region:', bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 9)).pack(side='left')
         self.blur_region_var = tk.StringVar(value=self.settings.get('blur_region', 'bottom'))
-        blur_region_dropdown = ttk.Combobox(region_frame, textvariable=self.blur_region_var,
-                                           values=['top', 'bottom', 'left', 'right', 'center', 'top_bottom', 'left_right'],
-                                           state='readonly', width=15)
-        blur_region_dropdown.pack(side='left')
-        blur_region_dropdown.bind('<<ComboboxSelected>>',
-                                 lambda e: self.update_setting('blur_region', self.blur_region_var.get()))
+        blur_region = ttk.Combobox(region_frame, textvariable=self.blur_region_var,
+                                   values=['top', 'bottom', 'left', 'right', 'center', 'top_bottom', 'left_right'],
+                                   state='readonly', width=10)
+        blur_region.pack(side='left', padx=5)
+        blur_region.bind('<<ComboboxSelected>>', lambda e: self.update_setting('blur_region', self.blur_region_var.get()))
 
-        tk.Label(region_frame, text='(top_bottom = both edges)',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 8, 'italic')).pack(side='left', padx=(10, 0))
+        self.create_slider_control(blur_card, 'Size:', 'blur_region_size', 10, 50, 30, value_format=lambda v: f"{int(v)}%")
+        self.create_slider_control(blur_card, 'Intensity:', 'blur_intensity', 1, 100, 15, value_format=lambda v: f"{int(v)}")
 
-        # Region size (percentage of video)
-        self.create_slider_control(blur_card, 'Region Size:', 'blur_region_size', 10, 50, 30, value_format=lambda v: f"{int(v)}%")
-
-        tk.Label(blur_card, text='ℹ️ Percentage of video height/width to blur',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(0, 10))
-
-        # Blur intensity
-        self.create_slider_control(blur_card, 'Blur Intensity:', 'blur_intensity', 1, 50, 15, value_format=lambda v: f"{int(v)}")
-
-        # Enable color tint
         tint_var = tk.BooleanVar(value=self.settings.get('blur_color_tint_enabled', False))
-        tk.Checkbutton(blur_card, text='Add Color Tint to Blur',
-                      variable=tint_var, bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                      font=('Segoe UI', 10),
-                      activebackground=AppStyles.BG_INPUT,
-                      selectcolor=AppStyles.BG_CARD,
-                      command=lambda: self.update_setting('blur_color_tint_enabled', tint_var.get())).pack(anchor='w', pady=(10, 10))
+        tk.Checkbutton(blur_card, text='Color Tint',
+                      variable=tint_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 9),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('blur_color_tint_enabled', tint_var.get())).pack(anchor='w', padx=15, pady=3)
 
-        # Tint color picker
-        tint_color_frame = tk.Frame(blur_card, bg=AppStyles.BG_INPUT)
-        tint_color_frame.pack(fill='x', pady=(0, 10))
-
-        tk.Label(tint_color_frame, text='Tint Color:',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
+        tint_color_frame = tk.Frame(blur_card, bg=AppStyles.BG_CARD)
+        tint_color_frame.pack(fill='x', padx=15, pady=3)
 
         self.blur_tint_color_var = tk.StringVar(value=self.settings.get('blur_tint_color', '#000000'))
-
-        tint_preview = tk.Frame(tint_color_frame, bg=self.blur_tint_color_var.get(), width=30, height=20,
-                               relief='solid', borderwidth=1)
-        tint_preview.pack(side='left', padx=(0, 5))
-
-        tk.Entry(tint_color_frame, textvariable=self.blur_tint_color_var, width=8,
-                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 9), relief='flat').pack(side='left', padx=5)
+        tint_preview = tk.Frame(tint_color_frame, bg=self.blur_tint_color_var.get(), width=20, height=15, relief='solid', borderwidth=1)
+        tint_preview.pack(side='left', padx=(0, 3))
+        tk.Entry(tint_color_frame, textvariable=self.blur_tint_color_var, width=7, bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 8)).pack(side='left')
 
         def pick_tint_color():
             color = colorchooser.askcolor(title="Choose Blur Tint Color")
@@ -1214,138 +1121,79 @@ class VideoAutomationGUI:
                 tint_preview.config(bg=color[1])
                 self.update_setting('blur_tint_color', color[1])
 
-        ModernButton(tint_color_frame, text='Pick',
-                    bg_color=AppStyles.ACCENT_INFO,
-                    font=('Segoe UI', 9, 'bold'),
-                    padx=12, pady=5,
-                    command=pick_tint_color).pack(side='left', padx=5)
+        ModernButton(tint_color_frame, text='🎨', bg_color=AppStyles.ACCENT_INFO, font=('Segoe UI', 8), padx=6, pady=2, command=pick_tint_color).pack(side='left', padx=3)
 
-        # Tint opacity
-        self.create_slider_control(blur_card, 'Tint Opacity:', 'blur_tint_opacity', 0, 100, 50, value_format=lambda v: f"{int(v)}%")
+        self.create_slider_control(blur_card, 'Tint:', 'blur_tint_opacity', 0, 100, 50, value_format=lambda v: f"{int(v)}%")
 
-        # Feather/Gradient edge
         feather_var = tk.BooleanVar(value=self.settings.get('blur_feather_edge', True))
-        tk.Checkbutton(blur_card, text='Feather Edge (Smooth Gradient)',
-                      variable=feather_var, bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                      font=('Segoe UI', 9),
-                      activebackground=AppStyles.BG_INPUT,
-                      selectcolor=AppStyles.BG_CARD,
-                      command=lambda: self.update_setting('blur_feather_edge', feather_var.get())).pack(anchor='w', pady=(5, 0))
+        tk.Checkbutton(blur_card, text='Feather Edge',
+                      variable=feather_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 8),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('blur_feather_edge', feather_var.get())).pack(anchor='w', padx=15, pady=3)
 
-        tk.Label(blur_card, text='ℹ️ Creates smooth transition between blurred and clear areas',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(5, 0))
+        # Blur Text Overlay (Row 3, Col 1-2)
+        blur_text_card = self.create_grid_card(settings_grid, "📝 Blur Text", row=3, col=1, colspan=2)
 
-        # Separator
-        tk.Frame(blur_card, bg=AppStyles.BORDER_LIGHT, height=1).pack(fill='x', pady=(15, 10))
-
-        # Text on Blur section
-        tk.Label(blur_card, text='📝 Text on Blur Region',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 11, 'bold')).pack(anchor='w', pady=(0, 10))
-
-        # Enable text on blur
         blur_text_var = tk.BooleanVar(value=self.settings.get('blur_text_enabled', False))
-        tk.Checkbutton(blur_card, text='Add Text to Blur Region',
-                      variable=blur_text_var, bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                      font=('Segoe UI', 10),
-                      activebackground=AppStyles.BG_INPUT,
-                      selectcolor=AppStyles.BG_CARD,
-                      command=lambda: self.update_setting('blur_text_enabled', blur_text_var.get())).pack(anchor='w', pady=(0, 10))
+        tk.Checkbutton(blur_text_card, text='Enable Text on Blur',
+                      variable=blur_text_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 9, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('blur_text_enabled', blur_text_var.get())).pack(anchor='w', padx=15, pady=5)
 
-        # Live Preview for blur text
-        preview_container = tk.Frame(blur_card, bg=AppStyles.BG_INPUT)
-        preview_container.pack(fill='x', pady=(0, 10))
-
-        tk.Label(preview_container, text='📺 Live Preview:',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 8, 'bold')).pack(anchor='w')
-
-        blur_preview_frame = tk.Frame(preview_container, bg='#1a1a2e', relief='sunken', bd=2)
-        blur_preview_frame.pack(fill='x', pady=(2, 0))
-
-        self.blur_preview_canvas = tk.Canvas(blur_preview_frame, height=60, bg='#1a1a2e', highlightthickness=0)
-        self.blur_preview_canvas.pack(fill='x', padx=5, pady=5)
-
-        # Create preview text
+        # Live Preview
+        preview_frame = tk.Frame(blur_text_card, bg='#1a1a2e', relief='sunken', bd=1)
+        preview_frame.pack(fill='x', padx=15, pady=5)
+        self.blur_preview_canvas = tk.Canvas(preview_frame, height=40, bg='#1a1a2e', highlightthickness=0)
+        self.blur_preview_canvas.pack(fill='x', padx=3, pady=3)
         self.blur_preview_text_id = self.blur_preview_canvas.create_text(
-            200, 30,
-            text=self.settings.get('blur_text_content', 'Sample Text'),
+            150, 20, text=self.settings.get('blur_text_content', 'Sample'),
             fill=self.settings.get('blur_text_color', '#FFFFFF'),
-            font=(self.settings.get('blur_text_font', 'Arial'), 14, 'bold')
-        )
+            font=(self.settings.get('blur_text_font', 'Arial'), 12, 'bold'))
 
         def on_blur_canvas_resize(event):
-            self.blur_preview_canvas.coords(self.blur_preview_text_id, event.width // 2, 30)
+            self.blur_preview_canvas.coords(self.blur_preview_text_id, event.width // 2, 20)
         self.blur_preview_canvas.bind('<Configure>', on_blur_canvas_resize)
 
-        # Text content input
-        text_input_frame = tk.Frame(blur_card, bg=AppStyles.BG_INPUT)
-        text_input_frame.pack(fill='x', pady=(0, 10))
-
-        tk.Label(text_input_frame, text='Text Content:',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 10)).pack(anchor='w', pady=(0, 5))
-
-        self.blur_text_content_var = tk.StringVar(value=self.settings.get('blur_text_content', 'Your Text Here'))
-        blur_text_entry = tk.Entry(text_input_frame, textvariable=self.blur_text_content_var,
-                                   bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
-                                   font=('Segoe UI', 10), relief='flat', bd=2)
-        blur_text_entry.pack(fill='x', ipady=6)
+        # Text input
+        text_frame = tk.Frame(blur_text_card, bg=AppStyles.BG_CARD)
+        text_frame.pack(fill='x', padx=15, pady=3)
+        tk.Label(text_frame, text='Text:', bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 9)).pack(side='left')
+        self.blur_text_content_var = tk.StringVar(value=self.settings.get('blur_text_content', 'Your Text'))
+        blur_text_entry = tk.Entry(text_frame, textvariable=self.blur_text_content_var, bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 8), width=20)
+        blur_text_entry.pack(side='left', padx=5)
 
         def update_blur_text_content(event=None):
             text = self.blur_text_content_var.get()
             self.update_setting('blur_text_content', text)
             self.blur_preview_canvas.itemconfig(self.blur_preview_text_id, text=text)
-
         blur_text_entry.bind('<KeyRelease>', update_blur_text_content)
 
-        # Font selection for blur text
-        blur_font_frame = tk.Frame(blur_card, bg=AppStyles.BG_INPUT)
-        blur_font_frame.pack(fill='x', pady=(0, 10))
+        # Font and color row
+        font_color_frame = tk.Frame(blur_text_card, bg=AppStyles.BG_CARD)
+        font_color_frame.pack(fill='x', padx=15, pady=3)
 
-        tk.Label(blur_font_frame, text='Font:',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
-
+        tk.Label(font_color_frame, text='Font:', bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 9)).pack(side='left')
         blur_fonts = self.get_system_fonts()
         self.blur_text_font_var = tk.StringVar(value=self.settings.get('blur_text_font', 'Arial'))
-        blur_font_combo = ttk.Combobox(blur_font_frame, textvariable=self.blur_text_font_var,
-                                       values=blur_fonts, width=18)
-        blur_font_combo.pack(side='left')
+        blur_font_combo = ttk.Combobox(font_color_frame, textvariable=self.blur_text_font_var, values=blur_fonts, width=12)
+        blur_font_combo.pack(side='left', padx=3)
 
         def update_blur_font(event=None):
             font = self.blur_text_font_var.get()
             if font.startswith('[Custom] '):
                 font = font[9:]
             self.update_setting('blur_text_font', font)
-            size = int(self.settings.get('blur_text_size', 24)) // 2
-            self.blur_preview_canvas.itemconfig(self.blur_preview_text_id,
-                                                font=(font, min(size, 16), 'bold'))
-
+            self.blur_preview_canvas.itemconfig(self.blur_preview_text_id, font=(font, 12, 'bold'))
         blur_font_combo.bind('<<ComboboxSelected>>', update_blur_font)
 
-        # Font size slider
-        self.create_slider_control(blur_card, 'Text Size:', 'blur_text_size', 12, 72, 24,
-                                  value_format=lambda v: f"{int(v)}px")
-
-        # Text color picker
-        blur_text_color_frame = tk.Frame(blur_card, bg=AppStyles.BG_INPUT)
-        blur_text_color_frame.pack(fill='x', pady=(0, 10))
-
-        tk.Label(blur_text_color_frame, text='Text Color:',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
-
+        # Text color
         self.blur_text_color_var = tk.StringVar(value=self.settings.get('blur_text_color', '#FFFFFF'))
-
-        blur_text_preview = tk.Frame(blur_text_color_frame, bg=self.blur_text_color_var.get(),
-                                     width=30, height=20, relief='solid', borderwidth=1)
-        blur_text_preview.pack(side='left', padx=(0, 5))
-
-        tk.Entry(blur_text_color_frame, textvariable=self.blur_text_color_var, width=8,
-                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 9), relief='flat').pack(side='left', padx=5)
+        blur_text_preview = tk.Frame(font_color_frame, bg=self.blur_text_color_var.get(), width=20, height=15, relief='solid', borderwidth=1)
+        blur_text_preview.pack(side='left', padx=(10, 3))
 
         def pick_blur_text_color():
             color = colorchooser.askcolor(title="Choose Blur Text Color")
@@ -1355,87 +1203,21 @@ class VideoAutomationGUI:
                 self.update_setting('blur_text_color', color[1])
                 self.blur_preview_canvas.itemconfig(self.blur_preview_text_id, fill=color[1])
 
-        ModernButton(blur_text_color_frame, text='Pick',
-                    bg_color=AppStyles.ACCENT_INFO,
-                    font=('Segoe UI', 9, 'bold'),
-                    padx=12, pady=5,
-                    command=pick_blur_text_color).pack(side='left', padx=5)
+        ModernButton(font_color_frame, text='🎨', bg_color=AppStyles.ACCENT_INFO, font=('Segoe UI', 8), padx=6, pady=2, command=pick_blur_text_color).pack(side='left', padx=3)
 
-        # Text position within blur region
-        blur_text_pos_frame = tk.Frame(blur_card, bg=AppStyles.BG_INPUT)
-        blur_text_pos_frame.pack(fill='x', pady=(0, 10))
+        # Size and position row
+        size_pos_frame = tk.Frame(blur_text_card, bg=AppStyles.BG_CARD)
+        size_pos_frame.pack(fill='x', padx=15, pady=3)
 
-        tk.Label(blur_text_pos_frame, text='Text Position:',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
+        self.create_slider_control(blur_text_card, 'Size:', 'blur_text_size', 12, 72, 24, value_format=lambda v: f"{int(v)}px")
 
+        pos_frame = tk.Frame(blur_text_card, bg=AppStyles.BG_CARD)
+        pos_frame.pack(fill='x', padx=15, pady=3)
+        tk.Label(pos_frame, text='Position:', bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 9)).pack(side='left')
         self.blur_text_position_var = tk.StringVar(value=self.settings.get('blur_text_position', 'center'))
-        blur_text_pos_dropdown = ttk.Combobox(blur_text_pos_frame, textvariable=self.blur_text_position_var,
-                                              values=['top', 'center', 'bottom'],
-                                              state='readonly', width=12)
-        blur_text_pos_dropdown.pack(side='left')
-        blur_text_pos_dropdown.bind('<<ComboboxSelected>>',
-                                   lambda e: self.update_setting('blur_text_position', self.blur_text_position_var.get()))
-
-        # Watermark/Logo Section
-        watermark_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
-        watermark_card.pack(fill='x', padx=15, pady=(15, 0))
-
-        tk.Label(watermark_card, text='🏷️ Watermark / Logo',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 13, 'bold')).pack(anchor='w', pady=(0, 10))
-
-        # Enable watermark checkbox
-        watermark_var = tk.BooleanVar(value=self.settings.get('watermark_enabled', False))
-        tk.Checkbutton(watermark_card, text='Enable Watermark',
-                      variable=watermark_var, bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                      font=('Segoe UI', 10, 'bold'),
-                      activebackground=AppStyles.BG_INPUT,
-                      selectcolor=AppStyles.BG_CARD,
-                      command=lambda: self.update_setting('watermark_enabled', watermark_var.get())).pack(anchor='w', pady=(0, 10))
-
-        # Image file selection
-        file_frame = tk.Frame(watermark_card, bg=AppStyles.BG_INPUT)
-        file_frame.pack(fill='x', pady=(0, 10))
-
-        tk.Label(file_frame, text='Watermark Image (PNG recommended):',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 10)).pack(anchor='w', pady=(0, 5))
-
-        file_input_frame = tk.Frame(file_frame, bg=AppStyles.BG_INPUT)
-        file_input_frame.pack(fill='x')
-
-        self.watermark_path_var = tk.StringVar(value=self.settings.get('watermark_image_path', ''))
-        watermark_entry = tk.Entry(file_input_frame, textvariable=self.watermark_path_var,
-                                   bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
-                                   font=('Segoe UI', 9), relief='flat', bd=2)
-        watermark_entry.pack(side='left', fill='x', expand=True, ipady=6)
-
-        ModernButton(file_input_frame, text='📁 Browse',
-                    bg_color=AppStyles.ACCENT_PRIMARY,
-                    font=('Segoe UI', 9, 'bold'),
-                    padx=15, pady=6,
-                    command=self.browse_watermark).pack(side='left', padx=(5, 0))
-
-        # Position dropdown
-        position_frame = tk.Frame(watermark_card, bg=AppStyles.BG_INPUT)
-        position_frame.pack(fill='x', pady=(0, 10))
-
-        tk.Label(position_frame, text='Position:',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
-
-        self.watermark_position_var = tk.StringVar(value=self.settings.get('watermark_position', 'bottom-right'))
-        position_dropdown = ttk.Combobox(position_frame, textvariable=self.watermark_position_var,
-                                        values=['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center'],
-                                        state='readonly', width=15)
-        position_dropdown.pack(side='left')
-        position_dropdown.bind('<<ComboboxSelected>>',
-                              lambda e: self.update_setting('watermark_position', self.watermark_position_var.get()))
-
-        # Opacity and Scale sliders
-        self.create_slider_control(watermark_card, 'Opacity:', 'watermark_opacity', 0, 100, 70)
-        self.create_slider_control(watermark_card, 'Size (% of video width):', 'watermark_scale', 0.05, 0.5, 0.15, resolution=0.01, value_format=lambda v: f"{int(v*100)}%")
+        blur_text_pos = ttk.Combobox(pos_frame, textvariable=self.blur_text_position_var, values=['top', 'center', 'bottom'], state='readonly', width=8)
+        blur_text_pos.pack(side='left', padx=5)
+        blur_text_pos.bind('<<ComboboxSelected>>', lambda e: self.update_setting('blur_text_position', self.blur_text_position_var.get()))
 
     def browse_watermark(self):
         """Browse for watermark image file"""
