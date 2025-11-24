@@ -2022,8 +2022,8 @@ class VideoAutomationGUI:
                     padx=15, pady=6,
                     command=lambda: self.voiceover_text_var.set('')).pack(side='left', padx=2)
 
-        # ROW 3: Audio Enhancement (full width - colspan 2)
-        audio_enhance_card = self.create_grid_card(grid_container, "🎚️ Audio Enhancement", row=2, col=0, colspan=2)
+        # Audio Enhancement (Row 1 in right column)
+        audio_enhance_card = self.create_grid_card(right_grid, "🎚️ Audio Enhancement", row=1, col=0)
 
         # Audio Normalization
         norm_var = tk.BooleanVar(value=self.settings.get('audio_normalize', False))
