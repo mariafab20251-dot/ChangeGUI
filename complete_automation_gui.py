@@ -1188,210 +1188,151 @@ class VideoAutomationGUI:
         self.setup_mousewheel_scroll(canvas, content)
 
         # ═══════════════════════════════════════════════════════════
-        # 2-COLUMN GRID LAYOUT - Left: Audio Sources, Right: TTS Settings
+        # 4-COLUMN COMPACT GRID LAYOUT
         # ═══════════════════════════════════════════════════════════
         grid_container = tk.Frame(content, bg=AppStyles.BG_CARD)
-        grid_container.pack(fill='both', expand=True, padx=15, pady=10)
+        grid_container.pack(fill='both', expand=True, padx=10, pady=5)
 
-        # Configure 2 columns
-        grid_container.columnconfigure(0, weight=1, uniform='audio_col')
-        grid_container.columnconfigure(1, weight=1, uniform='audio_col')
+        # Configure 4 columns
+        for col in range(4):
+            grid_container.columnconfigure(col, weight=1, uniform='audio_col')
 
-        # LEFT COLUMN - Row 0: Original Audio
+        # Column 0: Original Audio
         original_card = self.create_grid_card(grid_container, "🎧 Original Audio", row=0, col=0)
 
         mute_var = tk.BooleanVar(value=self.settings.get('mute_original_audio', False))
-        tk.Checkbutton(original_card, text='Mute Original Audio',
+        tk.Checkbutton(original_card, text='Mute',
                       variable=mute_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
-                      font=('Segoe UI', 10, 'bold'),
+                      font=('Segoe UI', 9, 'bold'),
                       activebackground=AppStyles.BG_CARD,
                       selectcolor=AppStyles.BG_INPUT,
-                      command=lambda: self.update_setting('mute_original_audio', mute_var.get())).pack(anchor='w', padx=20, pady=10)
+                      command=lambda: self.update_setting('mute_original_audio', mute_var.get())).pack(anchor='w', padx=10, pady=5)
 
-        self.create_slider_control(original_card, 'Volume:', 'original_audio_volume', 0.0, 1.0, 0.5, resolution=0.1)
+        self.create_slider_control(original_card, 'Vol:', 'original_audio_volume', 0.0, 1.0, 0.5, resolution=0.1)
 
-        # LEFT COLUMN - Row 1: Background Music
-        bgm_card = self.create_grid_card(grid_container, "🎵 Background Music", row=1, col=0)
+        # Column 1: Background Music
+        bgm_card = self.create_grid_card(grid_container, "🎵 BGM", row=0, col=1)
 
         bgm_var = tk.BooleanVar(value=self.settings.get('add_custom_bgm', False))
-        tk.Checkbutton(bgm_card, text='Add Background Music',
+        tk.Checkbutton(bgm_card, text='Enable',
                       variable=bgm_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
-                      font=('Segoe UI', 10, 'bold'),
+                      font=('Segoe UI', 9, 'bold'),
                       activebackground=AppStyles.BG_CARD,
                       selectcolor=AppStyles.BG_INPUT,
-                      command=lambda: self.update_setting('add_custom_bgm', bgm_var.get())).pack(anchor='w', padx=20, pady=10)
+                      command=lambda: self.update_setting('add_custom_bgm', bgm_var.get())).pack(anchor='w', padx=10, pady=5)
 
-        # BGM File/Folder selection
         bgm_file_frame = tk.Frame(bgm_card, bg=AppStyles.BG_CARD)
-        bgm_file_frame.pack(fill='x', padx=20, pady=8)
-
-        tk.Label(bgm_file_frame, text='BGM File or Folder:',
-                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 10)).pack(anchor='w', pady=(0, 5))
-
-        bgm_input_frame = tk.Frame(bgm_file_frame, bg=AppStyles.BG_CARD)
-        bgm_input_frame.pack(fill='x')
+        bgm_file_frame.pack(fill='x', padx=10, pady=3)
 
         self.bgm_file_var = tk.StringVar(value=self.settings.get('bgm_file', ''))
-        bgm_entry = tk.Entry(bgm_input_frame, textvariable=self.bgm_file_var,
+        bgm_entry = tk.Entry(bgm_file_frame, textvariable=self.bgm_file_var,
                             bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                            font=('Segoe UI', 9), relief='flat', bd=2)
-        bgm_entry.pack(side='left', fill='x', expand=True, ipady=6)
+                            font=('Segoe UI', 8), relief='flat', bd=1)
+        bgm_entry.pack(fill='x', ipady=2, pady=2)
 
-        ModernButton(bgm_input_frame, text='📄 File',
+        btn_frame = tk.Frame(bgm_file_frame, bg=AppStyles.BG_CARD)
+        btn_frame.pack(fill='x')
+
+        ModernButton(btn_frame, text='📄',
                     bg_color=AppStyles.ACCENT_INFO,
-                    font=('Segoe UI', 9, 'bold'),
-                    padx=15, pady=6,
-                    command=self.browse_bgm_file).pack(side='left', padx=(5, 2))
+                    font=('Segoe UI', 8),
+                    padx=6, pady=2,
+                    command=self.browse_bgm_file).pack(side='left', padx=(0, 2))
 
-        ModernButton(bgm_input_frame, text='📁 Folder',
+        ModernButton(btn_frame, text='📁',
                     bg_color=AppStyles.ACCENT_PRIMARY,
-                    font=('Segoe UI', 9, 'bold'),
-                    padx=15, pady=6,
-                    command=self.browse_bgm_folder).pack(side='left', padx=2)
+                    font=('Segoe UI', 8),
+                    padx=6, pady=2,
+                    command=self.browse_bgm_folder).pack(side='left')
 
-        # Volume slider
-        self.create_slider_control(bgm_card, 'Volume:', 'bgm_volume', 0.0, 1.0, 0.3, resolution=0.1)
+        self.create_slider_control(bgm_card, 'Vol:', 'bgm_volume', 0.0, 1.0, 0.3, resolution=0.1)
 
-        # LEFT COLUMN - Row 2: Voiceover
-        vo_card = self.create_grid_card(grid_container, "🎙️ Voiceover", row=2, col=0)
+        # Column 2: Voiceover
+        vo_card = self.create_grid_card(grid_container, "🎙️ Voiceover", row=0, col=2)
 
         vo_var = tk.BooleanVar(value=self.settings.get('add_voiceover', False))
-        tk.Checkbutton(vo_card, text='Enable Voiceover',
+        tk.Checkbutton(vo_card, text='Enable',
                       variable=vo_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
-                      font=('Segoe UI', 10, 'bold'),
+                      font=('Segoe UI', 9, 'bold'),
                       activebackground=AppStyles.BG_CARD,
                       selectcolor=AppStyles.BG_INPUT,
-                      command=lambda: self.update_setting('add_voiceover', vo_var.get())).pack(anchor='w', padx=20, pady=10)
+                      command=lambda: self.update_setting('add_voiceover', vo_var.get())).pack(anchor='w', padx=10, pady=5)
 
-        # Voiceover Folder
         vo_folder_frame = tk.Frame(vo_card, bg=AppStyles.BG_CARD)
-        vo_folder_frame.pack(fill='x', padx=20, pady=8)
-
-        tk.Label(vo_folder_frame, text='Voiceover Folder (Files: 1.mp3, 2.mp3...):',
-                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 10)).pack(anchor='w', pady=(0, 5))
-
-        vo_input_frame = tk.Frame(vo_folder_frame, bg=AppStyles.BG_CARD)
-        vo_input_frame.pack(fill='x')
+        vo_folder_frame.pack(fill='x', padx=10, pady=3)
 
         self.vo_path_var = tk.StringVar(value=self.settings.get('voiceover_folder', ''))
-        vo_entry = tk.Entry(vo_input_frame, textvariable=self.vo_path_var,
+        vo_entry = tk.Entry(vo_folder_frame, textvariable=self.vo_path_var,
                            bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                           font=('Segoe UI', 9), relief='flat', bd=2)
-        vo_entry.pack(side='left', fill='x', expand=True, ipady=6)
+                           font=('Segoe UI', 8), relief='flat', bd=1)
+        vo_entry.pack(fill='x', ipady=2, pady=2)
 
-        ModernButton(vo_input_frame, text='📁 Browse',
+        ModernButton(vo_folder_frame, text='📁 Browse',
                     bg_color=AppStyles.ACCENT_SUCCESS,
-                    font=('Segoe UI', 9, 'bold'),
-                    padx=20, pady=6,
-                    command=self.browse_voiceover_folder).pack(side='left', padx=(5, 0))
+                    font=('Segoe UI', 8),
+                    padx=10, pady=2,
+                    command=self.browse_voiceover_folder).pack()
 
-        # RIGHT COLUMN - Row 0: TTS Settings (spanning 3 rows)
-        tts_card = self.create_grid_card(grid_container, "🗣️ TTS Settings", row=0, col=1, rowspan=3)
+        # Column 3: TTS Settings
+        tts_card = self.create_grid_card(grid_container, "🗣️ TTS", row=0, col=3)
 
         tts_var = tk.BooleanVar(value=self.settings.get('use_tts_voiceover', True))
-        tk.Checkbutton(tts_card, text='Generate Voiceover from Text (TTS)',
+        tk.Checkbutton(tts_card, text='TTS',
                       variable=tts_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
-                      font=('Segoe UI', 10, 'bold'),
+                      font=('Segoe UI', 9, 'bold'),
                       activebackground=AppStyles.BG_CARD,
                       selectcolor=AppStyles.BG_INPUT,
-                      command=lambda: self.update_setting('use_tts_voiceover', tts_var.get())).pack(anchor='w', padx=20, pady=10)
+                      command=lambda: self.update_setting('use_tts_voiceover', tts_var.get())).pack(anchor='w', padx=10, pady=3)
 
-        # Use Original Audio option (skip TTS but still apply effects)
         use_original_audio_var = tk.BooleanVar(value=self.settings.get('use_original_audio', False))
-        tk.Checkbutton(tts_card, text='Use Original Audio (Skip TTS, Apply Effects Only)',
+        tk.Checkbutton(tts_card, text='Use Original (Skip TTS)',
                       variable=use_original_audio_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
-                      font=('Segoe UI', 10, 'bold'),
+                      font=('Segoe UI', 8),
                       activebackground=AppStyles.BG_CARD,
                       selectcolor=AppStyles.BG_INPUT,
-                      command=lambda: self.update_setting('use_original_audio', use_original_audio_var.get())).pack(anchor='w', padx=20, pady=10)
+                      command=lambda: self.update_setting('use_original_audio', use_original_audio_var.get())).pack(anchor='w', padx=10, pady=2)
 
-        # Info
-        info_frame = tk.Frame(tts_card, bg=AppStyles.BG_CARD)
-        info_frame.pack(fill='x', padx=20, pady=(0, 10))
-        tk.Label(info_frame, text='ℹ️ TTS: Converts quote text to speech using AI voices.\n   Use Original Audio: Keeps video audio, applies voice/pitch effects.',
-                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 9), justify='left').pack(anchor='w', padx=15, pady=5)
+        engine_frame = tk.Frame(tts_card, bg=AppStyles.BG_INPUT, pady=5, padx=8)
+        engine_frame.pack(fill='x', padx=8, pady=3)
 
-        # TTS Engine Selection
-        engine_frame = tk.Frame(tts_card, bg=AppStyles.BG_INPUT, pady=15, padx=20)
-        engine_frame.pack(fill='x', padx=15, pady=(5, 15))
-
-        tk.Label(engine_frame, text='🎛️ TTS Engine:',
+        tk.Label(engine_frame, text='Engine:',
                 bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                font=('Segoe UI', 11, 'bold')).pack(anchor='w', pady=(0, 10))
+                font=('Segoe UI', 9, 'bold')).pack(anchor='w', pady=(0, 3))
 
         self.tts_engine_var = tk.StringVar(value=self.settings.get('tts_engine', 'cloud'))
 
-        # Cloud TTS option
         cloud_frame = tk.Frame(engine_frame, bg=AppStyles.BG_INPUT)
-        cloud_frame.pack(fill='x', pady=5)
+        cloud_frame.pack(fill='x', pady=2)
 
-        tk.Radiobutton(cloud_frame, text='☁️ Cloud TTS (Edge-TTS)',
+        tk.Radiobutton(cloud_frame, text='☁️ Cloud',
                       variable=self.tts_engine_var, value='cloud',
                       bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
                       activebackground=AppStyles.BG_INPUT,
                       selectcolor=AppStyles.BG_CARD,
-                      font=('Segoe UI', 10, 'bold'),
+                      font=('Segoe UI', 8),
                       command=self.on_tts_engine_change).pack(anchor='w')
 
-        tk.Label(cloud_frame, text='   • 60+ premium voices (Microsoft Edge TTS)',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 8)).pack(anchor='w', padx=20)
-        tk.Label(cloud_frame, text='   • Requires internet connection',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 8)).pack(anchor='w', padx=20)
-        tk.Label(cloud_frame, text='   • Fast processing, high quality',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 8)).pack(anchor='w', padx=20)
-
-        # Local TTS option (Kokoro)
         local_frame = tk.Frame(engine_frame, bg=AppStyles.BG_INPUT)
-        local_frame.pack(fill='x', pady=(10, 5))
+        local_frame.pack(fill='x', pady=2)
 
-        tk.Radiobutton(local_frame, text='💻 Local TTS (Kokoro - FREE & Offline)',
+        tk.Radiobutton(local_frame, text='💻 Local (Kokoro)',
                       variable=self.tts_engine_var, value='local',
                       bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
                       activebackground=AppStyles.BG_INPUT,
                       selectcolor=AppStyles.BG_CARD,
-                      font=('Segoe UI', 10, 'bold'),
+                      font=('Segoe UI', 8),
                       command=self.on_tts_engine_change).pack(anchor='w')
 
-        tk.Label(local_frame, text='   • 100% FREE - No subscriptions, no character limits',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.ACCENT_SUCCESS,
-                font=('Segoe UI', 8, 'bold')).pack(anchor='w', padx=20)
-        tk.Label(local_frame, text='   • Works completely offline (no internet needed)',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 8)).pack(anchor='w', padx=20)
-        tk.Label(local_frame, text='   • Studio-quality voices, faster than cloud',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 8)).pack(anchor='w', padx=20)
-        tk.Label(local_frame, text='   • Runs on modest hardware (8GB RAM recommended)',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 8)).pack(anchor='w', padx=20)
-
-        # NeuTTS option (Voice Cloning)
         neutts_frame = tk.Frame(engine_frame, bg=AppStyles.BG_INPUT)
-        neutts_frame.pack(fill='x', pady=(10, 5))
+        neutts_frame.pack(fill='x', pady=2)
 
-        tk.Radiobutton(neutts_frame, text='🎙️ NeuTTS (Voice Cloning)',
+        tk.Radiobutton(neutts_frame, text='🎙️ NeuTTS',
                       variable=self.tts_engine_var, value='neutts',
                       bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
                       activebackground=AppStyles.BG_INPUT,
                       selectcolor=AppStyles.BG_CARD,
-                      font=('Segoe UI', 10, 'bold'),
+                      font=('Segoe UI', 8),
                       command=self.on_tts_engine_change).pack(anchor='w')
-
-        tk.Label(neutts_frame, text='   • Clone any voice from audio sample',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.ACCENT_PRIMARY,
-                font=('Segoe UI', 8, 'bold')).pack(anchor='w', padx=20)
-        tk.Label(neutts_frame, text='   • Create custom voices from 10-30 seconds of audio',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 8)).pack(anchor='w', padx=20)
-        tk.Label(neutts_frame, text='   • Requires NeuTTS server running locally',
-                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 8)).pack(anchor='w', padx=20)
 
         # Kokoro TTS Settings (shown when Local TTS is selected)
         self.kokoro_settings_frame = tk.Frame(tts_card, bg=AppStyles.BG_CARD)
@@ -1994,8 +1935,8 @@ class VideoAutomationGUI:
                     padx=15, pady=6,
                     command=lambda: self.voiceover_text_var.set('')).pack(side='left', padx=2)
 
-        # FULL WIDTH - Row 3: Audio Enhancement
-        audio_enhance_card = self.create_grid_card(grid_container, "🎚️ Audio Enhancement", row=3, col=0, colspan=2)
+        # Row 1 - Full Width: Audio Enhancement
+        audio_enhance_card = self.create_grid_card(grid_container, "🎚️ Audio Enhancement", row=1, col=0, colspan=4)
 
         # Audio Normalization
         norm_var = tk.BooleanVar(value=self.settings.get('audio_normalize', False))
