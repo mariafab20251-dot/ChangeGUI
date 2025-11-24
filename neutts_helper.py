@@ -193,6 +193,11 @@ class NeuTTSHelper:
             Tuple of (success: bool, message: str)
         """
         try:
+            # Debug: Log the input text
+            print(f"\n[NeuTTS DEBUG] Input text length: {len(text)} chars")
+            print(f"[NeuTTS DEBUG] Input text: {text[:100]}..." if len(text) > 100 else f"[NeuTTS DEBUG] Input text: {text}")
+            print(f"[NeuTTS DEBUG] Voice: {voice_name}, Speed: {speed}, Pitch: {pitch}")
+
             # Check if voice exists in library
             if voice_name not in self.voices_library:
                 return False, f"Voice '{voice_name}' not found in library"
@@ -201,12 +206,14 @@ class NeuTTSHelper:
             try:
                 from gradio_client import Client
                 client = Client(self.server_url)
+                print(f"[NeuTTS DEBUG] Using gradio_client to call /generate_speech")
                 result = client.predict(
                     text=text,
                     voice_name=voice_name,
                     speed=speed,
                     api_name="/generate_speech"
                 )
+                print(f"[NeuTTS DEBUG] Result type: {type(result)}, Result: {str(result)[:200]}")
 
                 # Handle different result types
                 import shutil
@@ -227,16 +234,20 @@ class NeuTTSHelper:
                 if audio_file and isinstance(audio_file, str):
                     # Copy the generated audio to output path
                     shutil.copy(audio_file, output_path)
+                    # Check file size
+                    file_size = os.path.getsize(output_path)
+                    print(f"[NeuTTS DEBUG] Audio file saved: {output_path}, Size: {file_size} bytes")
                     return True, f"✓ Speech generated: {output_path}"
                 else:
-                    print(f"Unexpected result type from gradio_client: {type(result)} = {result}")
+                    print(f"[NeuTTS DEBUG] Unexpected result type from gradio_client: {type(result)} = {result}")
 
             except ImportError:
                 # gradio_client not installed, try requests
+                print(f"[NeuTTS DEBUG] gradio_client not installed, falling back to requests")
                 pass
             except Exception as e:
                 # Log but try fallback
-                print(f"gradio_client error: {e}")
+                print(f"[NeuTTS DEBUG] gradio_client error: {e}, trying fallback methods")
 
             # Fallback: Use requests with the correct endpoint
             # Format: /call/generate_speech or /api/predict with api_name
@@ -262,11 +273,16 @@ class NeuTTSHelper:
                             "data": [text, voice_name, speed]
                         }
 
+                    print(f"[NeuTTS DEBUG] Trying endpoint: {self.server_url}{endpoint}")
+                    print(f"[NeuTTS DEBUG] Payload data: text_len={len(text)}, voice={voice_name}, speed={speed}")
+
                     response = requests.post(
                         f"{self.server_url}{endpoint}",
                         json=payload,
                         timeout=120
                     )
+
+                    print(f"[NeuTTS DEBUG] Response status: {response.status_code}")
 
                     if response.status_code == 200:
                         result = response.json()
@@ -299,11 +315,15 @@ class NeuTTSHelper:
                             with open(output_path, 'wb') as f:
                                 f.write(audio_bytes)
 
+                            file_size = os.path.getsize(output_path)
+                            print(f"[NeuTTS DEBUG] Audio saved via requests: {output_path}, Size: {file_size} bytes")
                             return True, f"✓ Speech generated: {output_path}"
 
                 except requests.exceptions.RequestException as e:
+                    print(f"[NeuTTS DEBUG] Request failed for {endpoint}: {e}")
                     continue
 
+            print(f"[NeuTTS DEBUG] All endpoints failed")
             return False, "✗ Could not generate speech - install gradio_client: pip install gradio_client"
 
         except Exception as e:
