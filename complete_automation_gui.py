@@ -1236,6 +1236,147 @@ class VideoAutomationGUI:
                 bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
                 font=('Segoe UI', 8, 'italic')).pack(anchor='w', pady=(5, 0))
 
+        # Separator
+        tk.Frame(blur_card, bg=AppStyles.BORDER_LIGHT, height=1).pack(fill='x', pady=(15, 10))
+
+        # Text on Blur section
+        tk.Label(blur_card, text='📝 Text on Blur Region',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 11, 'bold')).pack(anchor='w', pady=(0, 10))
+
+        # Enable text on blur
+        blur_text_var = tk.BooleanVar(value=self.settings.get('blur_text_enabled', False))
+        tk.Checkbutton(blur_card, text='Add Text to Blur Region',
+                      variable=blur_text_var, bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 10),
+                      activebackground=AppStyles.BG_INPUT,
+                      selectcolor=AppStyles.BG_CARD,
+                      command=lambda: self.update_setting('blur_text_enabled', blur_text_var.get())).pack(anchor='w', pady=(0, 10))
+
+        # Live Preview for blur text
+        preview_container = tk.Frame(blur_card, bg=AppStyles.BG_INPUT)
+        preview_container.pack(fill='x', pady=(0, 10))
+
+        tk.Label(preview_container, text='📺 Live Preview:',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'bold')).pack(anchor='w')
+
+        blur_preview_frame = tk.Frame(preview_container, bg='#1a1a2e', relief='sunken', bd=2)
+        blur_preview_frame.pack(fill='x', pady=(2, 0))
+
+        self.blur_preview_canvas = tk.Canvas(blur_preview_frame, height=60, bg='#1a1a2e', highlightthickness=0)
+        self.blur_preview_canvas.pack(fill='x', padx=5, pady=5)
+
+        # Create preview text
+        self.blur_preview_text_id = self.blur_preview_canvas.create_text(
+            200, 30,
+            text=self.settings.get('blur_text_content', 'Sample Text'),
+            fill=self.settings.get('blur_text_color', '#FFFFFF'),
+            font=(self.settings.get('blur_text_font', 'Arial'), 14, 'bold')
+        )
+
+        def on_blur_canvas_resize(event):
+            self.blur_preview_canvas.coords(self.blur_preview_text_id, event.width // 2, 30)
+        self.blur_preview_canvas.bind('<Configure>', on_blur_canvas_resize)
+
+        # Text content input
+        text_input_frame = tk.Frame(blur_card, bg=AppStyles.BG_INPUT)
+        text_input_frame.pack(fill='x', pady=(0, 10))
+
+        tk.Label(text_input_frame, text='Text Content:',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(0, 5))
+
+        self.blur_text_content_var = tk.StringVar(value=self.settings.get('blur_text_content', 'Your Text Here'))
+        blur_text_entry = tk.Entry(text_input_frame, textvariable=self.blur_text_content_var,
+                                   bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                                   font=('Segoe UI', 10), relief='flat', bd=2)
+        blur_text_entry.pack(fill='x', ipady=6)
+
+        def update_blur_text_content(event=None):
+            text = self.blur_text_content_var.get()
+            self.update_setting('blur_text_content', text)
+            self.blur_preview_canvas.itemconfig(self.blur_preview_text_id, text=text)
+
+        blur_text_entry.bind('<KeyRelease>', update_blur_text_content)
+
+        # Font selection for blur text
+        blur_font_frame = tk.Frame(blur_card, bg=AppStyles.BG_INPUT)
+        blur_font_frame.pack(fill='x', pady=(0, 10))
+
+        tk.Label(blur_font_frame, text='Font:',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
+
+        blur_fonts = self.get_system_fonts()
+        self.blur_text_font_var = tk.StringVar(value=self.settings.get('blur_text_font', 'Arial'))
+        blur_font_combo = ttk.Combobox(blur_font_frame, textvariable=self.blur_text_font_var,
+                                       values=blur_fonts, width=18)
+        blur_font_combo.pack(side='left')
+
+        def update_blur_font(event=None):
+            font = self.blur_text_font_var.get()
+            if font.startswith('[Custom] '):
+                font = font[9:]
+            self.update_setting('blur_text_font', font)
+            size = int(self.settings.get('blur_text_size', 24)) // 2
+            self.blur_preview_canvas.itemconfig(self.blur_preview_text_id,
+                                                font=(font, min(size, 16), 'bold'))
+
+        blur_font_combo.bind('<<ComboboxSelected>>', update_blur_font)
+
+        # Font size slider
+        self.create_slider_control(blur_card, 'Text Size:', 'blur_text_size', 12, 72, 24,
+                                  value_format=lambda v: f"{int(v)}px")
+
+        # Text color picker
+        blur_text_color_frame = tk.Frame(blur_card, bg=AppStyles.BG_INPUT)
+        blur_text_color_frame.pack(fill='x', pady=(0, 10))
+
+        tk.Label(blur_text_color_frame, text='Text Color:',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
+
+        self.blur_text_color_var = tk.StringVar(value=self.settings.get('blur_text_color', '#FFFFFF'))
+
+        blur_text_preview = tk.Frame(blur_text_color_frame, bg=self.blur_text_color_var.get(),
+                                     width=30, height=20, relief='solid', borderwidth=1)
+        blur_text_preview.pack(side='left', padx=(0, 5))
+
+        tk.Entry(blur_text_color_frame, textvariable=self.blur_text_color_var, width=8,
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9), relief='flat').pack(side='left', padx=5)
+
+        def pick_blur_text_color():
+            color = colorchooser.askcolor(title="Choose Blur Text Color")
+            if color[1]:
+                self.blur_text_color_var.set(color[1])
+                blur_text_preview.config(bg=color[1])
+                self.update_setting('blur_text_color', color[1])
+                self.blur_preview_canvas.itemconfig(self.blur_preview_text_id, fill=color[1])
+
+        ModernButton(blur_text_color_frame, text='Pick',
+                    bg_color=AppStyles.ACCENT_INFO,
+                    font=('Segoe UI', 9, 'bold'),
+                    padx=12, pady=5,
+                    command=pick_blur_text_color).pack(side='left', padx=5)
+
+        # Text position within blur region
+        blur_text_pos_frame = tk.Frame(blur_card, bg=AppStyles.BG_INPUT)
+        blur_text_pos_frame.pack(fill='x', pady=(0, 10))
+
+        tk.Label(blur_text_pos_frame, text='Text Position:',
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 10)).pack(side='left', padx=(0, 10))
+
+        self.blur_text_position_var = tk.StringVar(value=self.settings.get('blur_text_position', 'center'))
+        blur_text_pos_dropdown = ttk.Combobox(blur_text_pos_frame, textvariable=self.blur_text_position_var,
+                                              values=['top', 'center', 'bottom'],
+                                              state='readonly', width=12)
+        blur_text_pos_dropdown.pack(side='left')
+        blur_text_pos_dropdown.bind('<<ComboboxSelected>>',
+                                   lambda e: self.update_setting('blur_text_position', self.blur_text_position_var.get()))
+
         # Watermark/Logo Section
         watermark_card = tk.Frame(content, bg=AppStyles.BG_INPUT, pady=15, padx=20)
         watermark_card.pack(fill='x', padx=15, pady=(15, 0))
