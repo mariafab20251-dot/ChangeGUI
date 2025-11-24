@@ -1197,7 +1197,7 @@ class VideoAutomationGUI:
         for col in range(4):
             grid_container.columnconfigure(col, weight=1)
 
-        # Column 0: Original Audio
+        # Column 0: Original Audio - COMPACT
         original_card = self.create_grid_card(grid_container, "🎧 Original Audio", row=0, col=0)
 
         mute_var = tk.BooleanVar(value=self.settings.get('mute_original_audio', False))
@@ -1206,11 +1206,11 @@ class VideoAutomationGUI:
                       font=('Segoe UI', 9, 'bold'),
                       activebackground=AppStyles.BG_CARD,
                       selectcolor=AppStyles.BG_INPUT,
-                      command=lambda: self.update_setting('mute_original_audio', mute_var.get())).pack(anchor='w', padx=10, pady=5)
+                      command=lambda: self.update_setting('mute_original_audio', mute_var.get())).pack(anchor='w', padx=8, pady=3)
 
         self.create_slider_control(original_card, 'Vol:', 'original_audio_volume', 0.0, 1.0, 0.5, resolution=0.1)
 
-        # Column 1: Background Music
+        # Column 1: Background Music - COMPACT
         bgm_card = self.create_grid_card(grid_container, "🎵 BGM", row=0, col=1)
 
         bgm_var = tk.BooleanVar(value=self.settings.get('add_custom_bgm', False))
@@ -1219,35 +1219,35 @@ class VideoAutomationGUI:
                       font=('Segoe UI', 9, 'bold'),
                       activebackground=AppStyles.BG_CARD,
                       selectcolor=AppStyles.BG_INPUT,
-                      command=lambda: self.update_setting('add_custom_bgm', bgm_var.get())).pack(anchor='w', padx=10, pady=5)
+                      command=lambda: self.update_setting('add_custom_bgm', bgm_var.get())).pack(anchor='w', padx=8, pady=3)
 
         bgm_file_frame = tk.Frame(bgm_card, bg=AppStyles.BG_CARD)
-        bgm_file_frame.pack(fill='x', padx=10, pady=3)
+        bgm_file_frame.pack(fill='x', padx=8, pady=2)
 
         self.bgm_file_var = tk.StringVar(value=self.settings.get('bgm_file', ''))
         bgm_entry = tk.Entry(bgm_file_frame, textvariable=self.bgm_file_var,
                             bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
                             font=('Segoe UI', 8), relief='flat', bd=1)
-        bgm_entry.pack(fill='x', ipady=2, pady=2)
+        bgm_entry.pack(fill='x', ipady=1)
 
         btn_frame = tk.Frame(bgm_file_frame, bg=AppStyles.BG_CARD)
-        btn_frame.pack(fill='x')
+        btn_frame.pack(fill='x', pady=1)
 
         ModernButton(btn_frame, text='📄',
                     bg_color=AppStyles.ACCENT_INFO,
-                    font=('Segoe UI', 8),
-                    padx=6, pady=2,
-                    command=self.browse_bgm_file).pack(side='left', padx=(0, 2))
+                    font=('Segoe UI', 7),
+                    padx=4, pady=1,
+                    command=self.browse_bgm_file).pack(side='left', padx=(0, 1))
 
         ModernButton(btn_frame, text='📁',
                     bg_color=AppStyles.ACCENT_PRIMARY,
-                    font=('Segoe UI', 8),
-                    padx=6, pady=2,
+                    font=('Segoe UI', 7),
+                    padx=4, pady=1,
                     command=self.browse_bgm_folder).pack(side='left')
 
         self.create_slider_control(bgm_card, 'Vol:', 'bgm_volume', 0.0, 1.0, 0.3, resolution=0.1)
 
-        # Column 2: Voiceover
+        # Column 2: Voiceover - COMPACT
         vo_card = self.create_grid_card(grid_container, "🎙️ Voiceover", row=0, col=2)
 
         vo_var = tk.BooleanVar(value=self.settings.get('add_voiceover', False))
@@ -1256,22 +1256,22 @@ class VideoAutomationGUI:
                       font=('Segoe UI', 9, 'bold'),
                       activebackground=AppStyles.BG_CARD,
                       selectcolor=AppStyles.BG_INPUT,
-                      command=lambda: self.update_setting('add_voiceover', vo_var.get())).pack(anchor='w', padx=10, pady=5)
+                      command=lambda: self.update_setting('add_voiceover', vo_var.get())).pack(anchor='w', padx=8, pady=3)
 
         vo_folder_frame = tk.Frame(vo_card, bg=AppStyles.BG_CARD)
-        vo_folder_frame.pack(fill='x', padx=10, pady=3)
+        vo_folder_frame.pack(fill='x', padx=8, pady=2)
 
         self.vo_path_var = tk.StringVar(value=self.settings.get('voiceover_folder', ''))
         vo_entry = tk.Entry(vo_folder_frame, textvariable=self.vo_path_var,
                            bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
                            font=('Segoe UI', 8), relief='flat', bd=1)
-        vo_entry.pack(fill='x', ipady=2, pady=2)
+        vo_entry.pack(fill='x', ipady=1)
 
         ModernButton(vo_folder_frame, text='📁 Browse',
                     bg_color=AppStyles.ACCENT_SUCCESS,
-                    font=('Segoe UI', 8),
-                    padx=10, pady=2,
-                    command=self.browse_voiceover_folder).pack()
+                    font=('Segoe UI', 7),
+                    padx=8, pady=1,
+                    command=self.browse_voiceover_folder).pack(pady=1)
 
         # Column 3: TTS Settings
         tts_card = self.create_grid_card(grid_container, "🗣️ TTS", row=0, col=3)
