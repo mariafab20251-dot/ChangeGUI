@@ -3649,23 +3649,79 @@ class VideoQuoteAutomation:
 
         # Load separate fonts for Title, Quote, and CTA
         try:
-            # Title font
-            title_font_size = self.settings.get('title_font_size', 45)
-            title_font_file = self.settings.get('title_font_file', 'arialbd.ttf')
+            # Helper function to find font file from font family name
+            def get_font_file(font_family):
+                """Convert font family name to font file path"""
+                # Common font family to file mappings
+                font_mappings = {
+                    'Arial': 'arial.ttf',
+                    'Arial Bold': 'arialbd.ttf',
+                    'Arial Italic': 'ariali.ttf',
+                    'Times New Roman': 'times.ttf',
+                    'Georgia': 'georgia.ttf',
+                    'Verdana': 'verdana.ttf',
+                    'Tahoma': 'tahoma.ttf',
+                    'Trebuchet MS': 'trebuc.ttf',
+                    'Impact': 'impact.ttf',
+                    'Comic Sans MS': 'comic.ttf',
+                    'Courier New': 'cour.ttf',
+                    'Segoe UI': 'segoeui.ttf',
+                    'Calibri': 'calibri.ttf',
+                    'Cambria': 'cambria.ttc',
+                    'Consolas': 'consola.ttf',
+                }
+
+                # Check if it's already a file path
+                if font_family.endswith('.ttf') or font_family.endswith('.otf') or font_family.endswith('.ttc'):
+                    return font_family
+
+                # Try exact match in mappings
+                if font_family in font_mappings:
+                    return font_mappings[font_family]
+
+                # Try case-insensitive match
+                for name, file in font_mappings.items():
+                    if name.lower() == font_family.lower():
+                        return file
+
+                # Try to find a matching font file in Windows fonts folder
+                fonts_path = Path(r"C:\Windows\Fonts")
+                if fonts_path.exists():
+                    # Try direct match with various extensions
+                    for ext in ['.ttf', '.otf', '.ttc']:
+                        possible_file = fonts_path / f"{font_family}{ext}"
+                        if possible_file.exists():
+                            return str(possible_file)
+
+                    # Try lowercase
+                    font_lower = font_family.lower().replace(' ', '')
+                    for font_file in fonts_path.glob('*.ttf'):
+                        if font_lower in font_file.stem.lower():
+                            return str(font_file)
+
+                # Default fallback
+                return 'arial.ttf'
+
+            # Title font - read from GUI settings
+            title_font_size = int(self.settings.get('title_font_size', 45))
+            title_font_family = self.settings.get('title_font_family', 'Arial')
+            title_font_file = get_font_file(title_font_family)
             if not Path(title_font_file).exists():
                 title_font_file = str(Path(r"C:\Windows\Fonts") / Path(title_font_file).name)
             title_font = ImageFont.truetype(title_font_file, title_font_size)
 
-            # Quote font
-            quote_font_size = self.settings.get('quote_font_size', 35)
-            quote_font_file = self.settings.get('quote_font_file', 'ANTQUAB.TTF')
+            # Quote font - read from GUI settings
+            quote_font_size = int(self.settings.get('quote_font_size', 35))
+            quote_font_family = self.settings.get('quote_font_family', 'Georgia')
+            quote_font_file = get_font_file(quote_font_family)
             if not Path(quote_font_file).exists():
                 quote_font_file = str(Path(r"C:\Windows\Fonts") / Path(quote_font_file).name)
             quote_font = ImageFont.truetype(quote_font_file, quote_font_size)
 
-            # CTA font
-            cta_font_size = self.settings.get('cta_font_size', 43)
-            cta_font_file = self.settings.get('cta_font_file', 'ariali.ttf')
+            # CTA font - read from GUI settings
+            cta_font_size = int(self.settings.get('cta_font_size', 43))
+            cta_font_family = self.settings.get('cta_font_family', 'Arial')
+            cta_font_file = get_font_file(cta_font_family)
             if not Path(cta_font_file).exists():
                 cta_font_file = str(Path(r"C:\Windows\Fonts") / Path(cta_font_file).name)
             cta_font = ImageFont.truetype(cta_font_file, cta_font_size)
@@ -3786,16 +3842,23 @@ class VideoQuoteAutomation:
             is_title = (section_type == 'title')
             is_quote = (section_type == 'main')
 
-            # Use separate background and text colors for each section
+            # Use separate background, text colors, and outline colors for each section
             if is_title:
                 current_bg = title_bg
                 current_text_color = self.hex_to_rgb(self.settings.get('title_text_color', '#000000'))
+                current_outline_color = self.hex_to_rgb(self.settings.get('title_outline_color', '#000000'))
             elif is_cta:
                 current_bg = cta_bg
                 current_text_color = self.hex_to_rgb(self.settings.get('cta_text_color', '#000000'))
+                current_outline_color = self.hex_to_rgb(self.settings.get('cta_outline_color', '#000000'))
             else:  # Quote
                 current_bg = quote_bg
                 current_text_color = self.hex_to_rgb(self.settings.get('quote_text_color', '#000000'))
+                current_outline_color = self.hex_to_rgb(self.settings.get('quote_outline_color', '#000000'))
+
+            # Check if outline should be drawn (when outline color differs from text color)
+            draw_outline = current_outline_color != current_text_color
+            outline_width = 2  # Outline thickness in pixels
 
             bubble_width = box_info['width'] + (self.settings['padding_horizontal'] * 2)
             bubble_height = box_info['height'] + (self.settings['inner_padding'] * 2)
@@ -3810,6 +3873,20 @@ class VideoQuoteAutomation:
             if is_multiline:
                 text_x = bubble_x + (bubble_width // 2)
                 text_y = current_y + self.settings['inner_padding']
+                # Draw outline first if enabled
+                if draw_outline:
+                    for dx in range(-outline_width, outline_width + 1):
+                        for dy in range(-outline_width, outline_width + 1):
+                            if dx*dx + dy*dy <= outline_width*outline_width:
+                                draw.multiline_text(
+                                    (text_x + dx, text_y + dy),
+                                    text,
+                                    font=font,
+                                    fill=current_outline_color,
+                                    align='center',
+                                    anchor='ma'
+                                )
+                # Draw main text
                 draw.multiline_text(
                     (text_x, text_y),
                     text,
@@ -3835,6 +3912,12 @@ class VideoQuoteAutomation:
                     # Draw text (left side)
                     text_x = bubble_x + (bubble_width - total_content_width) // 2
                     text_y = current_y + (bubble_height // 2)
+                    # Draw outline first if enabled
+                    if draw_outline:
+                        for dx in range(-outline_width, outline_width + 1):
+                            for dy in range(-outline_width, outline_width + 1):
+                                if dx*dx + dy*dy <= outline_width*outline_width:
+                                    draw.text((text_x + dx, text_y + dy), text, font=font, fill=current_outline_color, anchor='lm')
                     draw.text(
                         (text_x, text_y),
                         text,
@@ -3861,6 +3944,12 @@ class VideoQuoteAutomation:
                     # No emojis, just centered text
                     text_x = bubble_x + (bubble_width // 2)
                     text_y = current_y + (bubble_height // 2)
+                    # Draw outline first if enabled
+                    if draw_outline:
+                        for dx in range(-outline_width, outline_width + 1):
+                            for dy in range(-outline_width, outline_width + 1):
+                                if dx*dx + dy*dy <= outline_width*outline_width:
+                                    draw.text((text_x + dx, text_y + dy), text, font=font, fill=current_outline_color, anchor='mm')
                     draw.text(
                         (text_x, text_y),
                         text,
