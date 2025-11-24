@@ -880,11 +880,15 @@ class VideoAutomationGUI:
         # HORIZONTAL GRID LAYOUT FOR SETTINGS (3 columns)
         # ═══════════════════════════════════════════════════════════
         settings_grid = tk.Frame(content, bg=AppStyles.BG_CARD)
-        settings_grid.pack(fill='both', expand=True, padx=10, pady=10)
+        settings_grid.pack(fill='both', expand=True, padx=15, pady=10)
 
-        # Configure 3-column grid
+        # Configure 3-column grid with equal weights
         for col in range(3):
             settings_grid.columnconfigure(col, weight=1, uniform='effects_col')
+
+        # Configure rows to expand evenly
+        for row in range(4):  # 4 rows of cards
+            settings_grid.rowconfigure(row, weight=1)
 
         # ═══════════════════════════════════════════════════════════
         # ROW 0: Chromatic Aberration | Gradient Overlay | Particle Effects
