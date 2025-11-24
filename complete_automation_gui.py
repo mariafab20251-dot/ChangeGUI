@@ -2197,26 +2197,26 @@ class VideoAutomationGUI:
         self.update_caption_preview()
 
         # ═══════════════════════════════════════════════════════════
-        # 2-COLUMN LAYOUT: Left = Settings, Right = Styling
+        # 4-COLUMN GRID LAYOUT: Left = Settings, Right = Styling
         # ═══════════════════════════════════════════════════════════
         main_container = tk.Frame(content, bg=AppStyles.BG_CARD)
         main_container.pack(fill='both', expand=True, padx=15, pady=10)
 
         # Left column for basic settings
-        left_column = tk.Frame(main_container, bg=AppStyles.BG_CARD)
-        left_column.pack(side='left', fill='both', expand=True, padx=(0, 10))
+        col_frame = tk.Frame(main_container, bg=AppStyles.BG_CARD)
+        col_frame.pack(side='left', fill='both', expand=True, padx=(0, 10))
 
         # Right column for styling
-        right_column = tk.Frame(main_container, bg=AppStyles.BG_CARD)
-        right_column.pack(side='left', fill='both', expand=True)
+        col2_frame = tk.Frame(main_container, bg=AppStyles.BG_CARD)
+        col2_frame.pack(side='left', fill='both', expand=True)
 
         # LEFT COLUMN - Basic Settings
-        left_grid = tk.Frame(left_column, bg=AppStyles.BG_CARD)
-        left_grid.pack(fill='both', expand=True)
-        left_grid.columnconfigure(0, weight=1)
+        grid_container = tk.Frame(col_frame, bg=AppStyles.BG_CARD)
+        grid_container.pack(fill='both', expand=True)
+        grid_container.columnconfigure(0, weight=1)
 
         # Enable Captions (Row 0)
-        cap_card = self.create_grid_card(left_grid, "💬 Enable Captions", row=0, col=0)
+        cap_card = self.create_grid_card(grid_container, "💬 Enable Captions", row=0, col=0)
 
         caption_var = tk.BooleanVar(value=self.settings.get('enable_captions', True))
         tk.Checkbutton(cap_card, text='Enable Word-by-Word Captions',
@@ -2233,7 +2233,7 @@ class VideoAutomationGUI:
                 font=('Segoe UI', 8), justify='left').pack(anchor='w', padx=10, pady=3)
 
         # Caption Style Presets (Row 1)
-        preset_card = self.create_grid_card(left_grid, "🎨 Presets", row=1, col=0)
+        preset_card = self.create_grid_card(grid_container, "🎨 Presets", row=1, col=0)
 
         preset_frame = tk.Frame(preset_card, bg=AppStyles.BG_CARD)
         preset_frame.pack(fill='x', padx=12, pady=6)
@@ -2307,7 +2307,7 @@ class VideoAutomationGUI:
                     command=self.apply_caption_preset).pack(pady=3)
 
         # Emoji Theme (Row 2)
-        emoji_card = self.create_grid_card(left_grid, "😊 Emoji", row=2, col=0)
+        emoji_card = self.create_grid_card(grid_container, "😊 Emoji", row=0, col=1)
 
         emoji_frame = tk.Frame(emoji_card, bg=AppStyles.BG_CARD)
         emoji_frame.pack(fill='x', padx=12, pady=6)
@@ -2375,7 +2375,7 @@ class VideoAutomationGUI:
                 font=('Segoe UI', 8, 'italic'), justify='left').pack(anchor='w', padx=10, pady=5)
 
         # Global Settings (Row 3)
-        global_card = self.create_grid_card(left_grid, "🌍 Global Settings", row=3, col=0)
+        global_card = self.create_grid_card(grid_container, "🌍 Global Settings", row=1, col=1)
 
         # Caption Layout
         layout_frame = tk.Frame(global_card, bg=AppStyles.BG_CARD)
@@ -2430,12 +2430,12 @@ class VideoAutomationGUI:
         self.create_slider_control(global_card, 'Words Per Caption:', 'caption_words_per_line', 1, 5, 3)
 
         # RIGHT COLUMN - Styling
-        right_grid = tk.Frame(right_column, bg=AppStyles.BG_CARD)
-        right_grid.pack(fill='both', expand=True)
-        right_grid.columnconfigure(0, weight=1)
+        grid_container = tk.Frame(col2_frame, bg=AppStyles.BG_CARD)
+        grid_container.pack(fill='both', expand=True)
+        grid_container.columnconfigure(0, weight=1)
 
         # Regular Caption Settings (Row 0)
-        regular_card = self.create_grid_card(right_grid, "📝 Regular Captions", row=0, col=0)
+        regular_card = self.create_grid_card(grid_container, "📝 Regular Captions", row=0, col=2)
 
         # Font style
         font_frame = tk.Frame(regular_card, bg=AppStyles.BG_CARD)
@@ -2468,7 +2468,7 @@ class VideoAutomationGUI:
         self.create_slider_control(regular_card, 'Opacity:', 'caption_bg_opacity', 0, 255, 180)
 
         # CapCut-Style Highlighting
-        capcut_card = self.create_grid_card(right_grid, "✨ CapCut Highlighting", row=1, col=0)
+        capcut_card = self.create_grid_card(grid_container, "✨ CapCut Highlighting", row=0, col=3)
 
         highlight_var = tk.BooleanVar(value=self.settings.get('caption_highlight_enabled', False))
         tk.Checkbutton(capcut_card, text='✨ Enable Word-by-Word Highlighting (like TikTok/Instagram)',
@@ -2529,7 +2529,7 @@ class VideoAutomationGUI:
 
         # ROW 2: Text Stroke (full width)
         # Stroke/Outline
-        stroke_card = self.create_grid_card(right_grid, "🖊️ Text Stroke/Outline", row=2, col=0)
+        stroke_card = self.create_grid_card(grid_container, "🖊️ Text Stroke/Outline", row=1, col=3)
 
         stroke_var = tk.BooleanVar(value=self.settings.get('caption_stroke_enabled', False))
         tk.Checkbutton(stroke_card, text='Enable Text Stroke/Outline',
