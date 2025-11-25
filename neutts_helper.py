@@ -201,7 +201,10 @@ class NeuTTSHelper:
 
             # Check if voice exists in library
             if voice_name not in self.voices_library:
-                return False, f"Voice '{voice_name}' not found in library"
+                error_msg = f"Voice '{voice_name}' not found in library"
+                print(f"[NeuTTS DEBUG] ERROR: {error_msg}")
+                print(f"[NeuTTS DEBUG] Available voices: {list(self.voices_library.keys())}")
+                return False, error_msg
 
             # Split text into sentences to handle NeuTTS server limitation
             # NeuTTS server appears to only process first sentence, so we split and concatenate
@@ -368,7 +371,10 @@ class NeuTTSHelper:
                 pass
             except Exception as e:
                 # Log but try fallback
-                print(f"[NeuTTS DEBUG] gradio_client error: {e}, trying fallback methods")
+                print(f"[NeuTTS DEBUG] gradio_client error: {type(e).__name__}: {e}")
+                import traceback
+                traceback.print_exc()
+                print(f"[NeuTTS DEBUG] Trying fallback methods...")
 
             # Fallback: Use requests with the correct endpoint
             # Format: /call/generate_speech or /api/predict with api_name
@@ -441,11 +447,14 @@ class NeuTTSHelper:
                             return True, f"✓ Speech generated: {output_path}"
 
                 except requests.exceptions.RequestException as e:
-                    print(f"[NeuTTS DEBUG] Request failed for {endpoint}: {e}")
+                    print(f"[NeuTTS DEBUG] Request failed for {endpoint}: {type(e).__name__}: {e}")
+                    continue
+                except Exception as e:
+                    print(f"[NeuTTS DEBUG] Unexpected error for {endpoint}: {type(e).__name__}: {e}")
                     continue
 
-            print(f"[NeuTTS DEBUG] All endpoints failed")
-            return False, "✗ Could not generate speech - install gradio_client: pip install gradio_client"
+            print(f"[NeuTTS DEBUG] All endpoints failed - no successful response")
+            return False, "✗ Could not generate speech - all API endpoints failed. Check server logs."
 
         except Exception as e:
             return False, f"✗ Exception: {str(e)}"
