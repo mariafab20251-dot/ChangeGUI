@@ -4421,25 +4421,20 @@ class VideoQuoteAutomation:
                 video = video.with_fps(video.fps).fl(VideoEffects.apply_selective_blur)
 
 
-        # ========== FIX: Check TTS duration FIRST and loop video if needed ==========
-        # This prevents frame reading errors when TTS audio is longer than source video
+        # ========== DISABLED: Don't loop video based on TTS estimation ==========
+        # The estimation was inaccurate and caused videos to loop unnecessarily
+        # Instead, we'll handle TTS duration mismatch later with actual TTS audio duration
         target_duration = video.duration
         original_video_duration = video.duration
 
-        if self.settings.get('use_tts_voiceover', False) and TTS_AVAILABLE:
-            # Pre-calculate TTS duration to know if we need to loop the video
-            # We'll generate TTS properly later, but need to estimate duration now
-            tts_speed = self.settings.get('tts_speed', 130)
-            # Estimate: ~150 WPM at default speed, adjust for user speed setting
-            word_count = len(voiceover_text.split())
-            estimated_tts_duration = (word_count / 150) * 60 * (150 / tts_speed)
-
-            if estimated_tts_duration > video.duration:
-                target_duration = estimated_tts_duration * 1.1  # Add 10% buffer
-                print(f"[INFO] TTS will be ~{estimated_tts_duration:.1f}s, video is {video.duration:.1f}s - will loop video")
+        # NOTE: Video looping based on TTS estimation is now disabled
+        # If TTS is longer than video, the video will simply play to the end
+        # and freeze on the last frame (moviepy default behavior)
+        loop_video_for_tts = False  # Changed from estimating to False
 
         # Loop video if target duration exceeds source video
-        if target_duration > video.duration:
+        # DISABLED: This was causing videos to double in length due to bad TTS estimation
+        if loop_video_for_tts and target_duration > video.duration:
             try:
                 loops_needed = int(np.ceil(target_duration / video.duration))
                 print(f"[OK] Looping video {loops_needed}x to match TTS duration ({target_duration:.1f}s)")
