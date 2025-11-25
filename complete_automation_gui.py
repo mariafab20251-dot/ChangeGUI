@@ -1121,6 +1121,20 @@ class VideoAutomationGUI:
         # Blur Text Overlay (Row 9) - Full text controls like Quote Settings
         blur_text_card = self.create_grid_card(grid_container, "📝 Blur Text Overlay", row=3, col=3)
 
+        # Enable checkbox (CRITICAL - was missing!)
+        enable_frame = tk.Frame(blur_text_card, bg=AppStyles.BG_CARD)
+        enable_frame.pack(fill='x', padx=20, pady=(10, 5))
+
+        self.blur_text_enabled_var = tk.BooleanVar(value=self.settings.get('blur_text_enabled', False))
+        enable_cb = tk.Checkbutton(enable_frame, text='✓ Enable Blur_Text',
+                                   variable=self.blur_text_enabled_var,
+                                   bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                                   selectcolor=AppStyles.BG_INPUT,
+                                   activebackground=AppStyles.BG_CARD,
+                                   font=('Segoe UI', 10, 'bold'),
+                                   command=lambda: self.update_setting('blur_text_enabled', self.blur_text_enabled_var.get()))
+        enable_cb.pack(anchor='w')
+
         # Text content input (add before other controls) - Multi-line Text widget
         content_frame = tk.Frame(blur_text_card, bg=AppStyles.BG_CARD)
         content_frame.pack(fill='x', padx=20, pady=8)
