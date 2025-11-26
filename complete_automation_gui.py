@@ -645,13 +645,19 @@ class VideoAutomationGUI:
             chk_frame = tk.Frame(proc_card, bg=AppStyles.BG_CARD)
             chk_frame.pack(fill='x', padx=15, pady=5)
 
+            def make_checkbox_callback(setting_key, setting_var):
+                def callback():
+                    # Use after_idle to ensure variable is updated before we read it
+                    self.root.after_idle(lambda: self.update_setting(setting_key, setting_var.get()))
+                return callback
+
             chk = tk.Checkbutton(chk_frame, text=label,
                                 variable=var, bg=AppStyles.BG_CARD,
                                 fg=AppStyles.TEXT_DARK,
                                 font=('Segoe UI', 9),
                                 activebackground=AppStyles.BG_CARD,
                                 selectcolor=AppStyles.BG_INPUT,
-                                command=lambda k=key, v=var: self.update_setting(k, v.get()))
+                                command=make_checkbox_callback(key, var))
             chk.pack(anchor='w')
             setattr(self, f'{key}_var', var)
 
