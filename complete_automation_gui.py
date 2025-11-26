@@ -1476,6 +1476,12 @@ class VideoAutomationGUI:
                 # Get current regions from settings
                 custom_regions = self.settings.get('custom_blur_regions', [])
 
+                # DEBUG: Print what we're reading
+                print(f"[PREVIEW DEBUG] Found {len(custom_regions)} custom regions")
+                for i, r in enumerate(custom_regions):
+                    if isinstance(r, dict):
+                        print(f"  Region {i}: {r.get('name', 'N/A')} - Enabled: {r.get('enabled', False)} - Pos: {r.get('x', 0)},{r.get('y', 0)} - Text: '{r.get('text', '')[:20]}'")
+
                 # Draw each enabled region
                 for region in custom_regions:
                     if not region.get('enabled', False):
