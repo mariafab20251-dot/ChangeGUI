@@ -210,7 +210,11 @@
       "width": 30,
       "height": 10,
       "intensity": 25,
-      "description": "For hiding logos in top-right corner (e.g., 'cartoon box')"
+      "description": "For hiding logos in top-right corner (e.g., 'cartoon box')",
+      "text": "",
+      "text_color": "#FFFFFF",
+      "bg_color": "#000000",
+      "bg_opacity": 180
     },
     {
       "enabled": false,
@@ -220,7 +224,11 @@
       "width": 25,
       "height": 12,
       "intensity": 25,
-      "description": "For hiding watermarks in bottom-left corner (e.g., '@username')"
+      "description": "For hiding watermarks in bottom-left corner (e.g., '@username')",
+      "text": "",
+      "text_color": "#FFFFFF",
+      "bg_color": "#000000",
+      "bg_opacity": 180
     },
     {
       "enabled": false,
@@ -230,7 +238,11 @@
       "width": 25,
       "height": 12,
       "intensity": 25,
-      "description": "For hiding logos in bottom-right corner"
+      "description": "For hiding logos in bottom-right corner",
+      "text": "",
+      "text_color": "#FFFFFF",
+      "bg_color": "#000000",
+      "bg_opacity": 180
     },
     {
       "enabled": false,
@@ -240,7 +252,11 @@
       "width": 30,
       "height": 10,
       "intensity": 25,
-      "description": "For hiding center watermarks"
+      "description": "For hiding center watermarks",
+      "text": "",
+      "text_color": "#FFFFFF",
+      "bg_color": "#000000",
+      "bg_opacity": 180
     }
   ],
   "_comment_watermark_add": "ADD YOUR WATERMARK/LOGO",

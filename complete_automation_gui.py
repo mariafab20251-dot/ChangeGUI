@@ -1179,12 +1179,13 @@ class VideoAutomationGUI:
 
         # Create UI for each region
         for idx, region in enumerate(custom_regions):
-            region_frame = tk.Frame(custom_blur_card, bg=AppStyles.BG_INPUT, relief='groove', borderwidth=1)
-            region_frame.pack(fill='x', padx=15, pady=5)
+            # Use lighter background with visible border for better contrast
+            region_frame = tk.Frame(custom_blur_card, bg='#2d3748', relief='solid', borderwidth=2, highlightbackground='#4a5568', highlightthickness=1)
+            region_frame.pack(fill='x', padx=15, pady=8)
 
-            # Header with name and enable checkbox
-            header_frame = tk.Frame(region_frame, bg=AppStyles.BG_INPUT)
-            header_frame.pack(fill='x', padx=5, pady=3)
+            # Header with name and enable checkbox - with accent color background
+            header_frame = tk.Frame(region_frame, bg='#3d4758', pady=5)
+            header_frame.pack(fill='x', padx=0, pady=0)
 
             region_enabled = tk.BooleanVar(value=region.get('enabled', False))
             region_name = region.get('name', f'Region {idx+1}')
@@ -1194,64 +1195,164 @@ class VideoAutomationGUI:
                     self.toggle_custom_blur_region(index, region_enabled.get())
                 return callback
 
+            # Larger, more visible checkbox with bright text
             tk.Checkbutton(header_frame, text=f'✓ {region_name}',
                           variable=region_enabled,
-                          bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                          font=('Segoe UI', 9, 'bold'),
-                          selectcolor=AppStyles.BG_CARD,
-                          activebackground=AppStyles.BG_INPUT,
-                          command=make_toggle_callback(idx)).pack(side='left')
+                          bg='#3d4758', fg='#e2e8f0',
+                          font=('Segoe UI', 10, 'bold'),
+                          selectcolor='#1a202c',
+                          activebackground='#3d4758',
+                          activeforeground='#90cdf4',
+                          command=make_toggle_callback(idx)).pack(side='left', padx=10)
 
-            # Description
+            # Description with better visibility
             description = region.get('description', '')
             if description:
-                tk.Label(region_frame, text=f"ℹ️ {description}",
-                        bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
-                        font=('Segoe UI', 7, 'italic')).pack(anchor='w', padx=5, pady=2)
+                desc_frame = tk.Frame(region_frame, bg='#2d3748')
+                desc_frame.pack(fill='x', padx=10, pady=(5, 8))
+                tk.Label(desc_frame, text=f"ℹ️ {description}",
+                        bg='#2d3748', fg='#a0aec0',
+                        font=('Segoe UI', 8, 'italic'),
+                        wraplength=300, justify='left').pack(anchor='w')
 
-            # Position controls in a grid
-            controls_frame = tk.Frame(region_frame, bg=AppStyles.BG_INPUT)
-            controls_frame.pack(fill='x', padx=5, pady=3)
+            # Position controls in a grid with better spacing
+            controls_frame = tk.Frame(region_frame, bg='#2d3748')
+            controls_frame.pack(fill='x', padx=10, pady=(5, 10))
+
+            # Style for labels - bright and bold
+            label_style = {'bg': '#2d3748', 'fg': '#cbd5e0', 'font': ('Segoe UI', 9, 'bold')}
+            spinbox_style = {'bg': 'white', 'fg': '#1a202c', 'font': ('Segoe UI', 9),
+                           'buttonbackground': '#4299e1', 'relief': 'solid', 'bd': 1}
 
             # X position
-            tk.Label(controls_frame, text='X:', bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                    font=('Segoe UI', 8)).grid(row=0, column=0, sticky='w', padx=2)
+            tk.Label(controls_frame, text='X:', **label_style).grid(row=0, column=0, sticky='w', padx=(5, 2), pady=3)
             x_var = tk.IntVar(value=region.get('x', 0))
-            x_spinbox = tk.Spinbox(controls_frame, from_=0, to=100, textvariable=x_var,
-                                  width=5, bg=AppStyles.BG_CARD, font=('Segoe UI', 8))
-            x_spinbox.grid(row=0, column=1, padx=2)
+            x_spinbox = tk.Spinbox(controls_frame, from_=0, to=100, textvariable=x_var, width=6, **spinbox_style)
+            x_spinbox.grid(row=0, column=1, padx=(0, 8), pady=3)
 
             # Y position
-            tk.Label(controls_frame, text='Y:', bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                    font=('Segoe UI', 8)).grid(row=0, column=2, sticky='w', padx=2)
+            tk.Label(controls_frame, text='Y:', **label_style).grid(row=0, column=2, sticky='w', padx=2, pady=3)
             y_var = tk.IntVar(value=region.get('y', 0))
-            y_spinbox = tk.Spinbox(controls_frame, from_=0, to=100, textvariable=y_var,
-                                  width=5, bg=AppStyles.BG_CARD, font=('Segoe UI', 8))
-            y_spinbox.grid(row=0, column=3, padx=2)
+            y_spinbox = tk.Spinbox(controls_frame, from_=0, to=100, textvariable=y_var, width=6, **spinbox_style)
+            y_spinbox.grid(row=0, column=3, padx=(0, 8), pady=3)
+
+            # Blur intensity (moved to first row for prominence)
+            tk.Label(controls_frame, text='Blur:', **label_style).grid(row=0, column=4, sticky='w', padx=2, pady=3)
+            intensity_var = tk.IntVar(value=region.get('intensity', 25))
+            intensity_spinbox = tk.Spinbox(controls_frame, from_=1, to=100, textvariable=intensity_var, width=6, **spinbox_style)
+            intensity_spinbox.grid(row=0, column=5, padx=(0, 5), pady=3)
 
             # Width
-            tk.Label(controls_frame, text='W:', bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                    font=('Segoe UI', 8)).grid(row=1, column=0, sticky='w', padx=2)
+            tk.Label(controls_frame, text='W:', **label_style).grid(row=1, column=0, sticky='w', padx=(5, 2), pady=3)
             w_var = tk.IntVar(value=region.get('width', 30))
-            w_spinbox = tk.Spinbox(controls_frame, from_=1, to=100, textvariable=w_var,
-                                  width=5, bg=AppStyles.BG_CARD, font=('Segoe UI', 8))
-            w_spinbox.grid(row=1, column=1, padx=2)
+            w_spinbox = tk.Spinbox(controls_frame, from_=1, to=100, textvariable=w_var, width=6, **spinbox_style)
+            w_spinbox.grid(row=1, column=1, padx=(0, 8), pady=3)
 
             # Height
-            tk.Label(controls_frame, text='H:', bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                    font=('Segoe UI', 8)).grid(row=1, column=2, sticky='w', padx=2)
+            tk.Label(controls_frame, text='H:', **label_style).grid(row=1, column=2, sticky='w', padx=2, pady=3)
             h_var = tk.IntVar(value=region.get('height', 10))
-            h_spinbox = tk.Spinbox(controls_frame, from_=1, to=100, textvariable=h_var,
-                                  width=5, bg=AppStyles.BG_CARD, font=('Segoe UI', 8))
-            h_spinbox.grid(row=1, column=3, padx=2)
+            h_spinbox = tk.Spinbox(controls_frame, from_=1, to=100, textvariable=h_var, width=6, **spinbox_style)
+            h_spinbox.grid(row=1, column=3, padx=(0, 8), pady=3)
 
-            # Intensity
-            tk.Label(controls_frame, text='Blur:', bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                    font=('Segoe UI', 8)).grid(row=0, column=4, sticky='w', padx=2)
-            intensity_var = tk.IntVar(value=region.get('intensity', 25))
-            intensity_spinbox = tk.Spinbox(controls_frame, from_=1, to=100, textvariable=intensity_var,
-                                          width=5, bg=AppStyles.BG_CARD, font=('Segoe UI', 8))
-            intensity_spinbox.grid(row=0, column=5, padx=2)
+            # Add percentage labels
+            tk.Label(controls_frame, text='%', bg='#2d3748', fg='#718096', font=('Segoe UI', 7)).grid(row=0, column=6, sticky='w', padx=0)
+            tk.Label(controls_frame, text='(all values in %)', bg='#2d3748', fg='#718096', font=('Segoe UI', 7, 'italic')).grid(row=1, column=4, columnspan=3, sticky='w', padx=2)
+
+            # Text overlay section (optional - to replace logo with text)
+            text_section = tk.Frame(region_frame, bg='#2d3748')
+            text_section.pack(fill='x', padx=10, pady=(5, 5))
+
+            # Text input
+            text_label_frame = tk.Frame(text_section, bg='#2d3748')
+            text_label_frame.pack(fill='x', pady=(0, 3))
+            tk.Label(text_label_frame, text='📝 Replacement Text (optional):', bg='#2d3748', fg='#cbd5e0',
+                    font=('Segoe UI', 8, 'bold')).pack(side='left')
+
+            text_var = tk.StringVar(value=region.get('text', ''))
+            text_entry = tk.Entry(text_section, textvariable=text_var, bg='white', fg='#1a202c',
+                                 font=('Segoe UI', 9), relief='solid', bd=1)
+            text_entry.pack(fill='x', pady=(0, 5), ipady=3)
+
+            # Color pickers row
+            color_frame = tk.Frame(text_section, bg='#2d3748')
+            color_frame.pack(fill='x')
+
+            # Text color
+            tk.Label(color_frame, text='Text:', bg='#2d3748', fg='#cbd5e0',
+                    font=('Segoe UI', 8)).pack(side='left', padx=(0, 3))
+
+            text_color_var = tk.StringVar(value=region.get('text_color', '#FFFFFF'))
+            text_color_preview = tk.Frame(color_frame, bg=text_color_var.get(), width=25, height=20,
+                                         relief='solid', borderwidth=1)
+            text_color_preview.pack(side='left', padx=(0, 3))
+
+            text_color_entry = tk.Entry(color_frame, textvariable=text_color_var, width=8,
+                                       bg='white', fg='#1a202c', font=('Segoe UI', 8))
+            text_color_entry.pack(side='left', padx=(0, 3))
+
+            def make_text_color_picker(index, preview_frame, color_var):
+                def pick_color():
+                    from tkinter import colorchooser
+                    color = colorchooser.askcolor(title="Choose Text Color", initialcolor=color_var.get())
+                    if color[1]:
+                        color_var.set(color[1])
+                        preview_frame.config(bg=color[1])
+                        self.update_custom_blur_region(index, 'text_color', color[1])
+                return pick_color
+
+            ModernButton(color_frame, text='🎨', bg_color='#4299e1', font=('Segoe UI', 8),
+                        padx=6, pady=3, command=make_text_color_picker(idx, text_color_preview, text_color_var)).pack(side='left', padx=(0, 10))
+
+            # BG color
+            tk.Label(color_frame, text='BG:', bg='#2d3748', fg='#cbd5e0',
+                    font=('Segoe UI', 8)).pack(side='left', padx=(0, 3))
+
+            bg_color_var = tk.StringVar(value=region.get('bg_color', '#000000'))
+            bg_color_preview = tk.Frame(color_frame, bg=bg_color_var.get(), width=25, height=20,
+                                       relief='solid', borderwidth=1)
+            bg_color_preview.pack(side='left', padx=(0, 3))
+
+            bg_color_entry = tk.Entry(color_frame, textvariable=bg_color_var, width=8,
+                                     bg='white', fg='#1a202c', font=('Segoe UI', 8))
+            bg_color_entry.pack(side='left', padx=(0, 3))
+
+            def make_bg_color_picker(index, preview_frame, color_var):
+                def pick_color():
+                    from tkinter import colorchooser
+                    color = colorchooser.askcolor(title="Choose Background Color", initialcolor=color_var.get())
+                    if color[1]:
+                        color_var.set(color[1])
+                        preview_frame.config(bg=color[1])
+                        self.update_custom_blur_region(index, 'bg_color', color[1])
+                return pick_color
+
+            ModernButton(color_frame, text='🎨', bg_color='#4299e1', font=('Segoe UI', 8),
+                        padx=6, pady=3, command=make_bg_color_picker(idx, bg_color_preview, bg_color_var)).pack(side='left', padx=(0, 10))
+
+            # BG Opacity
+            tk.Label(color_frame, text='Opacity:', bg='#2d3748', fg='#cbd5e0',
+                    font=('Segoe UI', 8)).pack(side='left', padx=(0, 3))
+            bg_opacity_var = tk.IntVar(value=region.get('bg_opacity', 180))
+            bg_opacity_spinbox = tk.Spinbox(color_frame, from_=0, to=255, textvariable=bg_opacity_var,
+                                           width=5, bg='white', fg='#1a202c', font=('Segoe UI', 8),
+                                           buttonbackground='#4299e1', relief='solid', bd=1)
+            bg_opacity_spinbox.pack(side='left')
+
+            # Bind text changes
+            def make_text_callback(index, var):
+                def callback(*args):
+                    self.update_custom_blur_region(index, 'text', var.get())
+                return callback
+
+            def make_color_callback(index, field, var):
+                def callback(*args):
+                    self.update_custom_blur_region(index, field, var.get())
+                return callback
+
+            text_var.trace('w', make_text_callback(idx, text_var))
+            text_color_var.trace('w', make_color_callback(idx, 'text_color', text_color_var))
+            bg_color_var.trace('w', make_color_callback(idx, 'bg_color', bg_color_var))
+            bg_opacity_var.trace('w', make_color_callback(idx, 'bg_opacity', bg_opacity_var))
 
             # Bind changes to update settings
             def make_update_callback(index, field, var):
@@ -1265,10 +1366,13 @@ class VideoAutomationGUI:
             h_var.trace('w', make_update_callback(idx, 'height', h_var))
             intensity_var.trace('w', make_update_callback(idx, 'intensity', intensity_var))
 
-        # Help text
-        tk.Label(custom_blur_card, text='💡 All values are in percentage (0-100%)',
-                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 7, 'italic')).pack(anchor='w', padx=15, pady=(10, 5))
+        # Professional help section with better visibility
+        help_frame = tk.Frame(custom_blur_card, bg='#1e2936', relief='solid', borderwidth=1)
+        help_frame.pack(fill='x', padx=15, pady=(10, 5))
+        tk.Label(help_frame, text='💡 Tip: Enable a region and adjust X, Y, Width, Height to position the blur box. All values are percentages (0-100%).',
+                bg='#1e2936', fg='#90cdf4',
+                font=('Segoe UI', 8, 'italic'),
+                wraplength=400, justify='left').pack(padx=10, pady=8)
 
     def toggle_custom_blur_region(self, index, enabled):
         """Toggle a custom blur region on/off"""

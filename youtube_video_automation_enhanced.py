@@ -334,6 +334,92 @@ class VideoEffects:
 
                 frame[y1:y2, x1:x2] = blurred
 
+            # Render text overlays for custom blur regions
+            custom_regions = settings.get('custom_blur_regions', [])
+            if custom_regions and isinstance(custom_regions, list):
+                for custom_region in custom_regions:
+                    if not isinstance(custom_region, dict):
+                        continue
+
+                    if not custom_region.get('enabled', True):
+                        continue
+
+                    # Get text content
+                    text_content = custom_region.get('text', '').strip()
+                    if not text_content:
+                        continue
+
+                    # Get region coordinates
+                    x = custom_region.get('x', 0)
+                    y = custom_region.get('y', 0)
+                    width = custom_region.get('width', 100)
+                    height = custom_region.get('height', 100)
+
+                    # Convert percentage to pixels
+                    if isinstance(x, (int, float)) and 0 <= x <= 100:
+                        x = int(w * x / 100)
+                    if isinstance(y, (int, float)) and 0 <= y <= 100:
+                        y = int(h * y / 100)
+                    if isinstance(width, (int, float)) and 0 <= width <= 100:
+                        width = int(w * width / 100)
+                    if isinstance(height, (int, float)) and 0 <= height <= 100:
+                        height = int(h * height / 100)
+
+                    # Calculate region bounds
+                    x1 = max(0, x)
+                    y1 = max(0, y)
+                    x2 = min(w, x + width)
+                    y2 = min(h, y + height)
+
+                    if x2 <= x1 or y2 <= y1:
+                        continue
+
+                    region_w = x2 - x1
+                    region_h = y2 - y1
+
+                    # Get text styling
+                    text_color = custom_region.get('text_color', '#FFFFFF')
+                    bg_color = custom_region.get('bg_color', '#000000')
+                    bg_opacity = custom_region.get('bg_opacity', 180)
+
+                    # Convert hex colors to BGR
+                    text_rgb = tuple(int(text_color[i:i+2], 16) for i in (1, 3, 5))
+                    text_bgr = (text_rgb[2], text_rgb[1], text_rgb[0])
+
+                    bg_rgb = tuple(int(bg_color[i:i+2], 16) for i in (1, 3, 5))
+                    bg_bgr = (bg_rgb[2], bg_rgb[1], bg_rgb[0])
+
+                    # Calculate font size based on region height (adaptive sizing)
+                    font_scale = region_h / 80.0
+                    font = cv2.FONT_HERSHEY_BOLD
+                    thickness = max(1, int(font_scale * 2))
+
+                    # Get text size
+                    (text_w, text_h), baseline = cv2.getTextSize(text_content, font, font_scale, thickness)
+
+                    # If text is too wide, scale it down
+                    if text_w > region_w - 20:
+                        font_scale = font_scale * (region_w - 20) / text_w
+                        thickness = max(1, int(font_scale * 2))
+                        (text_w, text_h), baseline = cv2.getTextSize(text_content, font, font_scale, thickness)
+
+                    # Calculate text position (centered)
+                    text_x = x1 + (region_w - text_w) // 2
+                    text_y = y1 + (region_h + text_h) // 2
+
+                    # Draw background rectangle with opacity
+                    overlay = frame.copy()
+                    cv2.rectangle(overlay, (x1, y1), (x2, y2), bg_bgr, -1)
+                    alpha = bg_opacity / 255.0
+                    frame = cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0)
+
+                    # Draw text with outline for better visibility
+                    outline_color = (0, 0, 0) if sum(text_rgb) > 384 else (255, 255, 255)
+                    cv2.putText(frame, text_content, (text_x, text_y), font, font_scale,
+                               outline_color, thickness + 2, cv2.LINE_AA)
+                    cv2.putText(frame, text_content, (text_x, text_y), font, font_scale,
+                               text_bgr, thickness, cv2.LINE_AA)
+
             # Add text on blur if enabled (use cv2 for speed)
             if settings.get('blur_text_enabled', False):
                 text_content = settings.get('blur_text_content', '')
