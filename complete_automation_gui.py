@@ -3617,9 +3617,12 @@ class VideoAutomationGUI:
             self.update_text_preview(prefix)
 
     def update_setting(self, key, value):
-        """Update a setting value"""
+        """Update a setting value and save to disk immediately"""
         self.settings[key] = value
         logger.debug(f"Setting updated: {key} = {value}")
+
+        # IMPORTANT: Save to disk immediately to persist settings
+        self.save_settings()
 
         # Update live preview if it's a text setting
         for prefix in ['title', 'quote', 'cta']:
