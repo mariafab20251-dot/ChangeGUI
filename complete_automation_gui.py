@@ -1167,6 +1167,123 @@ class VideoAutomationGUI:
         # Use the same comprehensive text controls as Quote Settings
         self.create_text_controls(blur_text_card, 'blur_text')
 
+        # Custom Blur Regions (Row 10) - For hiding logos/watermarks at specific positions
+        custom_blur_card = self.create_grid_card(grid_container, "🎯 Custom Blur Regions (Hide Logos)", row=4, col=3)
+
+        tk.Label(custom_blur_card, text='Hide logos/watermarks at specific positions',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', padx=15, pady=(5, 10))
+
+        # Get custom regions from settings
+        custom_regions = self.settings.get('custom_blur_regions', [])
+
+        # Create UI for each region
+        for idx, region in enumerate(custom_regions):
+            region_frame = tk.Frame(custom_blur_card, bg=AppStyles.BG_INPUT, relief='groove', borderwidth=1)
+            region_frame.pack(fill='x', padx=15, pady=5)
+
+            # Header with name and enable checkbox
+            header_frame = tk.Frame(region_frame, bg=AppStyles.BG_INPUT)
+            header_frame.pack(fill='x', padx=5, pady=3)
+
+            region_enabled = tk.BooleanVar(value=region.get('enabled', False))
+            region_name = region.get('name', f'Region {idx+1}')
+
+            def make_toggle_callback(index):
+                def callback():
+                    self.toggle_custom_blur_region(index, region_enabled.get())
+                return callback
+
+            tk.Checkbutton(header_frame, text=f'✓ {region_name}',
+                          variable=region_enabled,
+                          bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                          font=('Segoe UI', 9, 'bold'),
+                          selectcolor=AppStyles.BG_CARD,
+                          activebackground=AppStyles.BG_INPUT,
+                          command=make_toggle_callback(idx)).pack(side='left')
+
+            # Description
+            description = region.get('description', '')
+            if description:
+                tk.Label(region_frame, text=f"ℹ️ {description}",
+                        bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_MEDIUM,
+                        font=('Segoe UI', 7, 'italic')).pack(anchor='w', padx=5, pady=2)
+
+            # Position controls in a grid
+            controls_frame = tk.Frame(region_frame, bg=AppStyles.BG_INPUT)
+            controls_frame.pack(fill='x', padx=5, pady=3)
+
+            # X position
+            tk.Label(controls_frame, text='X:', bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                    font=('Segoe UI', 8)).grid(row=0, column=0, sticky='w', padx=2)
+            x_var = tk.IntVar(value=region.get('x', 0))
+            x_spinbox = tk.Spinbox(controls_frame, from_=0, to=100, textvariable=x_var,
+                                  width=5, bg=AppStyles.BG_CARD, font=('Segoe UI', 8))
+            x_spinbox.grid(row=0, column=1, padx=2)
+
+            # Y position
+            tk.Label(controls_frame, text='Y:', bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                    font=('Segoe UI', 8)).grid(row=0, column=2, sticky='w', padx=2)
+            y_var = tk.IntVar(value=region.get('y', 0))
+            y_spinbox = tk.Spinbox(controls_frame, from_=0, to=100, textvariable=y_var,
+                                  width=5, bg=AppStyles.BG_CARD, font=('Segoe UI', 8))
+            y_spinbox.grid(row=0, column=3, padx=2)
+
+            # Width
+            tk.Label(controls_frame, text='W:', bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                    font=('Segoe UI', 8)).grid(row=1, column=0, sticky='w', padx=2)
+            w_var = tk.IntVar(value=region.get('width', 30))
+            w_spinbox = tk.Spinbox(controls_frame, from_=1, to=100, textvariable=w_var,
+                                  width=5, bg=AppStyles.BG_CARD, font=('Segoe UI', 8))
+            w_spinbox.grid(row=1, column=1, padx=2)
+
+            # Height
+            tk.Label(controls_frame, text='H:', bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                    font=('Segoe UI', 8)).grid(row=1, column=2, sticky='w', padx=2)
+            h_var = tk.IntVar(value=region.get('height', 10))
+            h_spinbox = tk.Spinbox(controls_frame, from_=1, to=100, textvariable=h_var,
+                                  width=5, bg=AppStyles.BG_CARD, font=('Segoe UI', 8))
+            h_spinbox.grid(row=1, column=3, padx=2)
+
+            # Intensity
+            tk.Label(controls_frame, text='Blur:', bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                    font=('Segoe UI', 8)).grid(row=0, column=4, sticky='w', padx=2)
+            intensity_var = tk.IntVar(value=region.get('intensity', 25))
+            intensity_spinbox = tk.Spinbox(controls_frame, from_=1, to=100, textvariable=intensity_var,
+                                          width=5, bg=AppStyles.BG_CARD, font=('Segoe UI', 8))
+            intensity_spinbox.grid(row=0, column=5, padx=2)
+
+            # Bind changes to update settings
+            def make_update_callback(index, field, var):
+                def callback(*args):
+                    self.update_custom_blur_region(index, field, var.get())
+                return callback
+
+            x_var.trace('w', make_update_callback(idx, 'x', x_var))
+            y_var.trace('w', make_update_callback(idx, 'y', y_var))
+            w_var.trace('w', make_update_callback(idx, 'width', w_var))
+            h_var.trace('w', make_update_callback(idx, 'height', h_var))
+            intensity_var.trace('w', make_update_callback(idx, 'intensity', intensity_var))
+
+        # Help text
+        tk.Label(custom_blur_card, text='💡 All values are in percentage (0-100%)',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 7, 'italic')).pack(anchor='w', padx=15, pady=(10, 5))
+
+    def toggle_custom_blur_region(self, index, enabled):
+        """Toggle a custom blur region on/off"""
+        custom_regions = self.settings.get('custom_blur_regions', [])
+        if index < len(custom_regions):
+            custom_regions[index]['enabled'] = enabled
+            self.update_setting('custom_blur_regions', custom_regions)
+
+    def update_custom_blur_region(self, index, field, value):
+        """Update a custom blur region field"""
+        custom_regions = self.settings.get('custom_blur_regions', [])
+        if index < len(custom_regions):
+            custom_regions[index][field] = value
+            self.update_setting('custom_blur_regions', custom_regions)
+
     def browse_watermark(self):
         """Browse for watermark image file"""
         from tkinter import filedialog

@@ -222,14 +222,79 @@ class VideoEffects:
                 regions_to_blur.append((0, 0, int(w * size), h))
                 regions_to_blur.append((int(w * (1 - size)), 0, w, h))
 
+            # Add custom blur regions (for hiding specific logos/watermarks)
+            custom_regions = settings.get('custom_blur_regions', [])
+            if custom_regions and isinstance(custom_regions, list):
+                for custom_region in custom_regions:
+                    if not isinstance(custom_region, dict):
+                        continue
+
+                    if not custom_region.get('enabled', True):
+                        continue
+
+                    # Get region coordinates (support both percentage and pixel values)
+                    x = custom_region.get('x', 0)
+                    y = custom_region.get('y', 0)
+                    width = custom_region.get('width', 100)
+                    height = custom_region.get('height', 100)
+
+                    # Convert percentage to pixels if needed
+                    if isinstance(x, str) and '%' in str(x):
+                        x = int(w * float(str(x).rstrip('%')) / 100)
+                    elif isinstance(x, (int, float)) and 0 <= x <= 100:
+                        x = int(w * x / 100)
+                    else:
+                        x = int(x)
+
+                    if isinstance(y, str) and '%' in str(y):
+                        y = int(h * float(str(y).rstrip('%')) / 100)
+                    elif isinstance(y, (int, float)) and 0 <= y <= 100:
+                        y = int(h * y / 100)
+                    else:
+                        y = int(y)
+
+                    if isinstance(width, str) and '%' in str(width):
+                        width = int(w * float(str(width).rstrip('%')) / 100)
+                    elif isinstance(width, (int, float)) and 0 <= width <= 100:
+                        width = int(w * width / 100)
+                    else:
+                        width = int(width)
+
+                    if isinstance(height, str) and '%' in str(height):
+                        height = int(h * float(str(height).rstrip('%')) / 100)
+                    elif isinstance(height, (int, float)) and 0 <= height <= 100:
+                        height = int(h * height / 100)
+                    else:
+                        height = int(height)
+
+                    # Calculate coordinates
+                    x1 = max(0, x)
+                    y1 = max(0, y)
+                    x2 = min(w, x + width)
+                    y2 = min(h, y + height)
+
+                    # Get custom blur intensity for this region (optional)
+                    region_intensity = custom_region.get('intensity', intensity)
+                    region_kernel_size = int(region_intensity) * 2 + 1
+
+                    # Add to regions list with custom intensity
+                    regions_to_blur.append((x1, y1, x2, y2, region_kernel_size))
+
             # Apply blur using cv2 (FAST)
-            for x1, y1, x2, y2 in regions_to_blur:
+            for region_data in regions_to_blur:
+                # Support both old format (x1,y1,x2,y2) and new format (x1,y1,x2,y2,custom_kernel)
+                if len(region_data) == 5:
+                    x1, y1, x2, y2, custom_kernel = region_data
+                else:
+                    x1, y1, x2, y2 = region_data
+                    custom_kernel = kernel_size
+
                 if x2 <= x1 or y2 <= y1:
                     continue
 
                 # Extract and blur region with cv2
                 roi = frame[y1:y2, x1:x2]
-                blurred = cv2.GaussianBlur(roi, (kernel_size, kernel_size), 0)
+                blurred = cv2.GaussianBlur(roi, (custom_kernel, custom_kernel), 0)
 
                 # Apply color tint if enabled
                 if settings.get('blur_color_tint_enabled', False):

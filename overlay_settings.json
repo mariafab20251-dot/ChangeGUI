@@ -200,6 +200,49 @@
   "blur_text_position": "center",
   "blur_text_font_bold": true,
   "blur_text_font_italic": false,
+  "_comment_custom_blur_regions": "CUSTOM BLUR REGIONS - Hide specific logos/watermarks at exact positions",
+  "custom_blur_regions": [
+    {
+      "enabled": false,
+      "name": "Top Right Logo",
+      "x": 70,
+      "y": 0,
+      "width": 30,
+      "height": 10,
+      "intensity": 25,
+      "description": "For hiding logos in top-right corner (e.g., 'cartoon box')"
+    },
+    {
+      "enabled": false,
+      "name": "Bottom Left Watermark",
+      "x": 0,
+      "y": 88,
+      "width": 25,
+      "height": 12,
+      "intensity": 25,
+      "description": "For hiding watermarks in bottom-left corner (e.g., '@username')"
+    },
+    {
+      "enabled": false,
+      "name": "Bottom Right Logo",
+      "x": 75,
+      "y": 88,
+      "width": 25,
+      "height": 12,
+      "intensity": 25,
+      "description": "For hiding logos in bottom-right corner"
+    },
+    {
+      "enabled": false,
+      "name": "Center Watermark",
+      "x": 35,
+      "y": 45,
+      "width": 30,
+      "height": 10,
+      "intensity": 25,
+      "description": "For hiding center watermarks"
+    }
+  ],
   "_comment_watermark_add": "ADD YOUR WATERMARK/LOGO",
   "watermark_enabled": false,
   "watermark_image_path": "",
