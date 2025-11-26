@@ -1406,10 +1406,12 @@ class VideoAutomationGUI:
         import cv2
         import os
 
-        # Get video path from input folder
-        input_folder = self.settings.get('input_folder', '')
+        # Get video path from video_folder_var (not settings!)
+        input_folder = self.video_folder_var.get().strip()
         if not input_folder or not os.path.exists(input_folder):
-            messagebox.showerror("No Video", "Please select an input folder with videos first!")
+            messagebox.showerror("No Video Folder",
+                "Please select a Video Folder in the Quick Process tab first!\n\n" +
+                "Go to: ⚡ Quick Process → 📁 Input Source → Video Folder")
             return
 
         # Find first video file
