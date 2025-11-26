@@ -363,27 +363,14 @@ class VideoEffects:
                     width = custom_region.get('width', 100)
                     height = custom_region.get('height', 100)
 
-                    # Convert percentage to pixels
+                    # Convert percentage to pixels (starting position)
                     if isinstance(x, (int, float)) and 0 <= x <= 100:
                         x = int(w * x / 100)
                     if isinstance(y, (int, float)) and 0 <= y <= 100:
                         y = int(h * y / 100)
-                    if isinstance(width, (int, float)) and 0 <= width <= 100:
-                        width = int(w * width / 100)
-                    if isinstance(height, (int, float)) and 0 <= height <= 100:
-                        height = int(h * height / 100)
 
-                    # Calculate region bounds
                     x1 = max(0, x)
                     y1 = max(0, y)
-                    x2 = min(w, x + width)
-                    y2 = min(h, y + height)
-
-                    if x2 <= x1 or y2 <= y1:
-                        continue
-
-                    region_w = x2 - x1
-                    region_h = y2 - y1
 
                     # Get text styling
                     text_color = custom_region.get('text_color', '#FFFFFF')
@@ -397,16 +384,52 @@ class VideoEffects:
                     bg_rgb = tuple(int(bg_color[i:i+2], 16) for i in (1, 3, 5))
                     bg_bgr = (bg_rgb[2], bg_rgb[1], bg_rgb[0])
 
-                    # Calculate font size based on region height (adaptive sizing)
-                    font_scale = region_h / 80.0
+                    # Check if auto-expand is enabled
+                    auto_expand = custom_region.get('auto_expand', False)
                     font = cv2.FONT_HERSHEY_BOLD
-                    thickness = max(1, int(font_scale * 2))
 
-                    # Get text size
+                    if auto_expand:
+                        # Calculate box size based on text dimensions
+                        # Use a default font scale (3% of video height)
+                        font_scale = max(0.5, h * 0.03 / 30.0)
+                        thickness = max(1, int(font_scale * 2))
+
+                        # Get text size
+                        (text_w, text_h), baseline = cv2.getTextSize(text_content, font, font_scale, thickness)
+
+                        # Add padding (20% of text size)
+                        padding_x = int(text_w * 0.2)
+                        padding_y = int(text_h * 0.3)
+
+                        # Calculate expanded box size
+                        x2 = min(w, x1 + text_w + padding_x * 2)
+                        y2 = min(h, y1 + text_h + padding_y * 2)
+                    else:
+                        # Use manual width/height from settings
+                        if isinstance(width, (int, float)) and 0 <= width <= 100:
+                            width = int(w * width / 100)
+                        if isinstance(height, (int, float)) and 0 <= height <= 100:
+                            height = int(h * height / 100)
+
+                        x2 = min(w, x + width)
+                        y2 = min(h, y + height)
+
+                    if x2 <= x1 or y2 <= y1:
+                        continue
+
+                    region_w = x2 - x1
+                    region_h = y2 - y1
+
+                    # Calculate font size based on region height (adaptive sizing)
+                    if not auto_expand:
+                        font_scale = region_h / 80.0
+                        thickness = max(1, int(font_scale * 2))
+
+                    # Get text size (recalculate for non-auto-expand to fit in fixed box)
                     (text_w, text_h), baseline = cv2.getTextSize(text_content, font, font_scale, thickness)
 
-                    # If text is too wide, scale it down
-                    if text_w > region_w - 20:
+                    # If text is too wide (and not auto-expand), scale it down
+                    if not auto_expand and text_w > region_w - 20:
                         font_scale = font_scale * (region_w - 20) / text_w
                         thickness = max(1, int(font_scale * 2))
                         (text_w, text_h), baseline = cv2.getTextSize(text_content, font, font_scale, thickness)

@@ -1290,6 +1290,23 @@ class VideoAutomationGUI:
                                  font=('Segoe UI', 9), relief='solid', bd=1)
             text_entry.pack(fill='x', pady=(0, 5), ipady=3)
 
+            # Auto-expand checkbox
+            auto_expand_var = tk.BooleanVar(value=region.get('auto_expand', False))
+
+            def make_auto_expand_callback(index, var):
+                def callback():
+                    self.root.after_idle(lambda: self.update_custom_blur_region(index, 'auto_expand', var.get()))
+                return callback
+
+            tk.Checkbutton(text_section, text='📏 Auto-expand box to fit text',
+                          variable=auto_expand_var,
+                          bg='#2d3748', fg='#90cdf4',
+                          font=('Segoe UI', 8),
+                          selectcolor='#1a202c',
+                          activebackground='#2d3748',
+                          activeforeground='#48bb78',
+                          command=make_auto_expand_callback(idx, auto_expand_var)).pack(anchor='w', pady=(0, 5))
+
             # Color pickers row
             color_frame = tk.Frame(text_section, bg='#2d3748')
             color_frame.pack(fill='x')
@@ -1500,11 +1517,46 @@ class VideoAutomationGUI:
                     width = region.get('width', 30)
                     height = region.get('height', 10)
 
-                    # Convert to pixels
+                    # Convert to pixels - starting position
                     x1 = int(w * x / 100)
                     y1 = int(h * y / 100)
-                    x2 = int(w * (x + width) / 100)
-                    y2 = int(h * (y + height) / 100)
+
+                    # Check if auto-expand is enabled and we have text
+                    auto_expand = region.get('auto_expand', False)
+                    text_content = region.get('text', '').strip()
+
+                    if auto_expand and text_content:
+                        # Calculate text size first to auto-expand the box
+                        # Use a default font size for calculation
+                        default_font_size = max(20, int(h * 0.03))  # 3% of video height
+                        try:
+                            text_font = ImageFont.truetype("arialbd.ttf", default_font_size)
+                        except:
+                            try:
+                                text_font = ImageFont.truetype("arial.ttf", default_font_size)
+                            except:
+                                text_font = ImageFont.load_default()
+
+                        # Get text dimensions
+                        bbox = draw.textbbox((0, 0), text_content, font=text_font)
+                        text_w = bbox[2] - bbox[0]
+                        text_h = bbox[3] - bbox[1]
+
+                        # Add padding (20% of text size)
+                        padding_x = int(text_w * 0.2)
+                        padding_y = int(text_h * 0.3)
+
+                        # Calculate expanded box size
+                        x2 = x1 + text_w + padding_x * 2
+                        y2 = y1 + text_h + padding_y * 2
+
+                        # Make sure we don't go off screen
+                        x2 = min(x2, w)
+                        y2 = min(y2, h)
+                    else:
+                        # Use manual width/height from settings
+                        x2 = int(w * (x + width) / 100)
+                        y2 = int(h * (y + height) / 100)
 
                     # Draw blur region outline
                     draw.rectangle([x1, y1, x2, y2], outline='#ff0000', width=3)
@@ -1520,7 +1572,6 @@ class VideoAutomationGUI:
                              fill='#ff0000', font=label_font)
 
                     # Draw text overlay if defined
-                    text_content = region.get('text', '').strip()
                     if text_content:
                         # Get colors
                         bg_color = region.get('bg_color', '#000000')
@@ -1537,7 +1588,12 @@ class VideoAutomationGUI:
 
                         # Calculate font size based on region height
                         region_h = y2 - y1
-                        font_size = max(12, int(region_h / 3))
+                        if auto_expand:
+                            # Use the font size we calculated earlier
+                            font_size = max(20, int(h * 0.03))
+                        else:
+                            # Calculate based on fixed box height
+                            font_size = max(12, int(region_h / 3))
 
                         try:
                             text_font = ImageFont.truetype("arialbd.ttf", font_size)
