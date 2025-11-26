@@ -1200,9 +1200,10 @@ class VideoAutomationGUI:
             region_enabled = tk.BooleanVar(value=region.get('enabled', False))
             region_name = region.get('name', f'Region {idx+1}')
 
-            def make_toggle_callback(index):
+            def make_toggle_callback(index, var):
                 def callback():
-                    self.toggle_custom_blur_region(index, region_enabled.get())
+                    # Use after_idle to ensure variable is updated before we read it
+                    self.root.after_idle(lambda: self.toggle_custom_blur_region(index, var.get()))
                 return callback
 
             # Larger, more visible checkbox with bright text
@@ -1213,7 +1214,7 @@ class VideoAutomationGUI:
                           selectcolor='#1a202c',
                           activebackground='#3d4758',
                           activeforeground='#90cdf4',
-                          command=make_toggle_callback(idx)).pack(side='left', padx=10)
+                          command=make_toggle_callback(idx, region_enabled)).pack(side='left', padx=10)
 
             # Description with better visibility
             description = region.get('description', '')
@@ -3617,9 +3618,12 @@ class VideoAutomationGUI:
             self.update_text_preview(prefix)
 
     def update_setting(self, key, value):
-        """Update a setting value"""
+        """Update a setting value and save to disk immediately"""
         self.settings[key] = value
         logger.debug(f"Setting updated: {key} = {value}")
+
+        # IMPORTANT: Save to disk immediately to persist settings
+        self.save_settings()
 
         # Update live preview if it's a text setting
         for prefix in ['title', 'quote', 'cta']:
