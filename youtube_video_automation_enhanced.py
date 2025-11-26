@@ -181,7 +181,12 @@ class VideoEffects:
     @staticmethod
     def apply_region_blur(frame, settings):
         """Apply blur to a specific region of the frame with optional color tint and text (OPTIMIZED)"""
-        if not settings.get('region_blur_enabled', False):
+        # Check if region blur OR custom blur regions are enabled
+        region_blur_enabled = settings.get('region_blur_enabled', False)
+        custom_regions = settings.get('custom_blur_regions', [])
+        has_enabled_custom_regions = any(r.get('enabled', False) for r in custom_regions if isinstance(r, dict))
+
+        if not region_blur_enabled and not has_enabled_custom_regions:
             return frame
 
         try:
@@ -192,8 +197,6 @@ class VideoEffects:
             h, w = frame.shape[:2]
 
             # Get blur settings
-            region = settings.get('blur_region', 'bottom')
-            region_size = settings.get('blur_region_size', 30) / 100
             intensity = int(settings.get('blur_intensity', 15))
             # Ensure kernel size is odd
             kernel_size = intensity * 2 + 1
@@ -201,26 +204,31 @@ class VideoEffects:
             # Calculate region coordinates
             regions_to_blur = []
 
-            if region == 'top':
-                regions_to_blur.append((0, 0, w, int(h * region_size)))
-            elif region == 'bottom':
-                regions_to_blur.append((0, int(h * (1 - region_size)), w, h))
-            elif region == 'left':
-                regions_to_blur.append((0, 0, int(w * region_size), h))
-            elif region == 'right':
-                regions_to_blur.append((int(w * (1 - region_size)), 0, w, h))
-            elif region == 'center':
-                margin = (1 - region_size) / 2
-                regions_to_blur.append((int(w * margin), int(h * margin),
-                                       int(w * (1 - margin)), int(h * (1 - margin))))
-            elif region == 'top_bottom':
-                size = region_size / 2
-                regions_to_blur.append((0, 0, w, int(h * size)))
-                regions_to_blur.append((0, int(h * (1 - size)), w, h))
-            elif region == 'left_right':
-                size = region_size / 2
-                regions_to_blur.append((0, 0, int(w * size), h))
-                regions_to_blur.append((int(w * (1 - size)), 0, w, h))
+            # Process predefined regions ONLY if region_blur_enabled is True
+            if region_blur_enabled:
+                region = settings.get('blur_region', 'bottom')
+                region_size = settings.get('blur_region_size', 30) / 100
+
+                if region == 'top':
+                    regions_to_blur.append((0, 0, w, int(h * region_size)))
+                elif region == 'bottom':
+                    regions_to_blur.append((0, int(h * (1 - region_size)), w, h))
+                elif region == 'left':
+                    regions_to_blur.append((0, 0, int(w * region_size), h))
+                elif region == 'right':
+                    regions_to_blur.append((int(w * (1 - region_size)), 0, w, h))
+                elif region == 'center':
+                    margin = (1 - region_size) / 2
+                    regions_to_blur.append((int(w * margin), int(h * margin),
+                                           int(w * (1 - margin)), int(h * (1 - margin))))
+                elif region == 'top_bottom':
+                    size = region_size / 2
+                    regions_to_blur.append((0, 0, w, int(h * size)))
+                    regions_to_blur.append((0, int(h * (1 - size)), w, h))
+                elif region == 'left_right':
+                    size = region_size / 2
+                    regions_to_blur.append((0, 0, int(w * size), h))
+                    regions_to_blur.append((int(w * (1 - size)), 0, w, h))
 
             # Add custom blur regions (for hiding specific logos/watermarks)
             custom_regions = settings.get('custom_blur_regions', [])
