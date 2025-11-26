@@ -1546,9 +1546,17 @@ class VideoAutomationGUI:
                         draw.text((text_x, text_y), text_content,
                                  fill=text_rgb, font=text_font)
 
-                # Resize for display (max 800px wide)
-                display_w = min(800, w)
-                display_h = int(h * display_w / w)
+                # Resize for display - maintain aspect ratio, fit within 800x600
+                max_width = 800
+                max_height = 600
+
+                # Calculate scaling to fit both width and height constraints
+                scale_w = max_width / w
+                scale_h = max_height / h
+                scale = min(scale_w, scale_h, 1.0)  # Don't upscale, only downscale
+
+                display_w = int(w * scale)
+                display_h = int(h * scale)
                 pil_img = pil_img.resize((display_w, display_h), Image.Resampling.LANCZOS)
 
                 # Convert to PhotoImage and display
