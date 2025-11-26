@@ -320,8 +320,12 @@ class VideoAutomationGUI:
             logger.error(f"Error loading paths: {e}")
             return {}
 
-    def save_settings(self):
-        """Save settings to JSON file"""
+    def save_settings(self, show_popup=True):
+        """Save settings to JSON file
+
+        Args:
+            show_popup: If True, shows success/error popup. If False, saves silently (for auto-save).
+        """
         try:
             # Save caption layout and position if they exist
             if hasattr(self, 'caption_layout_var'):
@@ -366,10 +370,12 @@ class VideoAutomationGUI:
             with open('overlay_settings.json', 'w', encoding='utf-8') as f:
                 json.dump(self.settings, f, indent=2, ensure_ascii=False)
             logger.info("Settings saved successfully")
-            messagebox.showinfo("Success", "Settings saved successfully!")
+            if show_popup:
+                messagebox.showinfo("Success", "Settings saved successfully!")
         except Exception as e:
             logger.error(f"Error saving settings: {e}")
-            messagebox.showerror("Error", f"Failed to save settings: {str(e)}")
+            if show_popup:
+                messagebox.showerror("Error", f"Failed to save settings: {str(e)}")
 
     def save_paths(self):
         """Save processing paths to JSON file"""
@@ -3618,12 +3624,12 @@ class VideoAutomationGUI:
             self.update_text_preview(prefix)
 
     def update_setting(self, key, value):
-        """Update a setting value and save to disk immediately"""
+        """Update a setting value and save to disk immediately (silently, no popup)"""
         self.settings[key] = value
         logger.debug(f"Setting updated: {key} = {value}")
 
-        # IMPORTANT: Save to disk immediately to persist settings
-        self.save_settings()
+        # IMPORTANT: Save to disk immediately to persist settings (silently)
+        self.save_settings(show_popup=False)
 
         # Update live preview if it's a text setting
         for prefix in ['title', 'quote', 'cta']:
