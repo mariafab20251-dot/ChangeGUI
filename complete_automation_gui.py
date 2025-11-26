@@ -1258,6 +1258,102 @@ class VideoAutomationGUI:
             tk.Label(controls_frame, text='%', bg='#2d3748', fg='#718096', font=('Segoe UI', 7)).grid(row=0, column=6, sticky='w', padx=0)
             tk.Label(controls_frame, text='(all values in %)', bg='#2d3748', fg='#718096', font=('Segoe UI', 7, 'italic')).grid(row=1, column=4, columnspan=3, sticky='w', padx=2)
 
+            # Text overlay section (optional - to replace logo with text)
+            text_section = tk.Frame(region_frame, bg='#2d3748')
+            text_section.pack(fill='x', padx=10, pady=(5, 5))
+
+            # Text input
+            text_label_frame = tk.Frame(text_section, bg='#2d3748')
+            text_label_frame.pack(fill='x', pady=(0, 3))
+            tk.Label(text_label_frame, text='📝 Replacement Text (optional):', bg='#2d3748', fg='#cbd5e0',
+                    font=('Segoe UI', 8, 'bold')).pack(side='left')
+
+            text_var = tk.StringVar(value=region.get('text', ''))
+            text_entry = tk.Entry(text_section, textvariable=text_var, bg='white', fg='#1a202c',
+                                 font=('Segoe UI', 9), relief='solid', bd=1)
+            text_entry.pack(fill='x', pady=(0, 5), ipady=3)
+
+            # Color pickers row
+            color_frame = tk.Frame(text_section, bg='#2d3748')
+            color_frame.pack(fill='x')
+
+            # Text color
+            tk.Label(color_frame, text='Text:', bg='#2d3748', fg='#cbd5e0',
+                    font=('Segoe UI', 8)).pack(side='left', padx=(0, 3))
+
+            text_color_var = tk.StringVar(value=region.get('text_color', '#FFFFFF'))
+            text_color_preview = tk.Frame(color_frame, bg=text_color_var.get(), width=25, height=20,
+                                         relief='solid', borderwidth=1)
+            text_color_preview.pack(side='left', padx=(0, 3))
+
+            text_color_entry = tk.Entry(color_frame, textvariable=text_color_var, width=8,
+                                       bg='white', fg='#1a202c', font=('Segoe UI', 8))
+            text_color_entry.pack(side='left', padx=(0, 3))
+
+            def make_text_color_picker(index, preview_frame, color_var):
+                def pick_color():
+                    from tkinter import colorchooser
+                    color = colorchooser.askcolor(title="Choose Text Color", initialcolor=color_var.get())
+                    if color[1]:
+                        color_var.set(color[1])
+                        preview_frame.config(bg=color[1])
+                        self.update_custom_blur_region(index, 'text_color', color[1])
+                return pick_color
+
+            ModernButton(color_frame, text='🎨', bg_color='#4299e1', font=('Segoe UI', 8),
+                        padx=6, pady=3, command=make_text_color_picker(idx, text_color_preview, text_color_var)).pack(side='left', padx=(0, 10))
+
+            # BG color
+            tk.Label(color_frame, text='BG:', bg='#2d3748', fg='#cbd5e0',
+                    font=('Segoe UI', 8)).pack(side='left', padx=(0, 3))
+
+            bg_color_var = tk.StringVar(value=region.get('bg_color', '#000000'))
+            bg_color_preview = tk.Frame(color_frame, bg=bg_color_var.get(), width=25, height=20,
+                                       relief='solid', borderwidth=1)
+            bg_color_preview.pack(side='left', padx=(0, 3))
+
+            bg_color_entry = tk.Entry(color_frame, textvariable=bg_color_var, width=8,
+                                     bg='white', fg='#1a202c', font=('Segoe UI', 8))
+            bg_color_entry.pack(side='left', padx=(0, 3))
+
+            def make_bg_color_picker(index, preview_frame, color_var):
+                def pick_color():
+                    from tkinter import colorchooser
+                    color = colorchooser.askcolor(title="Choose Background Color", initialcolor=color_var.get())
+                    if color[1]:
+                        color_var.set(color[1])
+                        preview_frame.config(bg=color[1])
+                        self.update_custom_blur_region(index, 'bg_color', color[1])
+                return pick_color
+
+            ModernButton(color_frame, text='🎨', bg_color='#4299e1', font=('Segoe UI', 8),
+                        padx=6, pady=3, command=make_bg_color_picker(idx, bg_color_preview, bg_color_var)).pack(side='left', padx=(0, 10))
+
+            # BG Opacity
+            tk.Label(color_frame, text='Opacity:', bg='#2d3748', fg='#cbd5e0',
+                    font=('Segoe UI', 8)).pack(side='left', padx=(0, 3))
+            bg_opacity_var = tk.IntVar(value=region.get('bg_opacity', 180))
+            bg_opacity_spinbox = tk.Spinbox(color_frame, from_=0, to=255, textvariable=bg_opacity_var,
+                                           width=5, bg='white', fg='#1a202c', font=('Segoe UI', 8),
+                                           buttonbackground='#4299e1', relief='solid', bd=1)
+            bg_opacity_spinbox.pack(side='left')
+
+            # Bind text changes
+            def make_text_callback(index, var):
+                def callback(*args):
+                    self.update_custom_blur_region(index, 'text', var.get())
+                return callback
+
+            def make_color_callback(index, field, var):
+                def callback(*args):
+                    self.update_custom_blur_region(index, field, var.get())
+                return callback
+
+            text_var.trace('w', make_text_callback(idx, text_var))
+            text_color_var.trace('w', make_color_callback(idx, 'text_color', text_color_var))
+            bg_color_var.trace('w', make_color_callback(idx, 'bg_color', bg_color_var))
+            bg_opacity_var.trace('w', make_color_callback(idx, 'bg_opacity', bg_opacity_var))
+
             # Bind changes to update settings
             def make_update_callback(index, field, var):
                 def callback(*args):
