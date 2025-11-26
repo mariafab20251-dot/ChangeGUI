@@ -214,7 +214,8 @@
       "text": "",
       "text_color": "#FFFFFF",
       "bg_color": "#000000",
-      "bg_opacity": 180
+      "bg_opacity": 180,
+      "auto_expand": false
     },
     {
       "enabled": false,
@@ -228,7 +229,8 @@
       "text": "",
       "text_color": "#FFFFFF",
       "bg_color": "#000000",
-      "bg_opacity": 180
+      "bg_opacity": 180,
+      "auto_expand": false
     },
     {
       "enabled": false,
@@ -242,7 +244,8 @@
       "text": "",
       "text_color": "#FFFFFF",
       "bg_color": "#000000",
-      "bg_opacity": 180
+      "bg_opacity": 180,
+      "auto_expand": false
     },
     {
       "enabled": false,
@@ -256,7 +259,8 @@
       "text": "",
       "text_color": "#FFFFFF",
       "bg_color": "#000000",
-      "bg_opacity": 180
+      "bg_opacity": 180,
+      "auto_expand": false
     }
   ],
   "_comment_watermark_add": "ADD YOUR WATERMARK/LOGO",
