@@ -163,7 +163,7 @@
   "film_burn_enabled": false,
   "film_burn_start_time": 0.0,
   "film_burn_duration": 1.5,
-  "caption_preset": "\ud83c\udfaf Corporate Pro",
+  "caption_preset": "🎯 Corporate Pro",
   "tts_speed": 144,
   "voiceover_text_file": "",
   "emoji_in_captions": true,
@@ -283,5 +283,8 @@
   "line2_text_color": "#FFFFFF",
   "line3_font_style": "Arial Bold",
   "line3_font_size": 31,
-  "line3_text_color": "#00FF00"
+  "line3_text_color": "#00FF00",
+  "tts_engine": "cloud",
+  "kokoro_voice": "af_alloy - Female (American, Versatile)",
+  "kokoro_quality": "wav"
 }
