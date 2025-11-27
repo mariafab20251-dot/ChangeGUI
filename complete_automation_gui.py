@@ -646,10 +646,13 @@ class VideoAutomationGUI:
             ('add_custom_bgm', '🎵 BGM'),
             ('video_zoom', '🔍 Zoom'),
             ('pulsing_cta', '💓 Pulsing'),
+            ('filename_use_title_only', '📋 Title Filename'),
         ]
 
         for key, label in options:
-            var = tk.BooleanVar(value=self.settings.get(key, False))
+            # Default to True for filename_use_title_only, False for others
+            default_value = True if key == 'filename_use_title_only' else False
+            var = tk.BooleanVar(value=self.settings.get(key, default_value))
 
             chk_frame = tk.Frame(proc_card, bg=AppStyles.BG_CARD)
             chk_frame.pack(fill='x', padx=15, pady=5)
@@ -963,7 +966,9 @@ class VideoAutomationGUI:
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
                 font=('Segoe UI', 8, 'italic')).pack(anchor='w', padx=15, pady=(5, 10))
 
-        self.create_slider_control(particle_card, 'Glitter:', 'glitter_intensity', 0.1, 1.0, 0.5, resolution=0.1)
+        self.create_slider_control(particle_card, 'Intensity:', 'glitter_intensity', 0.1, 1.0, 0.5, resolution=0.1)
+        self.create_slider_control(particle_card, 'Frequency:', 'particle_frequency', 1, 10, 3, value_format=lambda v: f"{int(v)}x")
+        self.create_slider_control(particle_card, 'Interval:', 'particle_interval', 0.1, 5.0, 1.0, resolution=0.1, value_format=lambda v: f"{v:.1f}s")
 
         # Text Glow Settings (Row 3)
         glow_card = self.create_grid_card(grid_container, "✨ Text Glow & Neon", row=0, col=2)
