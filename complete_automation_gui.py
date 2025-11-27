@@ -369,6 +369,15 @@ class VideoAutomationGUI:
 
             with open('overlay_settings.json', 'w', encoding='utf-8') as f:
                 json.dump(self.settings, f, indent=2, ensure_ascii=False)
+
+            # DEBUG: Log custom blur regions state
+            custom_regions = self.settings.get('custom_blur_regions', [])
+            if custom_regions:
+                print(f"[SAVE DEBUG] Saved {len(custom_regions)} custom blur regions:")
+                for i, r in enumerate(custom_regions):
+                    if isinstance(r, dict):
+                        print(f"  Region {i}: enabled={r.get('enabled', False)}, text='{r.get('text', '')[:30]}'")
+
             logger.info("Settings saved successfully")
             if show_popup:
                 messagebox.showinfo("Success", "Settings saved successfully!")
@@ -1416,9 +1425,11 @@ class VideoAutomationGUI:
 
     def toggle_custom_blur_region(self, index, enabled):
         """Toggle a custom blur region on/off"""
+        print(f"[TOGGLE DEBUG] Region {index} enabled={enabled}")
         custom_regions = self.settings.get('custom_blur_regions', [])
         if index < len(custom_regions):
             custom_regions[index]['enabled'] = enabled
+            print(f"[TOGGLE DEBUG] Updated settings: {custom_regions[index]['name']} enabled={enabled}")
             self.update_setting('custom_blur_regions', custom_regions)
 
     def update_custom_blur_region(self, index, field, value):
