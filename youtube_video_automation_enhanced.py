@@ -4044,9 +4044,16 @@ class VideoQuoteAutomation:
                 cta_font_file = str(Path(r"C:\Windows\Fonts") / Path(cta_font_file).name)
             cta_font = ImageFont.truetype(cta_font_file, cta_font_size)
 
-            # Emoji font
+            # Emoji font - for all emoji rendering (CTA, Title, etc.)
             emoji_font_path = str(Path(r"C:\Windows\Fonts") / 'seguiemj.ttf')
+            # Try NotoColorEmoji.ttf if available (better emoji support)
+            noto_emoji_path = str(Path(__file__).parent / 'NotoColorEmoji.ttf')
+            if Path(noto_emoji_path).exists():
+                emoji_font_path = noto_emoji_path
+                print(f"[OK] Using NotoColorEmoji.ttf for emoji rendering")
+
             emoji_font = ImageFont.truetype(emoji_font_path, int(cta_font_size * 1.2))
+            title_emoji_font = ImageFont.truetype(emoji_font_path, int(title_font_size * 1.0))
 
         except Exception as e:
             print(f"[WARNING] Font loading error: {e}")
@@ -4054,6 +4061,7 @@ class VideoQuoteAutomation:
             quote_font = title_font
             cta_font = title_font
             emoji_font = title_font
+            title_emoji_font = title_font
 
         max_text_width = int(img_width * (self.settings['bubble_width'] / 100))
         words = main_text.split()
@@ -4078,8 +4086,11 @@ class VideoQuoteAutomation:
         sections = []
 
         # Add title section (if exists and enabled)
+        # Extract emojis from title for separate rendering with emoji font
         if self.settings.get('title_enabled', True) and title_text:
-            sections.append((title_text, title_font, False, 'title', None))
+            title_emojis_found = emoji_pattern.findall(title_text)
+            title_text_without_emojis = emoji_pattern.sub(' ', title_text).strip()
+            sections.append((title_text_without_emojis, title_font, False, 'title', title_emojis_found if title_emojis_found else None))
 
         # Add main quote section (if exists and enabled)
         if self.settings.get('quote_enabled', True) and main_text_wrapped:
@@ -4096,11 +4107,13 @@ class VideoQuoteAutomation:
             else:
                 bbox = temp_draw.textbbox((0, 0), text, font=font)
 
-            # For CTA with emojis, measure combined width (text + emojis)
+            # For sections with emojis, measure combined width (text + emojis)
             total_width = bbox[2] - bbox[0]
             if emojis:
                 emoji_str = ' '.join(emojis)
-                emoji_bbox = temp_draw.textbbox((0, 0), emoji_str, font=emoji_font)
+                # Use appropriate emoji font based on section type
+                emoji_font_for_section = title_emoji_font if section_type == 'title' else emoji_font
+                emoji_bbox = temp_draw.textbbox((0, 0), emoji_str, font=emoji_font_for_section)
                 emoji_width = emoji_bbox[2] - emoji_bbox[0]
                 total_width += emoji_width + 20  # Add spacing between text and emojis
 
@@ -4214,14 +4227,17 @@ class VideoQuoteAutomation:
                     anchor='ma'
                 )
             else:
-                # For CTA with emojis, draw text first, then emojis with embedded_color
+                # For sections with emojis (Title, CTA, etc.), draw text first, then emojis with embedded_color
                 if section_emojis:
+                    # Use appropriate emoji font based on section type
+                    emoji_font_for_section = title_emoji_font if is_title else emoji_font
+
                     # Measure text and emoji widths to position them side by side
                     text_bbox = temp_draw.textbbox((0, 0), text, font=font)
                     text_width = text_bbox[2] - text_bbox[0]
 
                     emoji_str = ' '.join(section_emojis)
-                    emoji_bbox = temp_draw.textbbox((0, 0), emoji_str, font=emoji_font)
+                    emoji_bbox = temp_draw.textbbox((0, 0), emoji_str, font=emoji_font_for_section)
                     emoji_width = emoji_bbox[2] - emoji_bbox[0]
 
                     spacing = 10
@@ -4251,13 +4267,13 @@ class VideoQuoteAutomation:
                         draw.text(
                             (emoji_x, emoji_y),
                             emoji_str,
-                            font=emoji_font,
+                            font=emoji_font_for_section,
                             embedded_color=True,  # COLORFUL EMOJIS!
                             anchor='lm'
                         )
                     except TypeError:
                         # Fallback for older Pillow versions
-                        draw.text((emoji_x, emoji_y), emoji_str, font=emoji_font, anchor='lm')
+                        draw.text((emoji_x, emoji_y), emoji_str, font=emoji_font_for_section, anchor='lm')
                 else:
                     # No emojis, just centered text
                     text_x = bubble_x + (bubble_width // 2)
