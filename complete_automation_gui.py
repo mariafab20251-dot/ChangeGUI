@@ -646,10 +646,13 @@ class VideoAutomationGUI:
             ('add_custom_bgm', '🎵 BGM'),
             ('video_zoom', '🔍 Zoom'),
             ('pulsing_cta', '💓 Pulsing'),
+            ('filename_use_title_only', '📋 Title Filename'),
         ]
 
         for key, label in options:
-            var = tk.BooleanVar(value=self.settings.get(key, False))
+            # Default to True for filename_use_title_only, False for others
+            default_value = True if key == 'filename_use_title_only' else False
+            var = tk.BooleanVar(value=self.settings.get(key, default_value))
 
             chk_frame = tk.Frame(proc_card, bg=AppStyles.BG_CARD)
             chk_frame.pack(fill='x', padx=15, pady=5)

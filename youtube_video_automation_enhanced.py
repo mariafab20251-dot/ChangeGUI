@@ -3906,17 +3906,46 @@ class VideoQuoteAutomation:
         return found[:2]
 
     def sanitize_filename(self, text: str, max_length: int = 100) -> str:
-        """Convert text to valid filename"""
-        text = re.sub(r'[<>:"/\\|?*]', '', text)
+        """Convert text to valid filename (preserves emojis with proper encoding)"""
+        import unicodedata
+
+        # Normalize Unicode to ensure emojis are properly represented
+        text = unicodedata.normalize('NFC', text)
+
+        # Remove only invalid Windows filename characters, keep emojis
+        text = re.sub(r'[<>:"/\\|?*\n\r\t]', '', text)
+
+        # Replace multiple spaces with single space
         text = re.sub(r'\s+', ' ', text).strip()
+
+        # Truncate if too long (accounting for .mp4 extension)
         if len(text) > max_length - 4:
-            text = text[:max_length - 4]
+            text = text[:max_length - 4].strip()
+
         return text
 
-    def create_filename(self, quote: str, hashtags: List[str]) -> str:
-        """Create filename from quote and hashtags"""
-        filename_text = f"{quote} {' '.join(hashtags)}"
-        filename = self.sanitize_filename(filename_text, max_length=96)
+    def create_filename(self, quote: str, hashtags: List[str] = None, use_title_only: bool = False) -> str:
+        """
+        Create filename from quote and hashtags
+
+        Args:
+            quote: Full quote text (may contain multiple lines)
+            hashtags: List of hashtags to append (optional)
+            use_title_only: If True, only use the first line (title) for filename
+
+        Returns:
+            Filename with .mp4 extension
+        """
+        if use_title_only:
+            # Extract just the first line (title) for filename
+            title_line = quote.strip().split('\n')[0] if quote else quote
+            filename = self.sanitize_filename(title_line, max_length=96)
+        else:
+            # Use full quote + hashtags (original behavior)
+            hashtag_str = ' '.join(hashtags) if hashtags else ''
+            filename_text = f"{quote} {hashtag_str}".strip()
+            filename = self.sanitize_filename(filename_text, max_length=96)
+
         return filename + ".mp4"
 
     def create_text_overlay_image(self, video_width, video_height, title_text, main_text, cta_text, cta_emojis):
@@ -4300,7 +4329,9 @@ class VideoQuoteAutomation:
         hashtags = self.generate_hashtags(subtitle_text)
         print(f"Hashtags: {', '.join(hashtags)}")
 
-        output_filename = self.create_filename(subtitle_text, hashtags)
+        # Check if user wants to use title only for filename (default: True)
+        use_title_only = self.settings.get('filename_use_title_only', True)
+        output_filename = self.create_filename(subtitle_text, hashtags, use_title_only=use_title_only)
         print(f"Output: {output_filename}")
 
         video = VideoFileClip(str(video_path))
@@ -5659,8 +5690,8 @@ class VideoQuoteAutomation:
                 codec='libx264',
                 audio_codec='aac',
                 fps=video.fps,
-                preset='medium',
-                threads=4,
+                preset='faster',  # Changed from 'medium' to 'faster' for 3-5x speed improvement
+                threads=8,  # Increased from 4 to 8 for better multi-core utilization
                 logger='bar'  # Show progress bar
             )
             print(f"[OK] Rendering complete!")
