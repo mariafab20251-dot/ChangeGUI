@@ -1043,8 +1043,8 @@ class VideoAutomationGUI:
         self.create_color_picker(progress_card, 'Color:', 'progress_color', '#00ff40')
         self.create_slider_control(progress_card, 'Height:', 'progress_bar_height', 2, 15, 5, value_format=lambda v: f"{int(v)}px")
 
-        # Watermark (Row 7)
-        watermark_card = self.create_grid_card(grid_container, "🏷️ Watermark", row=1, col=3)
+        # Watermark (Row 7) - Image or Text
+        watermark_card = self.create_grid_card(grid_container, "🏷️ Watermark (Image or Text)", row=1, col=3)
 
         watermark_var = tk.BooleanVar(value=self.settings.get('watermark_enabled', False))
         tk.Checkbutton(watermark_card, text='Enable',
@@ -1054,19 +1054,99 @@ class VideoAutomationGUI:
                       selectcolor=AppStyles.BG_INPUT,
                       command=lambda: self.update_setting('watermark_enabled', watermark_var.get())).pack(anchor='w', padx=15, pady=5)
 
-        file_frame = tk.Frame(watermark_card, bg=AppStyles.BG_CARD)
-        file_frame.pack(fill='x', padx=15, pady=3)
-        self.watermark_path_var = tk.StringVar(value=self.settings.get('watermark_image_path', ''))
-        watermark_entry = tk.Entry(file_frame, textvariable=self.watermark_path_var,
-                                   bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
-                                   font=('Segoe UI', 8), width=12)
-        watermark_entry.pack(side='left')
-        ModernButton(file_frame, text='📁',
-                    bg_color=AppStyles.ACCENT_PRIMARY,
-                    font=('Segoe UI', 8, 'bold'),
-                    padx=8, pady=3,
-                    command=self.browse_watermark).pack(side='left', padx=3)
+        # Type selection: Image or Text
+        type_frame = tk.Frame(watermark_card, bg=AppStyles.BG_CARD)
+        type_frame.pack(fill='x', padx=15, pady=3)
+        tk.Label(type_frame, text='Type:', bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 9, 'bold')).pack(side='left', padx=(0, 10))
 
+        watermark_type_var = tk.StringVar(value=self.settings.get('watermark_type', 'image'))
+        tk.Radiobutton(type_frame, text='🖼️ Image', variable=watermark_type_var, value='image',
+                      bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 9),
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: [self.update_setting('watermark_type', watermark_type_var.get()), update_watermark_ui()]).pack(side='left', padx=5)
+        tk.Radiobutton(type_frame, text='📝 Text', variable=watermark_type_var, value='text',
+                      bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 9),
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: [self.update_setting('watermark_type', watermark_type_var.get()), update_watermark_ui()]).pack(side='left', padx=5)
+
+        # Container for dynamic content (image picker OR text input)
+        content_container = tk.Frame(watermark_card, bg=AppStyles.BG_CARD)
+        content_container.pack(fill='x', padx=15, pady=5)
+
+        def update_watermark_ui():
+            # Clear container
+            for widget in content_container.winfo_children():
+                widget.destroy()
+
+            if watermark_type_var.get() == 'image':
+                # Image file picker
+                file_frame = tk.Frame(content_container, bg=AppStyles.BG_CARD)
+                file_frame.pack(fill='x', pady=3)
+                tk.Label(file_frame, text='Image:', bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 9)).pack(side='left', padx=(0, 5))
+                self.watermark_path_var = tk.StringVar(value=self.settings.get('watermark_image_path', ''))
+                watermark_entry = tk.Entry(file_frame, textvariable=self.watermark_path_var,
+                                           bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                                           font=('Segoe UI', 8), width=15)
+                watermark_entry.pack(side='left')
+                ModernButton(file_frame, text='📁',
+                            bg_color=AppStyles.ACCENT_PRIMARY,
+                            font=('Segoe UI', 8, 'bold'),
+                            padx=8, pady=3,
+                            command=self.browse_watermark).pack(side='left', padx=3)
+            else:
+                # Text input and font controls
+                text_frame = tk.Frame(content_container, bg=AppStyles.BG_CARD)
+                text_frame.pack(fill='x', pady=3)
+                tk.Label(text_frame, text='Text:', bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 9, 'bold')).pack(anchor='w', pady=(0, 3))
+
+                watermark_text_var = tk.StringVar(value=self.settings.get('watermark_text', ''))
+                text_entry = tk.Entry(text_frame, textvariable=watermark_text_var,
+                                     bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                                     font=('Segoe UI', 9), width=30)
+                text_entry.pack(fill='x', pady=(0, 5))
+                watermark_text_var.trace('w', lambda *args: self.update_setting('watermark_text', watermark_text_var.get()))
+
+                # Font controls
+                font_row = tk.Frame(content_container, bg=AppStyles.BG_CARD)
+                font_row.pack(fill='x', pady=3)
+
+                tk.Label(font_row, text='Font Size:', bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 8)).pack(side='left', padx=(0, 3))
+                wm_font_size_var = tk.IntVar(value=self.settings.get('watermark_font_size', 30))
+                tk.Spinbox(font_row, from_=10, to=100, textvariable=wm_font_size_var,
+                          width=5, bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 8),
+                          buttonbackground=AppStyles.ACCENT_PRIMARY).pack(side='left', padx=(0, 10))
+                wm_font_size_var.trace('w', lambda *args: self.update_setting('watermark_font_size', wm_font_size_var.get()))
+
+                tk.Label(font_row, text='Font:', bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 8)).pack(side='left', padx=(0, 3))
+                wm_font_style_var = tk.StringVar(value=self.settings.get('watermark_font_style', 'Arial Bold'))
+                font_options = ['Arial', 'Arial Bold', 'Times New Roman', 'Courier', 'Verdana']
+                tk.OptionMenu(font_row, wm_font_style_var, *font_options).pack(side='left')
+                wm_font_style_var.trace('w', lambda *args: self.update_setting('watermark_font_style', wm_font_style_var.get()))
+
+                # Text color picker
+                color_frame = tk.Frame(content_container, bg=AppStyles.BG_CARD)
+                color_frame.pack(fill='x', pady=3)
+                tk.Label(color_frame, text='Text Color:', bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 8)).pack(side='left', padx=(0, 5))
+
+                wm_text_color_var = tk.StringVar(value=self.settings.get('watermark_text_color', '#FFFFFF'))
+                color_preview = tk.Frame(color_frame, bg=wm_text_color_var.get(), width=25, height=20, relief='solid', borderwidth=1)
+                color_preview.pack(side='left', padx=(0, 3))
+                tk.Entry(color_frame, textvariable=wm_text_color_var, width=8, bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 8)).pack(side='left', padx=(0, 3))
+
+                def pick_wm_color():
+                    color = colorchooser.askcolor(title="Choose Text Color", initialcolor=wm_text_color_var.get())
+                    if color[1]:
+                        wm_text_color_var.set(color[1])
+                        color_preview.config(bg=color[1])
+                        self.update_setting('watermark_text_color', color[1])
+
+                ModernButton(color_frame, text='🎨', bg_color=AppStyles.ACCENT_INFO, font=('Segoe UI', 8),
+                            padx=6, pady=3, command=pick_wm_color).pack(side='left')
+
+        # Initialize UI based on current type
+        update_watermark_ui()
+
+        # Common settings (position, opacity)
         pos_frame = tk.Frame(watermark_card, bg=AppStyles.BG_CARD)
         pos_frame.pack(fill='x', padx=15, pady=3)
         tk.Label(pos_frame, text='Pos:', bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK, font=('Segoe UI', 9)).pack(side='left')
@@ -1205,6 +1285,34 @@ class VideoAutomationGUI:
                     padx=12, pady=5,
                     command=self.show_blur_regions_preview).pack(side='right')
 
+        # Spreadsheet integration section
+        spreadsheet_frame = tk.Frame(custom_blur_card, bg='#2d3748', relief='solid', borderwidth=1)
+        spreadsheet_frame.pack(fill='x', padx=15, pady=(5, 10))
+
+        tk.Label(spreadsheet_frame, text='📊 Excel Spreadsheet (optional):',
+                bg='#2d3748', fg='#cbd5e0', font=('Segoe UI', 9, 'bold')).pack(anchor='w', padx=10, pady=(5, 2))
+
+        file_row = tk.Frame(spreadsheet_frame, bg='#2d3748')
+        file_row.pack(fill='x', padx=10, pady=(0, 5))
+
+        spreadsheet_file_var = tk.StringVar(value=self.settings.get('blur_regions_spreadsheet_file', ''))
+        tk.Entry(file_row, textvariable=spreadsheet_file_var, bg='white', fg='#1a202c',
+                font=('Segoe UI', 8), width=40).pack(side='left', padx=(0, 5))
+
+        def browse_spreadsheet():
+            from tkinter import filedialog
+            file = filedialog.askopenfilename(title="Select Excel File",
+                                             filetypes=[("Excel Files", "*.xlsx *.xls"), ("All Files", "*.*")])
+            if file:
+                spreadsheet_file_var.set(file)
+                self.update_setting('blur_regions_spreadsheet_file', file)
+
+        ModernButton(file_row, text='📁 Browse', bg_color='#4299e1',
+                    command=browse_spreadsheet).pack(side='left')
+
+        tk.Label(spreadsheet_frame, text='ℹ️ Columns: A=video_id, B=title, C=description',
+                bg='#2d3748', fg='#718096', font=('Segoe UI', 7, 'italic')).pack(anchor='w', padx=10, pady=(0, 5))
+
         # Get custom regions from settings
         custom_regions = self.settings.get('custom_blur_regions', [])
 
@@ -1313,6 +1421,12 @@ class VideoAutomationGUI:
                     self.root.after_idle(lambda: self.update_custom_blur_region(index, 'auto_expand', var.get()))
                 return callback
 
+            # Define update callback for use in font controls below
+            def make_update_callback(index, field, var):
+                def callback(*args):
+                    self.update_custom_blur_region(index, field, var.get())
+                return callback
+
             tk.Checkbutton(text_section, text='📏 Auto-expand box to fit text',
                           variable=auto_expand_var,
                           bg='#2d3748', fg='#90cdf4',
@@ -1321,6 +1435,51 @@ class VideoAutomationGUI:
                           activebackground='#2d3748',
                           activeforeground='#48bb78',
                           command=make_auto_expand_callback(idx, auto_expand_var)).pack(anchor='w', pady=(0, 5))
+
+            # Font & Spreadsheet controls
+            font_frame = tk.Frame(text_section, bg='#2d3748')
+            font_frame.pack(fill='x', pady=(5, 5))
+
+            # Font Size
+            tk.Label(font_frame, text='Font Size:', bg='#2d3748', fg='#cbd5e0',
+                    font=('Segoe UI', 8)).pack(side='left', padx=(0, 3))
+            font_size_var = tk.IntVar(value=region.get('font_size', 30))
+            tk.Spinbox(font_frame, from_=10, to=100, textvariable=font_size_var,
+                      width=5, bg='white', fg='#1a202c', font=('Segoe UI', 8),
+                      buttonbackground='#4299e1', relief='solid', bd=1).pack(side='left', padx=(0, 10))
+
+            # Font Style
+            tk.Label(font_frame, text='Font:', bg='#2d3748', fg='#cbd5e0',
+                    font=('Segoe UI', 8)).pack(side='left', padx=(0, 3))
+            font_style_var = tk.StringVar(value=region.get('font_style', 'Arial Bold'))
+            font_options = ['Arial', 'Arial Bold', 'Times New Roman', 'Courier', 'Verdana', 'Georgia']
+            tk.OptionMenu(font_frame, font_style_var, *font_options).pack(side='left')
+
+            # Spreadsheet checkbox
+            use_spreadsheet_var = tk.BooleanVar(value=region.get('use_spreadsheet', False))
+
+            def make_spreadsheet_toggle(index, var):
+                def callback():
+                    self.root.after_idle(lambda: self.update_custom_blur_region(index, 'use_spreadsheet', var.get()))
+                return callback
+
+            tk.Checkbutton(font_frame, text='📊 Use Spreadsheet',
+                          variable=use_spreadsheet_var,
+                          bg='#2d3748', fg='#90cdf4', font=('Segoe UI', 8),
+                          selectcolor='#1a202c',
+                          command=make_spreadsheet_toggle(idx, use_spreadsheet_var)).pack(side='left', padx=(10, 3))
+
+            # Column selector
+            tk.Label(font_frame, text='Col:', bg='#2d3748', fg='#cbd5e0',
+                    font=('Segoe UI', 8)).pack(side='left', padx=(0, 2))
+            column_var = tk.StringVar(value=region.get('spreadsheet_column', 'B'))
+            column_options = ['A', 'B', 'C', 'D', 'E']
+            tk.OptionMenu(font_frame, column_var, *column_options).pack(side='left')
+
+            # Bind changes
+            font_size_var.trace('w', make_update_callback(idx, 'font_size', font_size_var))
+            font_style_var.trace('w', make_update_callback(idx, 'font_style', font_style_var))
+            column_var.trace('w', make_update_callback(idx, 'spreadsheet_column', column_var))
 
             # Color pickers row
             color_frame = tk.Frame(text_section, bg='#2d3748')
@@ -1403,12 +1562,7 @@ class VideoAutomationGUI:
             bg_color_var.trace('w', make_color_callback(idx, 'bg_color', bg_color_var))
             bg_opacity_var.trace('w', make_color_callback(idx, 'bg_opacity', bg_opacity_var))
 
-            # Bind changes to update settings
-            def make_update_callback(index, field, var):
-                def callback(*args):
-                    self.update_custom_blur_region(index, field, var.get())
-                return callback
-
+            # Bind position/size changes to update settings
             x_var.trace('w', make_update_callback(idx, 'x', x_var))
             y_var.trace('w', make_update_callback(idx, 'y', y_var))
             w_var.trace('w', make_update_callback(idx, 'width', w_var))
