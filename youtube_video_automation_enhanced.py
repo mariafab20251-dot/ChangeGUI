@@ -4583,9 +4583,16 @@ class VideoQuoteAutomation:
             except AttributeError:
                 video = video.fl_image(lambda frame: VideoEffects.apply_gradient_overlay(frame, gradient_type, intensity))
 
-        # Apply region blur effect
-        if self.settings.get('region_blur_enabled', False):
-            print("  → Applying region blur effect...")
+        # Apply region blur effect OR custom blur regions
+        region_blur_enabled = self.settings.get('region_blur_enabled', False)
+        custom_regions = self.settings.get('custom_blur_regions', [])
+        has_enabled_custom_regions = any(r.get('enabled', False) for r in custom_regions if isinstance(r, dict))
+
+        if region_blur_enabled or has_enabled_custom_regions:
+            if region_blur_enabled:
+                print("  → Applying region blur effect...")
+            if has_enabled_custom_regions:
+                print("  → Applying custom blur regions to hide logos/watermarks...")
             settings = self.settings
             try:
                 video = video.image_transform(lambda frame: VideoEffects.apply_region_blur(frame, settings))
