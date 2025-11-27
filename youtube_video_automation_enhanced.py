@@ -86,6 +86,52 @@ class VideoEffects:
     """Advanced video effects module"""
 
     @staticmethod
+    def get_text_from_spreadsheet(video_filepath, spreadsheet_path, column='B'):
+        """
+        Read text from Excel spreadsheet based on video_id
+
+        Args:
+            video_filepath: Path to video file (e.g., "path/to/jQlZ9DSR3Mo.mp4")
+            spreadsheet_path: Path to Excel file with video data
+            column: Column letter to read from (default 'B')
+
+        Returns:
+            Text from spreadsheet, or None if not found
+        """
+        if not spreadsheet_path or not os.path.exists(spreadsheet_path):
+            return None
+
+        try:
+            import pandas as pd
+
+            # Extract video_id from filename (remove extension)
+            video_id = Path(video_filepath).stem
+
+            # Read Excel file
+            df = pd.read_excel(spreadsheet_path)
+
+            # Find row with matching video_id (assume column A is video_id)
+            matching_row = df[df.iloc[:, 0] == video_id]
+
+            if matching_row.empty:
+                print(f"[SPREADSHEET] No match found for video_id: {video_id}")
+                return None
+
+            # Get text from specified column
+            column_index = ord(column.upper()) - ord('A')
+            if column_index >= len(df.columns):
+                print(f"[SPREADSHEET] Column {column} doesn't exist")
+                return None
+
+            text = matching_row.iloc[0, column_index]
+            print(f"[SPREADSHEET] Found text for {video_id}: {str(text)[:50]}...")
+            return str(text) if pd.notna(text) else None
+
+        except Exception as e:
+            print(f"[SPREADSHEET ERROR] {e}")
+            return None
+
+    @staticmethod
     def apply_color_grade(frame, grade_type='warm', intensity=0.5):
         """Apply color grading to frame"""
         # Work on a copy to avoid modifying read-only arrays
@@ -356,8 +402,24 @@ class VideoEffects:
                     if not custom_region.get('enabled', True):
                         continue
 
-                    # Get text content
-                    text_content = custom_region.get('text', '').strip()
+                    # Get text content - check if should use spreadsheet
+                    if custom_region.get('use_spreadsheet', False):
+                        # Try to get text from spreadsheet
+                        spreadsheet_file = settings.get('blur_regions_spreadsheet_file', '')
+                        column = custom_region.get('spreadsheet_column', 'B')
+                        video_path = settings.get('_current_video_path', '')
+
+                        text_content = VideoEffects.get_text_from_spreadsheet(
+                            video_path, spreadsheet_file, column
+                        )
+
+                        if not text_content:
+                            # Fall back to manual text if spreadsheet fails
+                            text_content = custom_region.get('text', '').strip()
+                    else:
+                        # Use manual text from settings
+                        text_content = custom_region.get('text', '').strip()
+
                     if not text_content:
                         continue
 
@@ -5255,23 +5317,65 @@ class VideoQuoteAutomation:
         # Add watermark if enabled
         if self.settings.get('watermark_enabled', False):
             try:
-                watermark_path = self.settings.get('watermark_image_path', '')
-                if watermark_path and Path(watermark_path).exists():
-                    # ImageClip already imported at module level
-                    # Load watermark image
-                    watermark = ImageClip(watermark_path)
+                watermark_type = self.settings.get('watermark_type', 'image')
+                position = self.settings.get('watermark_position', 'bottom-right')
+                opacity = self.settings.get('watermark_opacity', 70) / 100.0  # Convert to 0-1
+                margin_x = self.settings.get('watermark_margin_x', 20)
+                margin_y = self.settings.get('watermark_margin_y', 20)
 
-                    # Get settings
-                    position = self.settings.get('watermark_position', 'bottom-right')
-                    opacity = self.settings.get('watermark_opacity', 70) / 100.0  # Convert to 0-1
-                    scale = self.settings.get('watermark_scale', 0.15)  # Size relative to video width
-                    margin_x = self.settings.get('watermark_margin_x', 20)
-                    margin_y = self.settings.get('watermark_margin_y', 20)
+                watermark = None
 
-                    # Resize watermark to scale relative to video width
-                    new_width = int(video.w * scale)
-                    watermark = watermark.resize(width=new_width)
+                if watermark_type == 'text':
+                    # Text watermark
+                    watermark_text = self.settings.get('watermark_text', '').strip()
+                    if watermark_text:
+                        try:
+                            from moviepy import TextClip
+                        except ImportError:
+                            from moviepy.editor import TextClip
 
+                        # Get text settings
+                        font_size = self.settings.get('watermark_font_size', 30)
+                        font_style = self.settings.get('watermark_font_style', 'Arial Bold')
+                        text_color_hex = self.settings.get('watermark_text_color', '#FFFFFF')
+                        text_color = self.hex_to_rgb(text_color_hex)
+
+                        # Map font style to actual font file if needed
+                        font_file = self.get_font_file(font_style)
+
+                        # Create text clip
+                        watermark = TextClip(
+                            text=watermark_text,
+                            font_size=font_size,
+                            color=text_color,
+                            font=font_file,
+                            stroke_width=2,
+                            stroke_color='black'
+                        )
+
+                        print(f"[OK] Created text watermark: '{watermark_text}' (font: {font_style}, size: {font_size})")
+                    else:
+                        print(f"[WARNING] Text watermark enabled but no text provided")
+
+                else:
+                    # Image watermark
+                    watermark_path = self.settings.get('watermark_image_path', '')
+                    if watermark_path and Path(watermark_path).exists():
+                        # ImageClip already imported at module level
+                        # Load watermark image
+                        watermark = ImageClip(watermark_path)
+
+                        # Resize watermark to scale relative to video width
+                        scale = self.settings.get('watermark_scale', 0.15)  # Size relative to video width
+                        new_width = int(video.w * scale)
+                        watermark = watermark.resize(width=new_width)
+
+                        print(f"[OK] Loaded image watermark (scale: {int(scale*100)}%)")
+                    else:
+                        print(f"[WARNING] Image watermark enabled but file not found: {watermark_path}")
+
+                # Apply watermark if created
+                if watermark:
                     # Set opacity
                     watermark = watermark.set_opacity(opacity)
 
@@ -5294,9 +5398,8 @@ class VideoQuoteAutomation:
 
                     # Composite watermark onto video
                     final_video = CompositeVideoClip([final_video, watermark])
-                    print(f"[OK] Added watermark at {position} (opacity: {int(opacity*100)}%, scale: {int(scale*100)}%)")
-                else:
-                    print(f"[WARNING] Watermark enabled but image not found: {watermark_path}")
+                    print(f"[OK] Applied {watermark_type} watermark at {position} (opacity: {int(opacity*100)}%)")
+
             except Exception as e:
                 print(f"[WARNING] Watermark overlay failed: {e}")
                 import traceback
@@ -5589,6 +5692,9 @@ class VideoQuoteAutomation:
             Dictionary with processing result (status, output_file, etc.)
         """
         try:
+            # Store video filepath in settings for spreadsheet lookup
+            self.settings['_current_video_path'] = str(video_path)
+
             # Read quotes
             quotes = self.read_quotes()
 
