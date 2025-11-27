@@ -963,7 +963,9 @@ class VideoAutomationGUI:
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
                 font=('Segoe UI', 8, 'italic')).pack(anchor='w', padx=15, pady=(5, 10))
 
-        self.create_slider_control(particle_card, 'Glitter:', 'glitter_intensity', 0.1, 1.0, 0.5, resolution=0.1)
+        self.create_slider_control(particle_card, 'Intensity:', 'glitter_intensity', 0.1, 1.0, 0.5, resolution=0.1)
+        self.create_slider_control(particle_card, 'Frequency:', 'particle_frequency', 1, 10, 3, value_format=lambda v: f"{int(v)}x")
+        self.create_slider_control(particle_card, 'Interval:', 'particle_interval', 0.1, 5.0, 1.0, resolution=0.1, value_format=lambda v: f"{v:.1f}s")
 
         # Text Glow Settings (Row 3)
         glow_card = self.create_grid_card(grid_container, "✨ Text Glow & Neon", row=0, col=2)
