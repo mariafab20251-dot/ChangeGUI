@@ -293,9 +293,11 @@ class VideoEffects:
                 # Support both old format (x1,y1,x2,y2) and new format (x1,y1,x2,y2,custom_kernel)
                 if len(region_data) == 5:
                     x1, y1, x2, y2, custom_kernel = region_data
+                    is_custom_region = True  # Custom regions have 5 values
                 else:
                     x1, y1, x2, y2 = region_data
                     custom_kernel = kernel_size
+                    is_custom_region = False  # Predefined regions have 4 values
 
                 if x2 <= x1 or y2 <= y1:
                     continue
@@ -317,28 +319,30 @@ class VideoEffects:
                     tint_layer = np.full_like(blurred, tint_bgr, dtype=np.uint8)
                     blurred = cv2.addWeighted(blurred, 1 - tint_opacity, tint_layer, tint_opacity, 0)
 
-                # Apply feathered edge if enabled
-                if settings.get('blur_feather_edge', True) and region not in ['center']:
-                    feather_px = min(blurred.shape[0], blurred.shape[1]) // 4
-                    if feather_px > 0:
-                        # Create gradient mask
-                        mask = np.ones(blurred.shape[:2], dtype=np.float32)
+                # Apply feathered edge ONLY for predefined regions (not custom regions)
+                if not is_custom_region and settings.get('blur_feather_edge', True) and region_blur_enabled:
+                    region = settings.get('blur_region', 'bottom')
+                    if region not in ['center']:
+                        feather_px = min(blurred.shape[0], blurred.shape[1]) // 4
+                        if feather_px > 0:
+                            # Create gradient mask
+                            mask = np.ones(blurred.shape[:2], dtype=np.float32)
 
-                        if region in ['top', 'top_bottom'] and y1 == 0:
-                            gradient = np.linspace(1, 0, feather_px)
-                            for i, val in enumerate(gradient):
-                                if blurred.shape[0] - feather_px + i < blurred.shape[0]:
-                                    mask[blurred.shape[0] - feather_px + i, :] = val
-                        elif region in ['bottom', 'top_bottom'] and y2 == h:
-                            gradient = np.linspace(0, 1, feather_px)
-                            for i, val in enumerate(gradient):
-                                if i < blurred.shape[0]:
-                                    mask[i, :] = val
+                            if region in ['top', 'top_bottom'] and y1 == 0:
+                                gradient = np.linspace(1, 0, feather_px)
+                                for i, val in enumerate(gradient):
+                                    if blurred.shape[0] - feather_px + i < blurred.shape[0]:
+                                        mask[blurred.shape[0] - feather_px + i, :] = val
+                            elif region in ['bottom', 'top_bottom'] and y2 == h:
+                                gradient = np.linspace(0, 1, feather_px)
+                                for i, val in enumerate(gradient):
+                                    if i < blurred.shape[0]:
+                                        mask[i, :] = val
 
-                        # Apply mask
-                        mask = mask[:, :, np.newaxis]
-                        original_roi = frame[y1:y2, x1:x2].astype(np.float32)
-                        blurred = (blurred.astype(np.float32) * mask + original_roi * (1 - mask)).astype(np.uint8)
+                            # Apply mask
+                            mask = mask[:, :, np.newaxis]
+                            original_roi = frame[y1:y2, x1:x2].astype(np.float32)
+                            blurred = (blurred.astype(np.float32) * mask + original_roi * (1 - mask)).astype(np.uint8)
 
                 frame[y1:y2, x1:x2] = blurred
 
