@@ -390,7 +390,7 @@ class VideoEffects:
 
                     # Check if auto-expand is enabled
                     auto_expand = custom_region.get('auto_expand', False)
-                    font = cv2.FONT_HERSHEY_BOLD
+                    font = cv2.FONT_HERSHEY_DUPLEX  # Use DUPLEX for bolder appearance
 
                     if auto_expand:
                         # Calculate box size based on text dimensions
