@@ -403,19 +403,30 @@ class VideoEffects:
                         continue
 
                     # Get text content - check if should use spreadsheet
+                    # PERFORMANCE FIX: Cache spreadsheet lookups to avoid repeated calls per frame
+                    region_id = custom_region.get('id', id(custom_region))
+                    cache_key = f'_cached_text_{region_id}'
+
                     if custom_region.get('use_spreadsheet', False):
-                        # Try to get text from spreadsheet
-                        spreadsheet_file = settings.get('blur_regions_spreadsheet_file', '')
-                        column = custom_region.get('spreadsheet_column', 'B')
-                        video_path = settings.get('_current_video_path', '')
+                        # Check if already cached in settings
+                        if cache_key in settings:
+                            text_content = settings[cache_key]
+                        else:
+                            # Try to get text from spreadsheet (only once, then cache)
+                            spreadsheet_file = settings.get('blur_regions_spreadsheet_file', '')
+                            column = custom_region.get('spreadsheet_column', 'B')
+                            video_path = settings.get('_current_video_path', '')
 
-                        text_content = VideoEffects.get_text_from_spreadsheet(
-                            video_path, spreadsheet_file, column
-                        )
+                            text_content = VideoEffects.get_text_from_spreadsheet(
+                                video_path, spreadsheet_file, column
+                            )
 
-                        if not text_content:
-                            # Fall back to manual text if spreadsheet fails
-                            text_content = custom_region.get('text', '').strip()
+                            if not text_content:
+                                # Fall back to manual text if spreadsheet fails
+                                text_content = custom_region.get('text', '').strip()
+
+                            # Cache the result for subsequent frames
+                            settings[cache_key] = text_content
                     else:
                         # Use manual text from settings
                         text_content = custom_region.get('text', '').strip()
@@ -5725,6 +5736,11 @@ class VideoQuoteAutomation:
         try:
             # Store video filepath in settings for spreadsheet lookup
             self.settings['_current_video_path'] = str(video_path)
+
+            # Clear cached spreadsheet text from previous video (performance optimization)
+            cache_keys = [k for k in self.settings.keys() if k.startswith('_cached_text_')]
+            for key in cache_keys:
+                del self.settings[key]
 
             # Read quotes
             quotes = self.read_quotes()
