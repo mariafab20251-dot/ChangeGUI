@@ -201,6 +201,7 @@
   "blur_text_font_bold": true,
   "blur_text_font_italic": false,
   "_comment_custom_blur_regions": "CUSTOM BLUR REGIONS - Hide specific logos/watermarks at exact positions",
+  "blur_regions_spreadsheet_file": "",
   "custom_blur_regions": [
     {
       "enabled": true,
@@ -215,7 +216,11 @@
       "text_color": "#FFFFFF",
       "bg_color": "#000000",
       "bg_opacity": 255,
-      "auto_expand": false
+      "auto_expand": false,
+      "use_spreadsheet": false,
+      "spreadsheet_column": "B",
+      "font_size": 30,
+      "font_style": "Arial Bold"
     },
     {
       "enabled": true,
@@ -230,7 +235,11 @@
       "text_color": "#ff0000",
       "bg_color": "#ffff00",
       "bg_opacity": 255,
-      "auto_expand": false
+      "auto_expand": false,
+      "use_spreadsheet": false,
+      "spreadsheet_column": "B",
+      "font_size": 30,
+      "font_style": "Arial Bold"
     },
     {
       "enabled": false,
@@ -245,7 +254,11 @@
       "text_color": "#FFFFFF",
       "bg_color": "#000000",
       "bg_opacity": 180,
-      "auto_expand": false
+      "auto_expand": false,
+      "use_spreadsheet": false,
+      "spreadsheet_column": "B",
+      "font_size": 30,
+      "font_style": "Arial Bold"
     },
     {
       "enabled": false,
@@ -260,12 +273,21 @@
       "text_color": "#FFFFFF",
       "bg_color": "#000000",
       "bg_opacity": 180,
-      "auto_expand": false
+      "auto_expand": false,
+      "use_spreadsheet": false,
+      "spreadsheet_column": "B",
+      "font_size": 30,
+      "font_style": "Arial Bold"
     }
   ],
-  "_comment_watermark_add": "ADD YOUR WATERMARK/LOGO",
+  "_comment_watermark_add": "ADD YOUR WATERMARK (IMAGE OR TEXT)",
   "watermark_enabled": false,
+  "watermark_type": "image",
   "watermark_image_path": "",
+  "watermark_text": "",
+  "watermark_text_color": "#FFFFFF",
+  "watermark_font_size": 30,
+  "watermark_font_style": "Arial Bold",
   "watermark_position": "bottom-right",
   "watermark_opacity": 70,
   "watermark_scale": 0.15,
