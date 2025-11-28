@@ -914,9 +914,19 @@ class VideoAutomationGUI:
         # Column 1: RGB Glitch, Gradient, Particles
         chroma_card = self.create_grid_card(grid_container, "🌈 RGB Glitch", row=0, col=1)
 
+        # Enable checkbox for RGB Glitch
+        chroma_var = tk.BooleanVar(value=self.settings.get('chromatic_aberration', False))
+        tk.Checkbutton(chroma_card, text='✓ Enable RGB Glitch',
+                      variable=chroma_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 9, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('chromatic_aberration', chroma_var.get())).pack(anchor='w', padx=15, pady=(10, 5))
+        self.chromatic_aberration_var = chroma_var
+
         tk.Label(chroma_card, text='Trendy RGB split effect',
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 8, 'italic')).pack(anchor='w', padx=15, pady=(5, 10))
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', padx=15, pady=(0, 10))
 
         dir_frame = tk.Frame(chroma_card, bg=AppStyles.BG_CARD)
         dir_frame.pack(fill='x', padx=15, pady=(0, 5))
@@ -938,9 +948,19 @@ class VideoAutomationGUI:
         # Gradient Overlay Settings (Row 1)
         gradient_card = self.create_grid_card(grid_container, "🌅 Gradient Overlay", row=1, col=1)
 
+        # Enable checkbox for Gradient Overlay
+        gradient_var = tk.BooleanVar(value=self.settings.get('gradient_overlay', False))
+        tk.Checkbutton(gradient_card, text='✓ Enable Gradient',
+                      variable=gradient_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 9, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('gradient_overlay', gradient_var.get())).pack(anchor='w', padx=15, pady=(10, 5))
+        self.gradient_overlay_var = gradient_var
+
         tk.Label(gradient_card, text='Cinematic gradient effects',
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 8, 'italic')).pack(anchor='w', padx=15, pady=(5, 10))
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', padx=15, pady=(0, 10))
 
         type_frame = tk.Frame(gradient_card, bg=AppStyles.BG_CARD)
         type_frame.pack(fill='x', padx=15, pady=(0, 5))
@@ -962,9 +982,31 @@ class VideoAutomationGUI:
         # Particle Effects Settings (Row 2)
         particle_card = self.create_grid_card(grid_container, "✨ Particle Effects", row=2, col=1)
 
+        # Enable checkbox for Particle Effects (controls glitter/stars/hearts/confetti)
+        particle_var = tk.BooleanVar(value=self.settings.get('add_glitter', False) or
+                                            self.settings.get('add_stars', False) or
+                                            self.settings.get('add_hearts', False) or
+                                            self.settings.get('add_confetti', False))
+
+        def toggle_particles():
+            enabled = particle_var.get()
+            # Enable/disable all particle types together
+            self.update_setting('add_glitter', enabled)
+            self.update_setting('add_stars', enabled)
+            self.update_setting('add_hearts', enabled)
+            self.update_setting('add_confetti', enabled)
+
+        tk.Checkbutton(particle_card, text='✓ Enable Particles',
+                      variable=particle_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 9, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=toggle_particles).pack(anchor='w', padx=15, pady=(10, 5))
+        self.particle_effects_var = particle_var
+
         tk.Label(particle_card, text='Magical floating particles',
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
-                font=('Segoe UI', 8, 'italic')).pack(anchor='w', padx=15, pady=(5, 10))
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', padx=15, pady=(0, 10))
 
         self.create_slider_control(particle_card, 'Intensity:', 'glitter_intensity', 0.1, 1.0, 0.5, resolution=0.1)
         self.create_slider_control(particle_card, 'Frequency:', 'particle_frequency', 1, 10, 3, value_format=lambda v: f"{int(v)}x")
@@ -972,6 +1014,26 @@ class VideoAutomationGUI:
 
         # Text Glow Settings (Row 3)
         glow_card = self.create_grid_card(grid_container, "✨ Text Glow & Neon", row=0, col=2)
+
+        # Enable checkbox for Text Glow
+        text_glow_var = tk.BooleanVar(value=self.settings.get('text_glow', False))
+        tk.Checkbutton(glow_card, text='✓ Enable Glow',
+                      variable=text_glow_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 9, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('text_glow', text_glow_var.get())).pack(anchor='w', padx=15, pady=(10, 5))
+        self.text_glow_var = text_glow_var
+
+        # Enable checkbox for Neon Glow
+        neon_glow_var = tk.BooleanVar(value=self.settings.get('neon_glow', False))
+        tk.Checkbutton(glow_card, text='✓ Enable Neon',
+                      variable=neon_glow_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 9, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('neon_glow', neon_glow_var.get())).pack(anchor='w', padx=15, pady=(5, 10))
+        self.neon_glow_var = neon_glow_var
 
         self.create_slider_control(glow_card, 'Glow:', 'glow_intensity', 1, 20, 8)
         self.create_color_picker(glow_card, 'Glow Color:', 'glow_color', '#ffffff')
