@@ -5717,7 +5717,7 @@ class VideoQuoteAutomation:
                 codec='libx264',
                 audio_codec='aac',
                 fps=video.fps,
-                preset='faster',  # Changed from 'medium' to 'faster' for 3-5x speed improvement
+                preset='ultrafast',  # Changed to 'ultrafast' for maximum speed - 2x faster than 'faster'
                 threads=8,  # Increased from 4 to 8 for better multi-core utilization
                 logger='bar'  # Show progress bar
             )
