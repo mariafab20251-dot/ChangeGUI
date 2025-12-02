@@ -166,6 +166,76 @@ class VideoEffects:
         return (frame * vignette[:,:,np.newaxis]).astype('uint8')
 
     @staticmethod
+    def apply_circular_spotlight(frame, center_x=50, center_y=50, radius=40,
+                                 outside_effect='blur', blur_intensity=50,
+                                 outside_color='#000000', feather=20):
+        """
+        Apply circular spotlight effect - only circle area is visible, rest is blurred/darkened
+
+        Args:
+            frame: Video frame
+            center_x: Circle center X position (0-100, percentage)
+            center_y: Circle center Y position (0-100, percentage)
+            radius: Circle radius (0-100, percentage of smaller dimension)
+            outside_effect: 'blur' or 'solid' - what to do with area outside circle
+            blur_intensity: Blur strength for outside area (0-100)
+            outside_color: Hex color for solid color effect
+            feather: Edge softness (0-100, percentage of radius)
+
+        Returns:
+            Frame with circular spotlight effect applied
+        """
+        import cv2
+
+        frame = frame.copy()
+        h, w = frame.shape[:2]
+
+        # Convert percentage to pixels
+        cx = int(w * center_x / 100)
+        cy = int(h * center_y / 100)
+        r = int(min(w, h) * radius / 100)
+
+        # Create circular mask
+        mask = np.zeros((h, w), dtype=np.float32)
+        y, x = np.ogrid[:h, :w]
+        distance = np.sqrt((x - cx)**2 + (y - cy)**2)
+
+        # Apply feathering (smooth edges)
+        feather_px = int(r * feather / 100)
+        if feather_px > 0:
+            # Gradual transition from 1 (inside) to 0 (outside)
+            mask = np.clip((r + feather_px - distance) / feather_px, 0, 1)
+        else:
+            # Hard edge
+            mask[distance <= r] = 1.0
+
+        # Apply effect to outside area
+        if outside_effect == 'blur':
+            # Blur the entire frame
+            blur_amount = max(1, int(blur_intensity))
+            if blur_amount % 2 == 0:
+                blur_amount += 1  # Must be odd for GaussianBlur
+            blurred_frame = cv2.GaussianBlur(frame, (blur_amount, blur_amount), 0)
+
+            # Blend original and blurred using mask
+            mask_3d = mask[:, :, np.newaxis]
+            result = (frame * mask_3d + blurred_frame * (1 - mask_3d)).astype(np.uint8)
+        else:  # solid color
+            # Convert hex color to BGR
+            color_hex = outside_color.lstrip('#')
+            color_rgb = tuple(int(color_hex[i:i+2], 16) for i in (0, 2, 4))
+            color_bgr = (color_rgb[2], color_rgb[1], color_rgb[0])
+
+            # Create solid color frame
+            solid_frame = np.full_like(frame, color_bgr)
+
+            # Blend original and solid color using mask
+            mask_3d = mask[:, :, np.newaxis]
+            result = (frame * mask_3d + solid_frame * (1 - mask_3d)).astype(np.uint8)
+
+        return result
+
+    @staticmethod
     def apply_film_grain(frame, intensity=0.15):
         """Apply film grain overlay"""
         # Work on a copy to avoid modifying read-only arrays
@@ -5699,6 +5769,31 @@ class VideoQuoteAutomation:
                 print(f"[OK] Composited {len(particle_layers)} particle effect(s)")
             except Exception as e:
                 print(f"[WARNING] Particle compositing failed: {e}")
+
+        # Apply circular spotlight effect (TikTok-style focus circle)
+        if self.settings.get('circular_spotlight_enabled', False):
+            try:
+                center_x = self.settings.get('spotlight_center_x', 50)
+                center_y = self.settings.get('spotlight_center_y', 50)
+                radius = self.settings.get('spotlight_radius', 40)
+                outside_effect = self.settings.get('spotlight_outside_effect', 'blur')
+                blur_intensity = self.settings.get('spotlight_blur_intensity', 50)
+                outside_color = self.settings.get('spotlight_outside_color', '#000000')
+                feather = self.settings.get('spotlight_feather', 20)
+
+                def spotlight_effect(get_frame, t):
+                    frame = get_frame(t)
+                    return VideoEffects.apply_circular_spotlight(
+                        frame, center_x, center_y, radius,
+                        outside_effect, blur_intensity, outside_color, feather
+                    )
+
+                final_video = final_video.transform(lambda gf, t: spotlight_effect(gf, t))
+                print(f"[OK] Applied circular spotlight (center: {center_x},{center_y}%, radius: {radius}%, effect: {outside_effect})")
+            except Exception as e:
+                print(f"[WARNING] Circular spotlight failed: {e}")
+                import traceback
+                traceback.print_exc()
 
         output_path = self.output_folder / output_filename
         counter = 1
