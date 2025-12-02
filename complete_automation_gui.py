@@ -1046,8 +1046,53 @@ class VideoAutomationGUI:
         self.create_slider_control(entrance_card, 'Slide:', 'text_slide_distance', 20, 200, 50, value_format=lambda v: f"{int(v)}px")
         self.create_slider_control(entrance_card, 'Bounce:', 'text_bounce_intensity', 1.0, 1.5, 1.15, resolution=0.05)
 
-        # CTA Overlay (Row 5)
-        cta_card = self.create_grid_card(grid_container, "💬 CTA Overlay", row=2, col=2)
+        # Circular Spotlight (Row 5) - TikTok-style focus circle
+        spotlight_card = self.create_grid_card(grid_container, "⭕ Circular Spotlight", row=2, col=2)
+
+        # Enable checkbox
+        spotlight_var = tk.BooleanVar(value=self.settings.get('circular_spotlight_enabled', False))
+        tk.Checkbutton(spotlight_card, text='✓ Enable Spotlight',
+                      variable=spotlight_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 9, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('circular_spotlight_enabled', spotlight_var.get())).pack(anchor='w', padx=15, pady=(10, 5))
+        self.circular_spotlight_var = spotlight_var
+
+        tk.Label(spotlight_card, text='TikTok-style focus circle effect',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', padx=15, pady=(0, 10))
+
+        # Position controls
+        self.create_slider_control(spotlight_card, 'Center X:', 'spotlight_center_x', 0, 100, 50, value_format=lambda v: f"{int(v)}%")
+        self.create_slider_control(spotlight_card, 'Center Y:', 'spotlight_center_y', 0, 100, 50, value_format=lambda v: f"{int(v)}%")
+        self.create_slider_control(spotlight_card, 'Radius:', 'spotlight_radius', 10, 80, 40, value_format=lambda v: f"{int(v)}%")
+        self.create_slider_control(spotlight_card, 'Edge Soft:', 'spotlight_feather', 0, 50, 20, value_format=lambda v: f"{int(v)}%")
+
+        # Outside effect dropdown
+        effect_frame = tk.Frame(spotlight_card, bg=AppStyles.BG_CARD)
+        effect_frame.pack(fill='x', padx=15, pady=(5, 5))
+
+        tk.Label(effect_frame, text='Outside:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9)).pack(side='left', padx=(0, 5))
+
+        self.spotlight_effect_var = tk.StringVar(value=self.settings.get('spotlight_outside_effect', 'blur'))
+        effect_dropdown = ttk.Combobox(effect_frame, textvariable=self.spotlight_effect_var,
+                                      values=['blur', 'solid'],
+                                      state='readonly', width=8)
+        effect_dropdown.pack(side='left')
+        effect_dropdown.bind('<<ComboboxSelected>>',
+                            lambda e: self.update_setting('spotlight_outside_effect', self.spotlight_effect_var.get()))
+
+        # Blur intensity (for blur mode)
+        self.create_slider_control(spotlight_card, 'Blur:', 'spotlight_blur_intensity', 10, 100, 50, value_format=lambda v: f"{int(v)}px")
+
+        # Outside color (for solid mode)
+        self.create_color_picker(spotlight_card, 'Color:', 'spotlight_outside_color', '#000000')
+
+        # CTA Overlay (Row 6)
+        cta_card = self.create_grid_card(grid_container, "💬 CTA Overlay", row=3, col=2)
 
         cta_var = tk.BooleanVar(value=self.settings.get('cta_overlay_enabled', False))
         tk.Checkbutton(cta_card, text='Enable CTA',
