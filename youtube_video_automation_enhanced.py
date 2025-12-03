@@ -4613,6 +4613,9 @@ class VideoQuoteAutomation:
         Returns:
             Tuple of (output_path, output_filename)
         """
+        # Define emoji pattern at the beginning of the method
+        emoji_pattern = re.compile(r'[\U0001F300-\U0001F9FF\U0001F600-\U0001F64F\U0001F680-\U0001F6FF\U00002600-\U000027BF\U0001F1E0-\U0001F1FF]+')
+
         # Extract subtitle and voiceover text
         # Support both dict format and legacy string format for backward compatibility
         if isinstance(quote, dict):
