@@ -899,14 +899,14 @@ class VideoAutomationGUI:
         ]
 
         # ═══════════════════════════════════════════════════════════
-        # 4-COLUMN GRID LAYOUT
+        # 4-COLUMN GRID LAYOUT - FULL WIDTH
         # ═══════════════════════════════════════════════════════════
         grid_container = tk.Frame(content, bg=AppStyles.BG_CARD)
-        grid_container.pack(fill='both', expand=True, padx=15, pady=10)
+        grid_container.pack(fill='both', expand=True, padx=5, pady=5)
 
-        # Configure 4 columns - no uniform to allow flexible widths
+        # Configure 4 columns with uniform sizing for better space utilization
         for col in range(4):
-            grid_container.columnconfigure(col, weight=1)
+            grid_container.columnconfigure(col, weight=1, minsize=280, uniform='effects_col')
 
         # Column 0: Checkboxes
         checkbox_card = self.create_grid_card(grid_container, "🎨 Visual Effects & Enhancements", row=0, col=0, rowspan=10)
