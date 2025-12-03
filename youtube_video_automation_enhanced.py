@@ -381,7 +381,10 @@ class VideoEffects:
         background_media = None
         background_is_video = False
         if background_media_path and Path(background_media_path).exists():
-            from moviepy.editor import ImageClip, VideoFileClip
+            try:
+                from moviepy import ImageClip, VideoFileClip
+            except ImportError:
+                from moviepy.editor import ImageClip, VideoFileClip
 
             if background_media_path.lower().endswith(('.mp4', '.avi', '.mov', '.mkv', '.webm')):
                 # Video background
@@ -4333,11 +4336,24 @@ class VideoQuoteAutomation:
 
         except Exception as e:
             print(f"[WARNING] Font loading error: {e}")
-            title_font = ImageFont.load_default()
-            quote_font = title_font
-            cta_font = title_font
-            emoji_font = title_font
-            title_emoji_font = title_font
+            print(f"[WARNING] Using fallback Arial font with requested sizes")
+            import traceback
+            traceback.print_exc()
+            # Use Arial as fallback with the requested sizes
+            try:
+                fallback_font_path = str(Path(r"C:\Windows\Fonts") / "arial.ttf")
+                title_font = ImageFont.truetype(fallback_font_path, title_font_size)
+                quote_font = ImageFont.truetype(fallback_font_path, quote_font_size)
+                cta_font = ImageFont.truetype(fallback_font_path, cta_font_size)
+                emoji_font = ImageFont.truetype(emoji_font_path, int(cta_font_size * 1.2))
+                title_emoji_font = ImageFont.truetype(emoji_font_path, int(title_font_size * 1.0))
+            except:
+                # Last resort - use default
+                title_font = ImageFont.load_default()
+                quote_font = title_font
+                cta_font = title_font
+                emoji_font = title_font
+                title_emoji_font = title_font
 
         max_text_width = int(img_width * (self.settings['bubble_width'] / 100))
         words = main_text.split()
