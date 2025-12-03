@@ -4299,29 +4299,44 @@ class VideoQuoteAutomation:
             # Title font - read from GUI settings (increased default from 45 to 85)
             title_font_size = int(self.settings.get('title_font_size', 85))
             title_font_family = self.settings.get('title_font_family', 'Arial')
-            title_font_file = get_font_file(title_font_family)
-            if not Path(title_font_file).exists():
-                title_font_file = str(Path(r"C:\Windows\Fonts") / Path(title_font_file).name)
-            title_font = ImageFont.truetype(title_font_file, title_font_size)
-            print(f"[FONT DEBUG] Title font size: {title_font_size}, Family: {title_font_family}")
+            try:
+                title_font_file = get_font_file(title_font_family)
+                if not Path(title_font_file).exists():
+                    title_font_file = str(Path(r"C:\Windows\Fonts") / Path(title_font_file).name)
+                title_font = ImageFont.truetype(title_font_file, title_font_size)
+                print(f"[FONT DEBUG] Title font loaded: size={title_font_size}, family={title_font_family}")
+            except Exception as e:
+                print(f"[WARNING] Failed to load title font '{title_font_family}': {e}")
+                print(f"[WARNING] Using Arial for title at size {title_font_size}")
+                title_font = ImageFont.truetype(str(Path(r"C:\Windows\Fonts") / "arial.ttf"), title_font_size)
 
             # Quote font - read from GUI settings (increased default from 35 to 70)
             quote_font_size = int(self.settings.get('quote_font_size', 70))
             quote_font_family = self.settings.get('quote_font_family', 'Georgia')
-            quote_font_file = get_font_file(quote_font_family)
-            if not Path(quote_font_file).exists():
-                quote_font_file = str(Path(r"C:\Windows\Fonts") / Path(quote_font_file).name)
-            quote_font = ImageFont.truetype(quote_font_file, quote_font_size)
-            print(f"[FONT DEBUG] Quote font size: {quote_font_size}, Family: {quote_font_family}")
+            try:
+                quote_font_file = get_font_file(quote_font_family)
+                if not Path(quote_font_file).exists():
+                    quote_font_file = str(Path(r"C:\Windows\Fonts") / Path(quote_font_file).name)
+                quote_font = ImageFont.truetype(quote_font_file, quote_font_size)
+                print(f"[FONT DEBUG] Quote font loaded: size={quote_font_size}, family={quote_font_family}")
+            except Exception as e:
+                print(f"[WARNING] Failed to load quote font '{quote_font_family}': {e}")
+                print(f"[WARNING] Using Arial for quote at size {quote_font_size}")
+                quote_font = ImageFont.truetype(str(Path(r"C:\Windows\Fonts") / "arial.ttf"), quote_font_size)
 
             # CTA font - read from GUI settings (increased default from 43 to 75)
             cta_font_size = int(self.settings.get('cta_font_size', 75))
             cta_font_family = self.settings.get('cta_font_family', 'Arial')
-            cta_font_file = get_font_file(cta_font_family)
-            if not Path(cta_font_file).exists():
-                cta_font_file = str(Path(r"C:\Windows\Fonts") / Path(cta_font_file).name)
-            cta_font = ImageFont.truetype(cta_font_file, cta_font_size)
-            print(f"[FONT DEBUG] CTA font size: {cta_font_size}, Family: {cta_font_family}")
+            try:
+                cta_font_file = get_font_file(cta_font_family)
+                if not Path(cta_font_file).exists():
+                    cta_font_file = str(Path(r"C:\Windows\Fonts") / Path(cta_font_file).name)
+                cta_font = ImageFont.truetype(cta_font_file, cta_font_size)
+                print(f"[FONT DEBUG] CTA font loaded: size={cta_font_size}, family={cta_font_family}")
+            except Exception as e:
+                print(f"[WARNING] Failed to load CTA font '{cta_font_family}': {e}")
+                print(f"[WARNING] Using Arial for CTA at size {cta_font_size}")
+                cta_font = ImageFont.truetype(str(Path(r"C:\Windows\Fonts") / "arial.ttf"), cta_font_size)
 
             # Emoji font - for all emoji rendering (CTA, Title, etc.)
             emoji_font_path = str(Path(r"C:\Windows\Fonts") / 'seguiemj.ttf')
