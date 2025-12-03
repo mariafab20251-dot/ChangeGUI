@@ -1047,26 +1047,89 @@ class VideoAutomationGUI:
         self.create_slider_control(entrance_card, 'Slide:', 'text_slide_distance', 20, 200, 50, value_format=lambda v: f"{int(v)}px")
         self.create_slider_control(entrance_card, 'Bounce:', 'text_bounce_intensity', 1.0, 1.5, 1.15, resolution=0.05)
 
-        # Circular Spotlight (Row 5) - TikTok-style focus circle
-        spotlight_card = self.create_grid_card(grid_container, "⭕ Circular Spotlight", row=2, col=2)
+        # Spotlight (Row 5) - TikTok-style focus effect
+        spotlight_card = self.create_grid_card(grid_container, "⭕ Spotlight Effect", row=2, col=2)
 
-        # Enable checkbox
+        # Header with enable checkbox and preview button
+        header_frame = tk.Frame(spotlight_card, bg=AppStyles.BG_CARD)
+        header_frame.pack(fill='x', padx=15, pady=(10, 5))
+
         spotlight_var = tk.BooleanVar(value=self.settings.get('circular_spotlight_enabled', False))
-        tk.Checkbutton(spotlight_card, text='✓ Enable Spotlight',
+        tk.Checkbutton(header_frame, text='✓ Enable Spotlight',
                       variable=spotlight_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
                       font=('Segoe UI', 9, 'bold'),
                       activebackground=AppStyles.BG_CARD,
                       selectcolor=AppStyles.BG_INPUT,
-                      command=lambda: self.update_setting('circular_spotlight_enabled', spotlight_var.get())).pack(anchor='w', padx=15, pady=(10, 5))
+                      command=lambda: self.update_setting('circular_spotlight_enabled', spotlight_var.get())).pack(side='left')
         self.circular_spotlight_var = spotlight_var
 
-        tk.Label(spotlight_card, text='TikTok-style focus circle effect',
+        ModernButton(header_frame, text='👁️ Preview',
+                    bg_color='#4299e1',
+                    font=('Segoe UI', 8, 'bold'),
+                    padx=8, pady=3,
+                    command=self.show_spotlight_preview).pack(side='right')
+
+        tk.Label(spotlight_card, text='TikTok-style focus effect (circle or square)',
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
                 font=('Segoe UI', 8, 'italic')).pack(anchor='w', padx=15, pady=(0, 10))
 
-        # Position controls
-        self.create_slider_control(spotlight_card, 'Center X:', 'spotlight_center_x', 0, 100, 50, value_format=lambda v: f"{int(v)}%")
-        self.create_slider_control(spotlight_card, 'Center Y:', 'spotlight_center_y', 0, 100, 50, value_format=lambda v: f"{int(v)}%")
+        # Shape selector
+        shape_frame = tk.Frame(spotlight_card, bg=AppStyles.BG_CARD)
+        shape_frame.pack(fill='x', padx=15, pady=(0, 10))
+
+        tk.Label(shape_frame, text='Shape:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9)).pack(side='left', padx=(0, 5))
+
+        self.spotlight_shape_var = tk.StringVar(value=self.settings.get('spotlight_shape', 'circle'))
+        shape_dropdown = ttk.Combobox(shape_frame, textvariable=self.spotlight_shape_var,
+                                     values=['circle', 'square'],
+                                     state='readonly', width=8)
+        shape_dropdown.pack(side='left')
+        shape_dropdown.bind('<<ComboboxSelected>>',
+                           lambda e: self.update_setting('spotlight_shape', self.spotlight_shape_var.get()))
+
+        # Position presets
+        presets_frame = tk.Frame(spotlight_card, bg=AppStyles.BG_CARD)
+        presets_frame.pack(fill='x', padx=15, pady=(0, 10))
+
+        tk.Label(presets_frame, text='Quick Position:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9)).pack(anchor='w', pady=(0, 5))
+
+        preset_buttons = tk.Frame(presets_frame, bg=AppStyles.BG_CARD)
+        preset_buttons.pack(fill='x')
+
+        def set_position_preset(x, y):
+            self.update_setting('spotlight_center_x', x)
+            self.update_setting('spotlight_center_y', y)
+            # Refresh sliders if they exist
+            if hasattr(self, 'spotlight_center_x_slider'):
+                self.spotlight_center_x_slider.set(x)
+            if hasattr(self, 'spotlight_center_y_slider'):
+                self.spotlight_center_y_slider.set(y)
+
+        ModernButton(preset_buttons, text='⬆️ Top',
+                    bg_color='#2d3748',
+                    font=('Segoe UI', 8),
+                    padx=8, pady=3,
+                    command=lambda: set_position_preset(50, 25)).pack(side='left', padx=(0, 5))
+
+        ModernButton(preset_buttons, text='⏺️ Center',
+                    bg_color='#2d3748',
+                    font=('Segoe UI', 8),
+                    padx=8, pady=3,
+                    command=lambda: set_position_preset(50, 50)).pack(side='left', padx=(0, 5))
+
+        ModernButton(preset_buttons, text='⬇️ Bottom',
+                    bg_color='#2d3748',
+                    font=('Segoe UI', 8),
+                    padx=8, pady=3,
+                    command=lambda: set_position_preset(50, 75)).pack(side='left')
+
+        # Position controls with slider references
+        self.spotlight_center_x_slider = self.create_slider_control(spotlight_card, 'Center X:', 'spotlight_center_x', 0, 100, 50, value_format=lambda v: f"{int(v)}%")
+        self.spotlight_center_y_slider = self.create_slider_control(spotlight_card, 'Center Y:', 'spotlight_center_y', 0, 100, 50, value_format=lambda v: f"{int(v)}%")
         self.create_slider_control(spotlight_card, 'Radius:', 'spotlight_radius', 10, 80, 40, value_format=lambda v: f"{int(v)}%")
         self.create_slider_control(spotlight_card, 'Edge Soft:', 'spotlight_feather', 0, 50, 20, value_format=lambda v: f"{int(v)}%")
 
@@ -1510,6 +1573,167 @@ class VideoAutomationGUI:
                 display_w = int(w * scale)
                 display_h = int(h * scale)
                 pil_img = pil_img.resize((display_w, display_h), Image.Resampling.LANCZOS)
+
+                # Convert to PhotoImage and display
+                photo = ImageTk.PhotoImage(pil_img)
+                canvas.config(image=photo)
+                canvas.image = photo
+
+            # Initial draw
+            update_preview()
+
+            # Auto-refresh every 500ms to pick up setting changes
+            def auto_refresh():
+                if preview_window.winfo_exists():
+                    update_preview()
+                    preview_window.after(500, auto_refresh)
+
+            preview_window.after(500, auto_refresh)
+
+            # Refresh button
+            refresh_btn = tk.Frame(preview_window, bg='#2d3748', pady=10)
+            refresh_btn.pack(fill='x')
+
+            ModernButton(refresh_btn, text='🔄 Refresh Now',
+                        bg_color='#48bb78',
+                        font=('Segoe UI', 10, 'bold'),
+                        padx=20, pady=8,
+                        command=update_preview).pack()
+
+        except Exception as e:
+            messagebox.showerror("Preview Error", f"Could not create preview:\n{str(e)}")
+            import traceback
+            traceback.print_exc()
+
+    def show_spotlight_preview(self):
+        """Show live preview of spotlight effect on video frame"""
+        import tkinter as tk
+        from tkinter import messagebox
+        from PIL import Image, ImageTk
+        import cv2
+        import os
+        import numpy as np
+
+        # Get video path from video_folder_var
+        input_folder = self.video_folder_var.get().strip()
+        if not input_folder or not os.path.exists(input_folder):
+            messagebox.showerror("No Video Folder",
+                "Please select a Video Folder in the Quick Process tab first!\n\n" +
+                "Go to: ⚡ Quick Process → 📁 Input Source → Video Folder")
+            return
+
+        # Find first video file
+        video_path = None
+        for file in os.listdir(input_folder):
+            if file.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
+                video_path = os.path.join(input_folder, file)
+                break
+
+        if not video_path:
+            messagebox.showerror("No Video", "No video files found in input folder!")
+            return
+
+        try:
+            # Load first frame from video
+            cap = cv2.VideoCapture(video_path)
+            ret, frame = cap.read()
+            cap.release()
+
+            if not ret:
+                messagebox.showerror("Error", "Could not read video frame!")
+                return
+
+            # Convert BGR to RGB
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            h, w = frame_rgb.shape[:2]
+
+            # Create preview window
+            preview_window = tk.Toplevel(self.root)
+            preview_window.title("⭕ Live Preview - Spotlight Effect")
+            preview_window.geometry("900x700")
+            preview_window.configure(bg='#1a202c')
+
+            # Header
+            header = tk.Frame(preview_window, bg='#2d3748', pady=10)
+            header.pack(fill='x')
+            tk.Label(header, text="👁️ Live Preview - Adjust spotlight settings to see changes",
+                    bg='#2d3748', fg='#e2e8f0',
+                    font=('Segoe UI', 12, 'bold')).pack()
+            tk.Label(header, text=f"Video: {os.path.basename(video_path)} ({w}x{h})",
+                    bg='#2d3748', fg='#a0aec0',
+                    font=('Segoe UI', 9)).pack()
+
+            # Canvas for image
+            canvas_frame = tk.Frame(preview_window, bg='#1a202c')
+            canvas_frame.pack(fill='both', expand=True, padx=20, pady=10)
+
+            canvas = tk.Label(canvas_frame, bg='#000000')
+            canvas.pack()
+
+            # Store frame for redrawing
+            preview_window.original_frame = frame_rgb.copy()
+            preview_window.video_size = (w, h)
+
+            def update_preview():
+                """Redraw preview with current spotlight settings"""
+                # Import VideoEffects for spotlight function
+                import sys
+                sys.path.insert(0, str(Path(__file__).parent))
+                from youtube_video_automation_enhanced import VideoEffects
+
+                # Start with original frame
+                preview_frame = preview_window.original_frame.copy()
+
+                # Get current spotlight settings
+                center_x = self.settings.get('spotlight_center_x', 50)
+                center_y = self.settings.get('spotlight_center_y', 50)
+                radius = self.settings.get('spotlight_radius', 40)
+                outside_effect = self.settings.get('spotlight_outside_effect', 'blur')
+                blur_intensity = self.settings.get('spotlight_blur_intensity', 50)
+                outside_color = self.settings.get('spotlight_outside_color', '#000000')
+                feather = self.settings.get('spotlight_feather', 20)
+                show_outline = self.settings.get('spotlight_show_outline', True)
+                outline_color = self.settings.get('spotlight_outline_color', '#FF00FF')
+                outline_thickness = self.settings.get('spotlight_outline_thickness', 5)
+                shape = self.settings.get('spotlight_shape', 'circle')
+
+                # Apply spotlight effect
+                try:
+                    # Convert to BGR for cv2 processing
+                    frame_bgr = cv2.cvtColor(preview_frame, cv2.COLOR_RGB2BGR)
+
+                    # Apply spotlight
+                    result_bgr = VideoEffects.apply_circular_spotlight(
+                        frame_bgr, center_x, center_y, radius,
+                        outside_effect, blur_intensity, outside_color, feather,
+                        show_outline, outline_color, outline_thickness, shape
+                    )
+
+                    # Convert back to RGB
+                    preview_frame = cv2.cvtColor(result_bgr, cv2.COLOR_BGR2RGB)
+                except Exception as e:
+                    print(f"[ERROR] Spotlight preview failed: {e}")
+                    import traceback
+                    traceback.print_exc()
+
+                # Convert to PIL Image for display
+                pil_img = Image.fromarray(preview_frame)
+
+                # Resize for display - maintain aspect ratio, fit within 800x600
+                display_w, display_h = 800, 600
+                img_ratio = w / h
+                display_ratio = display_w / display_h
+
+                if img_ratio > display_ratio:
+                    # Image is wider than display
+                    new_w = display_w
+                    new_h = int(display_w / img_ratio)
+                else:
+                    # Image is taller than display
+                    new_h = display_h
+                    new_w = int(display_h * img_ratio)
+
+                pil_img = pil_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
 
                 # Convert to PhotoImage and display
                 photo = ImageTk.PhotoImage(pil_img)
@@ -3656,6 +3880,8 @@ class VideoAutomationGUI:
                         showvalue=False,
                         command=lambda v, k=key, vl=value_label, fmt=value_format: self.on_slider_change(k, v, vl, fmt))
         scale.pack(side='left', fill='x', expand=True, padx=10)
+
+        return scale  # Return scale for external control if needed
 
     def on_slider_change(self, key, value, value_label, value_format=None):
         """Handle slider value change"""
