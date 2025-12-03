@@ -5510,7 +5510,7 @@ class VideoQuoteAutomation:
 
                         # Resize watermark to scale relative to video width
                         scale = self.settings.get('watermark_scale', 0.15)  # Size relative to video width
-                        new_width = int(video.w * scale)
+                        new_width = int(final_video.w * scale)
                         watermark = watermark.resize(width=new_width)
 
                         print(f"[OK] Loaded image watermark (scale: {int(scale*100)}%)")
@@ -5526,15 +5526,15 @@ class VideoQuoteAutomation:
                     if position == 'top-left':
                         pos = (margin_x, margin_y)
                     elif position == 'top-right':
-                        pos = (video.w - watermark.w - margin_x, margin_y)
+                        pos = (final_video.w - watermark.w - margin_x, margin_y)
                     elif position == 'bottom-left':
-                        pos = (margin_x, video.h - watermark.h - margin_y)
+                        pos = (margin_x, final_video.h - watermark.h - margin_y)
                     elif position == 'bottom-right':
-                        pos = (video.w - watermark.w - margin_x, video.h - watermark.h - margin_y)
+                        pos = (final_video.w - watermark.w - margin_x, final_video.h - watermark.h - margin_y)
                     elif position == 'center':
-                        pos = ((video.w - watermark.w) / 2, (video.h - watermark.h) / 2)
+                        pos = ((final_video.w - watermark.w) / 2, (final_video.h - watermark.h) / 2)
                     else:
-                        pos = (video.w - watermark.w - margin_x, video.h - watermark.h - margin_y)  # Default to bottom-right
+                        pos = (final_video.w - watermark.w - margin_x, final_video.h - watermark.h - margin_y)  # Default to bottom-right
 
                     # Set position and duration
                     watermark = watermark.set_position(pos).set_duration(final_video.duration)
