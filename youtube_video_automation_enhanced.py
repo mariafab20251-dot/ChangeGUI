@@ -5717,7 +5717,7 @@ class VideoQuoteAutomation:
                         # Fix font name for TextClip (replace spaces with hyphens)
                         font_file = font_style.replace(' ', '-') if font_style else 'Arial-Bold'
 
-                        # Create text clip
+                        # Create text clip with duration
                         watermark = TextClip(
                             text=watermark_text,
                             font_size=font_size,
@@ -5725,7 +5725,7 @@ class VideoQuoteAutomation:
                             font=font_file,
                             stroke_width=2,
                             stroke_color='black'
-                        )
+                        ).with_duration(final_video.duration)
 
                         print(f"[OK] Created text watermark: '{watermark_text}' (font: {font_style}, size: {font_size})")
                     else:
@@ -5742,7 +5742,10 @@ class VideoQuoteAutomation:
                         # Resize watermark to scale relative to video width
                         scale = self.settings.get('watermark_scale', 0.15)  # Size relative to video width
                         new_width = int(final_video.w * scale)
-                        watermark = watermark.resize(width=new_width)
+                        # Calculate proportional height
+                        aspect_ratio = watermark.h / watermark.w
+                        new_height = int(new_width * aspect_ratio)
+                        watermark = watermark.resized(newsize=(new_width, new_height))
 
                         print(f"[OK] Loaded image watermark (scale: {int(scale*100)}%)")
                     else:
