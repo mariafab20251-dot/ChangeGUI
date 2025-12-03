@@ -409,13 +409,9 @@ class VideoEffects:
                 else:
                     background_frame = background_media.get_frame(0)
 
-                # Convert RGB to BGR if needed
-                if background_frame.shape[2] == 3:
-                    background_bgr = cv2.cvtColor(background_frame, cv2.COLOR_RGB2BGR)
-                else:
-                    background_bgr = background_frame
-
-                result = (frame * mask_3d + background_bgr * (1 - mask_3d)).astype(np.uint8)
+                # Background frame is already in RGB format (MoviePy uses RGB)
+                # Just blend it with the original frame using the mask
+                result = (frame * mask_3d + background_frame * (1 - mask_3d)).astype(np.uint8)
             elif outside_effect == 'blur':
                 # Blur the frame
                 blurred_frame = cv2.GaussianBlur(frame, (blur_amount, blur_amount), 0)
@@ -4297,24 +4293,24 @@ class VideoQuoteAutomation:
                 # Default fallback
                 return 'arial.ttf'
 
-            # Title font - read from GUI settings
-            title_font_size = int(self.settings.get('title_font_size', 45))
+            # Title font - read from GUI settings (increased default from 45 to 85)
+            title_font_size = int(self.settings.get('title_font_size', 85))
             title_font_family = self.settings.get('title_font_family', 'Arial')
             title_font_file = get_font_file(title_font_family)
             if not Path(title_font_file).exists():
                 title_font_file = str(Path(r"C:\Windows\Fonts") / Path(title_font_file).name)
             title_font = ImageFont.truetype(title_font_file, title_font_size)
 
-            # Quote font - read from GUI settings
-            quote_font_size = int(self.settings.get('quote_font_size', 35))
+            # Quote font - read from GUI settings (increased default from 35 to 70)
+            quote_font_size = int(self.settings.get('quote_font_size', 70))
             quote_font_family = self.settings.get('quote_font_family', 'Georgia')
             quote_font_file = get_font_file(quote_font_family)
             if not Path(quote_font_file).exists():
                 quote_font_file = str(Path(r"C:\Windows\Fonts") / Path(quote_font_file).name)
             quote_font = ImageFont.truetype(quote_font_file, quote_font_size)
 
-            # CTA font - read from GUI settings
-            cta_font_size = int(self.settings.get('cta_font_size', 43))
+            # CTA font - read from GUI settings (increased default from 43 to 75)
+            cta_font_size = int(self.settings.get('cta_font_size', 75))
             cta_font_family = self.settings.get('cta_font_family', 'Arial')
             cta_font_file = get_font_file(cta_font_family)
             if not Path(cta_font_file).exists():
