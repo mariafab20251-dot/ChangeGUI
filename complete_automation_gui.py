@@ -527,6 +527,7 @@ class VideoAutomationGUI:
         self.create_quick_process_tab()
         self.create_text_settings_tab()
         self.create_effects_tab()
+        self.create_blur_tab()
         self.create_audio_tab()
         self.create_captions_tab()
         self.create_transitions_tab()
@@ -1288,8 +1289,303 @@ class VideoAutomationGUI:
         self.create_slider_control(watermark_card, 'Opacity:', 'watermark_opacity', 0, 100, 70)
         self.create_slider_control(watermark_card, 'Size:', 'watermark_scale', 0.05, 0.5, 0.15, resolution=0.01, value_format=lambda v: f"{int(v*100)}%")
 
-        # Region Blur Settings (Row 8)
-        blur_card = self.create_grid_card(grid_container, "🌫️ Region Blur", row=2, col=3)
+    def toggle_custom_blur_region(self, index, enabled):
+        """Toggle a custom blur region on/off"""
+        print(f"[TOGGLE DEBUG] Region {index} enabled={enabled}")
+        custom_regions = self.settings.get('custom_blur_regions', [])
+        if index < len(custom_regions):
+            custom_regions[index]['enabled'] = enabled
+            print(f"[TOGGLE DEBUG] Updated settings: {custom_regions[index]['name']} enabled={enabled}")
+            self.update_setting('custom_blur_regions', custom_regions)
+
+    def update_custom_blur_region(self, index, field, value):
+        """Update a custom blur region field"""
+        custom_regions = self.settings.get('custom_blur_regions', [])
+        if index < len(custom_regions):
+            custom_regions[index][field] = value
+            self.update_setting('custom_blur_regions', custom_regions)
+
+    def show_blur_regions_preview(self):
+        """Show live preview of blur regions on video frame"""
+        import tkinter as tk
+        from tkinter import messagebox
+        from PIL import Image, ImageTk, ImageDraw, ImageFont
+        import cv2
+        import os
+
+        # Get video path from video_folder_var (not settings!)
+        input_folder = self.video_folder_var.get().strip()
+        if not input_folder or not os.path.exists(input_folder):
+            messagebox.showerror("No Video Folder",
+                "Please select a Video Folder in the Quick Process tab first!\n\n" +
+                "Go to: ⚡ Quick Process → 📁 Input Source → Video Folder")
+            return
+
+        # Find first video file
+        video_path = None
+        for file in os.listdir(input_folder):
+            if file.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
+                video_path = os.path.join(input_folder, file)
+                break
+
+        if not video_path:
+            messagebox.showerror("No Video", "No video files found in input folder!")
+            return
+
+        try:
+            # Load first frame from video
+            cap = cv2.VideoCapture(video_path)
+            ret, frame = cap.read()
+            cap.release()
+
+            if not ret:
+                messagebox.showerror("Error", "Could not read video frame!")
+                return
+
+            # Convert BGR to RGB
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            h, w = frame_rgb.shape[:2]
+
+            # Create preview window
+            preview_window = tk.Toplevel(self.root)
+            preview_window.title("🎯 Live Preview - Custom Blur Regions")
+            preview_window.geometry("900x700")
+            preview_window.configure(bg='#1a202c')
+
+            # Header
+            header = tk.Frame(preview_window, bg='#2d3748', pady=10)
+            header.pack(fill='x')
+            tk.Label(header, text="👁️ Live Preview - Adjust region values to see changes",
+                    bg='#2d3748', fg='#e2e8f0',
+                    font=('Segoe UI', 12, 'bold')).pack()
+            tk.Label(header, text=f"Video: {os.path.basename(video_path)} ({w}x{h})",
+                    bg='#2d3748', fg='#a0aec0',
+                    font=('Segoe UI', 9)).pack()
+
+            # Canvas for image
+            canvas_frame = tk.Frame(preview_window, bg='#1a202c')
+            canvas_frame.pack(fill='both', expand=True, padx=20, pady=10)
+
+            canvas = tk.Label(canvas_frame, bg='#000000')
+            canvas.pack()
+
+            # Store frame for redrawing
+            preview_window.original_frame = frame_rgb.copy()
+            preview_window.video_size = (w, h)
+
+            def update_preview():
+                """Redraw preview with current region settings"""
+                # Start with original frame
+                preview_frame = preview_window.original_frame.copy()
+                pil_img = Image.fromarray(preview_frame)
+                draw = ImageDraw.Draw(pil_img, 'RGBA')
+
+                # Get current regions from settings
+                custom_regions = self.settings.get('custom_blur_regions', [])
+
+                # DEBUG: Print what we're reading
+                print(f"[PREVIEW DEBUG] Found {len(custom_regions)} custom regions")
+                for i, r in enumerate(custom_regions):
+                    if isinstance(r, dict):
+                        print(f"  Region {i}: {r.get('name', 'N/A')} - Enabled: {r.get('enabled', False)} - Pos: {r.get('x', 0)},{r.get('y', 0)} - Text: '{r.get('text', '')[:20]}'")
+
+                # Draw each enabled region
+                for region in custom_regions:
+                    if not region.get('enabled', False):
+                        continue
+
+                    # Get region coordinates (percentage)
+                    x = region.get('x', 0)
+                    y = region.get('y', 0)
+                    width = region.get('width', 30)
+                    height = region.get('height', 10)
+
+                    # Convert to pixels - starting position
+                    x1 = int(w * x / 100)
+                    y1 = int(h * y / 100)
+
+                    # Check if auto-expand is enabled and we have text
+                    auto_expand = region.get('auto_expand', False)
+                    text_content = region.get('text', '').strip()
+
+                    if auto_expand and text_content:
+                        # Calculate text size first to auto-expand the box
+                        # Use a default font size for calculation
+                        default_font_size = max(20, int(h * 0.03))  # 3% of video height
+                        try:
+                            text_font = ImageFont.truetype("arialbd.ttf", default_font_size)
+                        except:
+                            try:
+                                text_font = ImageFont.truetype("arial.ttf", default_font_size)
+                            except:
+                                text_font = ImageFont.load_default()
+
+                        # Get text dimensions
+                        bbox = draw.textbbox((0, 0), text_content, font=text_font)
+                        text_w = bbox[2] - bbox[0]
+                        text_h = bbox[3] - bbox[1]
+
+                        # Add padding (20% of text size)
+                        padding_x = int(text_w * 0.2)
+                        padding_y = int(text_h * 0.3)
+
+                        # Calculate expanded box size
+                        x2 = x1 + text_w + padding_x * 2
+                        y2 = y1 + text_h + padding_y * 2
+
+                        # Make sure we don't go off screen
+                        x2 = min(x2, w)
+                        y2 = min(y2, h)
+                    else:
+                        # Use manual width/height from settings
+                        x2 = int(w * (x + width) / 100)
+                        y2 = int(h * (y + height) / 100)
+
+                    # Draw blur region outline
+                    draw.rectangle([x1, y1, x2, y2], outline='#ff0000', width=3)
+
+                    # Draw region label
+                    region_name = region.get('name', 'Region')
+                    try:
+                        label_font = ImageFont.truetype("arial.ttf", 14)
+                    except:
+                        label_font = ImageFont.load_default()
+
+                    draw.text((x1 + 5, y1 + 5), region_name,
+                             fill='#ff0000', font=label_font)
+
+                    # Draw text overlay if defined
+                    if text_content:
+                        # Get colors
+                        bg_color = region.get('bg_color', '#000000')
+                        text_color = region.get('text_color', '#FFFFFF')
+                        bg_opacity = region.get('bg_opacity', 180)
+
+                        # Convert hex to RGB
+                        bg_rgb = tuple(int(bg_color[i:i+2], 16) for i in (1, 3, 5))
+                        text_rgb = tuple(int(text_color[i:i+2], 16) for i in (1, 3, 5))
+
+                        # Draw background with opacity
+                        bg_with_alpha = bg_rgb + (bg_opacity,)
+                        draw.rectangle([x1, y1, x2, y2], fill=bg_with_alpha)
+
+                        # Calculate font size based on region height
+                        region_h = y2 - y1
+                        if auto_expand:
+                            # Use the font size we calculated earlier
+                            font_size = max(20, int(h * 0.03))
+                        else:
+                            # Calculate based on fixed box height
+                            font_size = max(12, int(region_h / 3))
+
+                        try:
+                            text_font = ImageFont.truetype("arialbd.ttf", font_size)
+                        except:
+                            try:
+                                text_font = ImageFont.truetype("arial.ttf", font_size)
+                            except:
+                                text_font = ImageFont.load_default()
+
+                        # Get text size and center it
+                        bbox = draw.textbbox((0, 0), text_content, font=text_font)
+                        text_w = bbox[2] - bbox[0]
+                        text_h = bbox[3] - bbox[1]
+
+                        text_x = x1 + (x2 - x1 - text_w) // 2
+                        text_y = y1 + (y2 - y1 - text_h) // 2
+
+                        # Draw text
+                        draw.text((text_x, text_y), text_content,
+                                 fill=text_rgb, font=text_font)
+
+                # Resize for display - maintain aspect ratio, fit within 800x600
+                max_width = 800
+                max_height = 600
+
+                # Calculate scaling to fit both width and height constraints
+                scale_w = max_width / w
+                scale_h = max_height / h
+                scale = min(scale_w, scale_h, 1.0)  # Don't upscale, only downscale
+
+                display_w = int(w * scale)
+                display_h = int(h * scale)
+                pil_img = pil_img.resize((display_w, display_h), Image.Resampling.LANCZOS)
+
+                # Convert to PhotoImage and display
+                photo = ImageTk.PhotoImage(pil_img)
+                canvas.config(image=photo)
+                canvas.image = photo
+
+            # Initial draw
+            update_preview()
+
+            # Auto-refresh every 500ms to pick up setting changes
+            def auto_refresh():
+                if preview_window.winfo_exists():
+                    update_preview()
+                    preview_window.after(500, auto_refresh)
+
+            preview_window.after(500, auto_refresh)
+
+            # Refresh button
+            refresh_btn = tk.Frame(preview_window, bg='#2d3748', pady=10)
+            refresh_btn.pack(fill='x')
+
+            ModernButton(refresh_btn, text='🔄 Refresh Now',
+                        bg_color='#48bb78',
+                        font=('Segoe UI', 10, 'bold'),
+                        padx=20, pady=8,
+                        command=update_preview).pack()
+
+        except Exception as e:
+            messagebox.showerror("Preview Error", f"Could not create preview:\n{str(e)}")
+            import traceback
+            traceback.print_exc()
+
+    def browse_watermark(self):
+        """Browse for watermark image file"""
+        from tkinter import filedialog
+        filename = filedialog.askopenfilename(
+            title="Select Watermark Image",
+            filetypes=[
+                ("Image files", "*.png *.jpg *.jpeg *.gif *.bmp"),
+                ("PNG files", "*.png"),
+                ("All files", "*.*")
+            ]
+        )
+        if filename:
+            self.watermark_path_var.set(filename)
+            self.update_setting('watermark_image_path', filename)
+
+    def create_blur_tab(self):
+        """Create Blur Effects tab with all blur-related controls"""
+        tab = tk.Frame(self.notebook, bg=AppStyles.BG_CARD)
+        self.notebook.add(tab, text='🌫️ Blur Effects')
+
+        canvas = tk.Canvas(tab, bg=AppStyles.BG_CARD, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(tab, orient='vertical', command=canvas.yview)
+        content = tk.Frame(canvas, bg=AppStyles.BG_CARD)
+
+        content.bind('<Configure>', lambda e: canvas.configure(scrollregion=canvas.bbox('all')))
+        canvas.create_window((0, 0), window=content, anchor='nw')
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side='left', fill='both', expand=True, padx=10, pady=10)
+        scrollbar.pack(side='right', fill='y')
+
+        # Enable mouse wheel scrolling
+        self.setup_mousewheel_scroll(canvas, content)
+
+        # Create grid container (4 columns for blur effects)
+        grid_container = tk.Frame(content, bg=AppStyles.BG_CARD)
+        grid_container.pack(fill='both', expand=True, padx=15, pady=10)
+
+        # Configure grid columns
+        for col in range(4):
+            grid_container.columnconfigure(col, weight=1, uniform='blur_col')
+
+        # Region Blur Settings (Row 1, Col 1)
+        blur_card = self.create_grid_card(grid_container, "🌫️ Region Blur", row=0, col=0)
 
         blur_var = tk.BooleanVar(value=self.settings.get('region_blur_enabled', False))
         tk.Checkbutton(blur_card, text='Enable',
@@ -1347,8 +1643,8 @@ class VideoAutomationGUI:
                       selectcolor=AppStyles.BG_INPUT,
                       command=lambda: self.update_setting('blur_feather_edge', feather_var.get())).pack(anchor='w', padx=15, pady=3)
 
-        # Blur Text Overlay (Row 9) - Full text controls like Quote Settings
-        blur_text_card = self.create_grid_card(grid_container, "📝 Blur Text Overlay", row=3, col=3)
+        # Blur Text Overlay (Row 1, Col 2) - Full text controls like Quote Settings
+        blur_text_card = self.create_grid_card(grid_container, "📝 Blur Text Overlay", row=0, col=1)
 
         # Enable checkbox (CRITICAL - was missing!)
         enable_frame = tk.Frame(blur_text_card, bg=AppStyles.BG_CARD)
@@ -1396,8 +1692,8 @@ class VideoAutomationGUI:
         # Use the same comprehensive text controls as Quote Settings
         self.create_text_controls(blur_text_card, 'blur_text')
 
-        # Custom Blur Regions (Row 10) - For hiding logos/watermarks at specific positions
-        custom_blur_card = self.create_grid_card(grid_container, "🎯 Custom Blur Regions (Hide Logos)", row=4, col=3)
+        # Custom Blur Regions (Row 2, spans all 4 columns) - For hiding logos/watermarks at specific positions
+        custom_blur_card = self.create_grid_card(grid_container, "🎯 Custom Blur Regions (Hide Logos)", row=1, col=0, colspan=4)
 
         # Header with description and preview button
         header_section = tk.Frame(custom_blur_card, bg=AppStyles.BG_CARD)
@@ -1704,274 +2000,6 @@ class VideoAutomationGUI:
                 bg='#1e2936', fg='#90cdf4',
                 font=('Segoe UI', 8, 'italic'),
                 wraplength=400, justify='left').pack(padx=10, pady=8)
-
-    def toggle_custom_blur_region(self, index, enabled):
-        """Toggle a custom blur region on/off"""
-        print(f"[TOGGLE DEBUG] Region {index} enabled={enabled}")
-        custom_regions = self.settings.get('custom_blur_regions', [])
-        if index < len(custom_regions):
-            custom_regions[index]['enabled'] = enabled
-            print(f"[TOGGLE DEBUG] Updated settings: {custom_regions[index]['name']} enabled={enabled}")
-            self.update_setting('custom_blur_regions', custom_regions)
-
-    def update_custom_blur_region(self, index, field, value):
-        """Update a custom blur region field"""
-        custom_regions = self.settings.get('custom_blur_regions', [])
-        if index < len(custom_regions):
-            custom_regions[index][field] = value
-            self.update_setting('custom_blur_regions', custom_regions)
-
-    def show_blur_regions_preview(self):
-        """Show live preview of blur regions on video frame"""
-        import tkinter as tk
-        from tkinter import messagebox
-        from PIL import Image, ImageTk, ImageDraw, ImageFont
-        import cv2
-        import os
-
-        # Get video path from video_folder_var (not settings!)
-        input_folder = self.video_folder_var.get().strip()
-        if not input_folder or not os.path.exists(input_folder):
-            messagebox.showerror("No Video Folder",
-                "Please select a Video Folder in the Quick Process tab first!\n\n" +
-                "Go to: ⚡ Quick Process → 📁 Input Source → Video Folder")
-            return
-
-        # Find first video file
-        video_path = None
-        for file in os.listdir(input_folder):
-            if file.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
-                video_path = os.path.join(input_folder, file)
-                break
-
-        if not video_path:
-            messagebox.showerror("No Video", "No video files found in input folder!")
-            return
-
-        try:
-            # Load first frame from video
-            cap = cv2.VideoCapture(video_path)
-            ret, frame = cap.read()
-            cap.release()
-
-            if not ret:
-                messagebox.showerror("Error", "Could not read video frame!")
-                return
-
-            # Convert BGR to RGB
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            h, w = frame_rgb.shape[:2]
-
-            # Create preview window
-            preview_window = tk.Toplevel(self.root)
-            preview_window.title("🎯 Live Preview - Custom Blur Regions")
-            preview_window.geometry("900x700")
-            preview_window.configure(bg='#1a202c')
-
-            # Header
-            header = tk.Frame(preview_window, bg='#2d3748', pady=10)
-            header.pack(fill='x')
-            tk.Label(header, text="👁️ Live Preview - Adjust region values to see changes",
-                    bg='#2d3748', fg='#e2e8f0',
-                    font=('Segoe UI', 12, 'bold')).pack()
-            tk.Label(header, text=f"Video: {os.path.basename(video_path)} ({w}x{h})",
-                    bg='#2d3748', fg='#a0aec0',
-                    font=('Segoe UI', 9)).pack()
-
-            # Canvas for image
-            canvas_frame = tk.Frame(preview_window, bg='#1a202c')
-            canvas_frame.pack(fill='both', expand=True, padx=20, pady=10)
-
-            canvas = tk.Label(canvas_frame, bg='#000000')
-            canvas.pack()
-
-            # Store frame for redrawing
-            preview_window.original_frame = frame_rgb.copy()
-            preview_window.video_size = (w, h)
-
-            def update_preview():
-                """Redraw preview with current region settings"""
-                # Start with original frame
-                preview_frame = preview_window.original_frame.copy()
-                pil_img = Image.fromarray(preview_frame)
-                draw = ImageDraw.Draw(pil_img, 'RGBA')
-
-                # Get current regions from settings
-                custom_regions = self.settings.get('custom_blur_regions', [])
-
-                # DEBUG: Print what we're reading
-                print(f"[PREVIEW DEBUG] Found {len(custom_regions)} custom regions")
-                for i, r in enumerate(custom_regions):
-                    if isinstance(r, dict):
-                        print(f"  Region {i}: {r.get('name', 'N/A')} - Enabled: {r.get('enabled', False)} - Pos: {r.get('x', 0)},{r.get('y', 0)} - Text: '{r.get('text', '')[:20]}'")
-
-                # Draw each enabled region
-                for region in custom_regions:
-                    if not region.get('enabled', False):
-                        continue
-
-                    # Get region coordinates (percentage)
-                    x = region.get('x', 0)
-                    y = region.get('y', 0)
-                    width = region.get('width', 30)
-                    height = region.get('height', 10)
-
-                    # Convert to pixels - starting position
-                    x1 = int(w * x / 100)
-                    y1 = int(h * y / 100)
-
-                    # Check if auto-expand is enabled and we have text
-                    auto_expand = region.get('auto_expand', False)
-                    text_content = region.get('text', '').strip()
-
-                    if auto_expand and text_content:
-                        # Calculate text size first to auto-expand the box
-                        # Use a default font size for calculation
-                        default_font_size = max(20, int(h * 0.03))  # 3% of video height
-                        try:
-                            text_font = ImageFont.truetype("arialbd.ttf", default_font_size)
-                        except:
-                            try:
-                                text_font = ImageFont.truetype("arial.ttf", default_font_size)
-                            except:
-                                text_font = ImageFont.load_default()
-
-                        # Get text dimensions
-                        bbox = draw.textbbox((0, 0), text_content, font=text_font)
-                        text_w = bbox[2] - bbox[0]
-                        text_h = bbox[3] - bbox[1]
-
-                        # Add padding (20% of text size)
-                        padding_x = int(text_w * 0.2)
-                        padding_y = int(text_h * 0.3)
-
-                        # Calculate expanded box size
-                        x2 = x1 + text_w + padding_x * 2
-                        y2 = y1 + text_h + padding_y * 2
-
-                        # Make sure we don't go off screen
-                        x2 = min(x2, w)
-                        y2 = min(y2, h)
-                    else:
-                        # Use manual width/height from settings
-                        x2 = int(w * (x + width) / 100)
-                        y2 = int(h * (y + height) / 100)
-
-                    # Draw blur region outline
-                    draw.rectangle([x1, y1, x2, y2], outline='#ff0000', width=3)
-
-                    # Draw region label
-                    region_name = region.get('name', 'Region')
-                    try:
-                        label_font = ImageFont.truetype("arial.ttf", 14)
-                    except:
-                        label_font = ImageFont.load_default()
-
-                    draw.text((x1 + 5, y1 + 5), region_name,
-                             fill='#ff0000', font=label_font)
-
-                    # Draw text overlay if defined
-                    if text_content:
-                        # Get colors
-                        bg_color = region.get('bg_color', '#000000')
-                        text_color = region.get('text_color', '#FFFFFF')
-                        bg_opacity = region.get('bg_opacity', 180)
-
-                        # Convert hex to RGB
-                        bg_rgb = tuple(int(bg_color[i:i+2], 16) for i in (1, 3, 5))
-                        text_rgb = tuple(int(text_color[i:i+2], 16) for i in (1, 3, 5))
-
-                        # Draw background with opacity
-                        bg_with_alpha = bg_rgb + (bg_opacity,)
-                        draw.rectangle([x1, y1, x2, y2], fill=bg_with_alpha)
-
-                        # Calculate font size based on region height
-                        region_h = y2 - y1
-                        if auto_expand:
-                            # Use the font size we calculated earlier
-                            font_size = max(20, int(h * 0.03))
-                        else:
-                            # Calculate based on fixed box height
-                            font_size = max(12, int(region_h / 3))
-
-                        try:
-                            text_font = ImageFont.truetype("arialbd.ttf", font_size)
-                        except:
-                            try:
-                                text_font = ImageFont.truetype("arial.ttf", font_size)
-                            except:
-                                text_font = ImageFont.load_default()
-
-                        # Get text size and center it
-                        bbox = draw.textbbox((0, 0), text_content, font=text_font)
-                        text_w = bbox[2] - bbox[0]
-                        text_h = bbox[3] - bbox[1]
-
-                        text_x = x1 + (x2 - x1 - text_w) // 2
-                        text_y = y1 + (y2 - y1 - text_h) // 2
-
-                        # Draw text
-                        draw.text((text_x, text_y), text_content,
-                                 fill=text_rgb, font=text_font)
-
-                # Resize for display - maintain aspect ratio, fit within 800x600
-                max_width = 800
-                max_height = 600
-
-                # Calculate scaling to fit both width and height constraints
-                scale_w = max_width / w
-                scale_h = max_height / h
-                scale = min(scale_w, scale_h, 1.0)  # Don't upscale, only downscale
-
-                display_w = int(w * scale)
-                display_h = int(h * scale)
-                pil_img = pil_img.resize((display_w, display_h), Image.Resampling.LANCZOS)
-
-                # Convert to PhotoImage and display
-                photo = ImageTk.PhotoImage(pil_img)
-                canvas.config(image=photo)
-                canvas.image = photo
-
-            # Initial draw
-            update_preview()
-
-            # Auto-refresh every 500ms to pick up setting changes
-            def auto_refresh():
-                if preview_window.winfo_exists():
-                    update_preview()
-                    preview_window.after(500, auto_refresh)
-
-            preview_window.after(500, auto_refresh)
-
-            # Refresh button
-            refresh_btn = tk.Frame(preview_window, bg='#2d3748', pady=10)
-            refresh_btn.pack(fill='x')
-
-            ModernButton(refresh_btn, text='🔄 Refresh Now',
-                        bg_color='#48bb78',
-                        font=('Segoe UI', 10, 'bold'),
-                        padx=20, pady=8,
-                        command=update_preview).pack()
-
-        except Exception as e:
-            messagebox.showerror("Preview Error", f"Could not create preview:\n{str(e)}")
-            import traceback
-            traceback.print_exc()
-
-    def browse_watermark(self):
-        """Browse for watermark image file"""
-        from tkinter import filedialog
-        filename = filedialog.askopenfilename(
-            title="Select Watermark Image",
-            filetypes=[
-                ("Image files", "*.png *.jpg *.jpeg *.gif *.bmp"),
-                ("PNG files", "*.png"),
-                ("All files", "*.*")
-            ]
-        )
-        if filename:
-            self.watermark_path_var.set(filename)
-            self.update_setting('watermark_image_path', filename)
 
     def create_audio_tab(self):
         """Create Audio Settings tab with horizontal grid layout"""
