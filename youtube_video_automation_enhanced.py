@@ -397,8 +397,8 @@ class VideoEffects:
                 background_is_video = False
                 print(f"[OK] Loaded background image: {Path(background_media_path).name}")
 
-            # Resize to match video size
-            background_media = background_media.resize((w, h))
+            # Resize to match video size (use resized for MoviePy)
+            background_media = background_media.resized((w, h))
 
         # Create the transformer function (this will be called for each frame)
         def transform_frame(get_frame, t):
@@ -4363,8 +4363,11 @@ class VideoQuoteAutomation:
                 title_font = ImageFont.truetype(fallback_font_path, title_font_size)
                 quote_font = ImageFont.truetype(fallback_font_path, quote_font_size)
                 cta_font = ImageFont.truetype(fallback_font_path, cta_font_size)
-                emoji_font = ImageFont.truetype(emoji_font_path, int(cta_font_size * 1.2))
-                title_emoji_font = ImageFont.truetype(emoji_font_path, int(title_font_size * 1.0))
+                # Emoji fonts with size limits in fallback too
+                emoji_size_cta = min(int(cta_font_size * 1.2), 200)
+                emoji_size_title = min(int(title_font_size * 1.0), 200)
+                emoji_font = ImageFont.truetype(emoji_font_path, emoji_size_cta)
+                title_emoji_font = ImageFont.truetype(emoji_font_path, emoji_size_title)
             except:
                 # Last resort - use default
                 title_font = ImageFont.load_default()
@@ -5714,8 +5717,9 @@ class VideoQuoteAutomation:
                         text_color_hex = self.settings.get('watermark_text_color', '#FFFFFF')
                         text_color = self.hex_to_rgb(text_color_hex)
 
-                        # Map font style to actual font file if needed
-                        font_file = self.get_font_file(font_style)
+                        # Use font style directly (TextClip handles font names)
+                        # Just use Arial if custom font not found
+                        font_file = font_style if font_style else 'Arial-Bold'
 
                         # Create text clip
                         watermark = TextClip(
