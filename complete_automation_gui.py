@@ -1394,6 +1394,93 @@ class VideoAutomationGUI:
         self.create_slider_control(watermark_card, 'Opacity:', 'watermark_opacity', 0, 100, 70)
         self.create_slider_control(watermark_card, 'Size:', 'watermark_scale', 0.05, 0.5, 0.15, resolution=0.01, value_format=lambda v: f"{int(v*100)}%")
 
+        # ═════════════════════════════════════════════════
+        # ROW 2: Additional Effect Controls
+        # ═════════════════════════════════════════════════
+
+        # Vignette & Background Dim (Row 2, Col 1)
+        vignette_card = self.create_grid_card(grid_container, "🌑 Vignette & Dim", row=3, col=1)
+
+        # Vignette checkbox
+        vignette_var = tk.BooleanVar(value=self.settings.get('vignette', False))
+        tk.Checkbutton(vignette_card, text='✓ Enable Vignette',
+                      variable=vignette_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 9, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('vignette', vignette_var.get())).pack(anchor='w', padx=15, pady=(10, 5))
+        self.vignette_var = vignette_var
+
+        self.create_slider_control(vignette_card, 'Intensity:', 'vignette_intensity', 0.1, 1.0, 0.5, resolution=0.1)
+
+        # Background Dim checkbox
+        bg_dim_var = tk.BooleanVar(value=self.settings.get('background_dim', False))
+        tk.Checkbutton(vignette_card, text='✓ Enable Background Dim',
+                      variable=bg_dim_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 9, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('background_dim', bg_dim_var.get())).pack(anchor='w', padx=15, pady=(10, 5))
+        self.background_dim_var = bg_dim_var
+
+        self.create_slider_control(vignette_card, 'Dim:', 'background_dim_intensity', 0.1, 0.8, 0.4, resolution=0.1)
+
+        # Film Grain & Drop Shadow (Row 2, Col 2)
+        grain_card = self.create_grid_card(grid_container, "🎞️ Grain & Shadow", row=3, col=2)
+
+        # Film Grain checkbox
+        grain_var = tk.BooleanVar(value=self.settings.get('film_grain', False))
+        tk.Checkbutton(grain_card, text='✓ Enable Film Grain',
+                      variable=grain_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 9, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('film_grain', grain_var.get())).pack(anchor='w', padx=15, pady=(10, 5))
+        self.film_grain_var = grain_var
+
+        self.create_slider_control(grain_card, 'Grain:', 'film_grain_intensity', 0.01, 0.15, 0.05, resolution=0.01)
+
+        # Drop Shadow checkbox
+        shadow_var = tk.BooleanVar(value=self.settings.get('drop_shadow', False))
+        tk.Checkbutton(grain_card, text='✓ Enable Drop Shadow',
+                      variable=shadow_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 9, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('drop_shadow', shadow_var.get())).pack(anchor='w', padx=15, pady=(10, 5))
+        self.drop_shadow_var = shadow_var
+
+        self.create_slider_control(grain_card, 'Shadow:', 'drop_shadow_offset', 2, 15, 5, value_format=lambda v: f"{int(v)}px")
+        self.create_slider_control(grain_card, 'Blur:', 'drop_shadow_blur', 0, 10, 3, value_format=lambda v: f"{int(v)}px")
+
+        # Kinetic Typing & Glitch Effect (Row 2, Col 3)
+        kinetic_card = self.create_grid_card(grid_container, "⚡ Kinetic & Glitch", row=3, col=3)
+
+        # Kinetic Typing checkbox
+        kinetic_var = tk.BooleanVar(value=self.settings.get('text_kinetic', False))
+        tk.Checkbutton(kinetic_card, text='✓ Enable Kinetic Typing',
+                      variable=kinetic_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 9, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('text_kinetic', kinetic_var.get())).pack(anchor='w', padx=15, pady=(10, 5))
+        self.text_kinetic_var = kinetic_var
+
+        self.create_slider_control(kinetic_card, 'Speed:', 'kinetic_typing_speed', 0.02, 0.15, 0.05, resolution=0.01, value_format=lambda v: f"{v:.2f}s/char")
+
+        # Glitch Effect checkbox
+        glitch_var = tk.BooleanVar(value=self.settings.get('text_glitch', False))
+        tk.Checkbutton(kinetic_card, text='✓ Enable Glitch Effect',
+                      variable=glitch_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 9, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('text_glitch', glitch_var.get())).pack(anchor='w', padx=15, pady=(10, 5))
+        self.text_glitch_var = glitch_var
+
+        self.create_slider_control(kinetic_card, 'Intensity:', 'glitch_intensity', 1, 20, 5, value_format=lambda v: f"{int(v)}px")
+        self.create_slider_control(kinetic_card, 'Frequency:', 'glitch_frequency', 0.05, 0.5, 0.2, resolution=0.05, value_format=lambda v: f"{v:.2f}s")
+
     def toggle_custom_blur_region(self, index, enabled):
         """Toggle a custom blur region on/off"""
         print(f"[TOGGLE DEBUG] Region {index} enabled={enabled}")
