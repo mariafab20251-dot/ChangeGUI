@@ -4235,6 +4235,9 @@ class VideoQuoteAutomation:
 
     def create_text_overlay_image(self, video_width, video_height, title_text, main_text, cta_text, cta_emojis):
         """Create text overlay with Title + Quote + CTA format (with colorful CTA emojis)"""
+        # Define emoji pattern at the beginning of the method
+        emoji_pattern = re.compile(r'[\U0001F300-\U0001F9FF\U0001F600-\U0001F64F\U0001F680-\U0001F6FF\U00002600-\U000027BF\U0001F1E0-\U0001F1FF]+')
+
         img_width = video_width
         temp_img = Image.new('RGBA', (img_width, 1000), (0, 0, 0, 0))
         temp_draw = ImageDraw.Draw(temp_img)
@@ -4777,8 +4780,6 @@ class VideoQuoteAutomation:
                     video = video.resize((target_w, target_h))
                     print(f"[PLATFORM] Resized to: {target_w}x{target_h}")
                     print(f"[OK] Platform formatting complete!")
-
-        emoji_pattern = re.compile(r'[\U0001F300-\U0001F9FF\U0001F600-\U0001F64F\U0001F680-\U0001F6FF\U00002600-\U000027BF\U0001F1E0-\U0001F1FF]+')
 
         # Parse subtitle text for visual display (Title + Quote + CTA format)
         # Expected format:
