@@ -1091,6 +1091,22 @@ class VideoAutomationGUI:
         # Outside color (for solid mode)
         self.create_color_picker(spotlight_card, 'Color:', 'spotlight_outside_color', '#000000')
 
+        # Circle outline controls (like pink circle in TikTok)
+        outline_var = tk.BooleanVar(value=self.settings.get('spotlight_show_outline', True))
+        tk.Checkbutton(spotlight_card, text='✓ Show Outline',
+                      variable=outline_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 9),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('spotlight_show_outline', outline_var.get())).pack(anchor='w', padx=15, pady=(10, 5))
+        self.spotlight_outline_var = outline_var
+
+        # Outline thickness
+        self.create_slider_control(spotlight_card, 'Line Width:', 'spotlight_outline_thickness', 1, 20, 5, value_format=lambda v: f"{int(v)}px")
+
+        # Outline color (default: pink/magenta like TikTok)
+        self.create_color_picker(spotlight_card, 'Line Color:', 'spotlight_outline_color', '#FF00FF')
+
         # CTA Overlay (Row 6)
         cta_card = self.create_grid_card(grid_container, "💬 CTA Overlay", row=3, col=2)
 

@@ -168,7 +168,9 @@ class VideoEffects:
     @staticmethod
     def apply_circular_spotlight(frame, center_x=50, center_y=50, radius=40,
                                  outside_effect='blur', blur_intensity=50,
-                                 outside_color='#000000', feather=20):
+                                 outside_color='#000000', feather=20,
+                                 show_outline=True, outline_color='#FF00FF',
+                                 outline_thickness=5):
         """
         Apply circular spotlight effect - only circle area is visible, rest is blurred/darkened
 
@@ -181,6 +183,9 @@ class VideoEffects:
             blur_intensity: Blur strength for outside area (0-100)
             outside_color: Hex color for solid color effect
             feather: Edge softness (0-100, percentage of radius)
+            show_outline: Whether to draw circle outline
+            outline_color: Hex color for circle outline (default: pink/magenta)
+            outline_thickness: Outline thickness in pixels (1-20)
 
         Returns:
             Frame with circular spotlight effect applied
@@ -232,6 +237,16 @@ class VideoEffects:
             # Blend original and solid color using mask
             mask_3d = mask[:, :, np.newaxis]
             result = (frame * mask_3d + solid_frame * (1 - mask_3d)).astype(np.uint8)
+
+        # Draw circle outline if enabled (like TikTok pink circle)
+        if show_outline and outline_thickness > 0:
+            # Convert outline hex color to BGR
+            outline_hex = outline_color.lstrip('#')
+            outline_rgb = tuple(int(outline_hex[i:i+2], 16) for i in (0, 2, 4))
+            outline_bgr = (outline_rgb[2], outline_rgb[1], outline_rgb[0])
+
+            # Draw the circle outline
+            cv2.circle(result, (cx, cy), r, outline_bgr, thickness=int(outline_thickness))
 
         return result
 
@@ -5780,16 +5795,21 @@ class VideoQuoteAutomation:
                 blur_intensity = self.settings.get('spotlight_blur_intensity', 50)
                 outside_color = self.settings.get('spotlight_outside_color', '#000000')
                 feather = self.settings.get('spotlight_feather', 20)
+                show_outline = self.settings.get('spotlight_show_outline', True)
+                outline_color = self.settings.get('spotlight_outline_color', '#FF00FF')
+                outline_thickness = self.settings.get('spotlight_outline_thickness', 5)
 
                 def spotlight_effect(get_frame, t):
                     frame = get_frame(t)
                     return VideoEffects.apply_circular_spotlight(
                         frame, center_x, center_y, radius,
-                        outside_effect, blur_intensity, outside_color, feather
+                        outside_effect, blur_intensity, outside_color, feather,
+                        show_outline, outline_color, outline_thickness
                     )
 
                 final_video = final_video.transform(lambda gf, t: spotlight_effect(gf, t))
-                print(f"[OK] Applied circular spotlight (center: {center_x},{center_y}%, radius: {radius}%, effect: {outside_effect})")
+                outline_msg = f", outline: {outline_color} ({outline_thickness}px)" if show_outline else ", no outline"
+                print(f"[OK] Applied circular spotlight (center: {center_x},{center_y}%, radius: {radius}%, effect: {outside_effect}{outline_msg})")
             except Exception as e:
                 print(f"[WARNING] Circular spotlight failed: {e}")
                 import traceback
