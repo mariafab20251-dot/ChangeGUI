@@ -4082,8 +4082,10 @@ class VideoAutomationGUI:
                       selectcolor=AppStyles.BG_INPUT,
                       command=lambda: self.update_setting(f'{prefix}_enabled', enabled_var.get())).pack(anchor='w', padx=20, pady=10)
 
-        # Font Size slider
-        self.create_slider_control(parent, 'Font Size:', f'{prefix}_font_size', 10, 100, 30)
+        # Font Size slider (increased max from 100 to 200 for larger text)
+        default_sizes = {'title': 95, 'quote': 120, 'cta': 85}
+        default_size = default_sizes.get(prefix, 30)
+        self.create_slider_control(parent, 'Font Size:', f'{prefix}_font_size', 10, 200, default_size)
 
         # Font Family selection with system fonts
         font_frame = tk.Frame(parent, bg=AppStyles.BG_CARD)

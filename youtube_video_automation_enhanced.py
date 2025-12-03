@@ -387,8 +387,8 @@ class VideoEffects:
                 from moviepy.editor import ImageClip, VideoFileClip
 
             if background_media_path.lower().endswith(('.mp4', '.avi', '.mov', '.mkv', '.webm')):
-                # Video background
-                background_media = VideoFileClip(background_media_path).loop()
+                # Video background - loop method doesn't exist, we'll handle looping manually
+                background_media = VideoFileClip(background_media_path)
                 background_is_video = True
                 print(f"[OK] Loaded background video: {Path(background_media_path).name}")
             else:
@@ -4346,8 +4346,11 @@ class VideoQuoteAutomation:
                 emoji_font_path = noto_emoji_path
                 print(f"[OK] Using NotoColorEmoji.ttf for emoji rendering")
 
-            emoji_font = ImageFont.truetype(emoji_font_path, int(cta_font_size * 1.2))
-            title_emoji_font = ImageFont.truetype(emoji_font_path, int(title_font_size * 1.0))
+            # Emoji fonts with size limits (max 200 to prevent "invalid pixel size" errors)
+            emoji_size_cta = min(int(cta_font_size * 1.2), 200)
+            emoji_size_title = min(int(title_font_size * 1.0), 200)
+            emoji_font = ImageFont.truetype(emoji_font_path, emoji_size_cta)
+            title_emoji_font = ImageFont.truetype(emoji_font_path, emoji_size_title)
 
         except Exception as e:
             print(f"[WARNING] Font loading error: {e}")
