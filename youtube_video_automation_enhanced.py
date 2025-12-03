@@ -4339,16 +4339,13 @@ class VideoQuoteAutomation:
                 cta_font = ImageFont.truetype(str(Path(r"C:\Windows\Fonts") / "arial.ttf"), cta_font_size)
 
             # Emoji font - for all emoji rendering (CTA, Title, etc.)
+            # NotoColorEmoji has size limits, use Windows Segoe UI Emoji instead
             emoji_font_path = str(Path(r"C:\Windows\Fonts") / 'seguiemj.ttf')
-            # Try NotoColorEmoji.ttf if available (better emoji support)
-            noto_emoji_path = str(Path(__file__).parent / 'NotoColorEmoji.ttf')
-            if Path(noto_emoji_path).exists():
-                emoji_font_path = noto_emoji_path
-                print(f"[OK] Using NotoColorEmoji.ttf for emoji rendering")
+            print(f"[OK] Using Segoe UI Emoji for emoji rendering")
 
-            # Emoji fonts with size limits (max 200 to prevent "invalid pixel size" errors)
-            emoji_size_cta = min(int(cta_font_size * 1.2), 200)
-            emoji_size_title = min(int(title_font_size * 1.0), 200)
+            # Emoji fonts with conservative size limits (max 72 for stability)
+            emoji_size_cta = min(int(cta_font_size * 1.0), 72)
+            emoji_size_title = min(int(title_font_size * 0.8), 72)
             emoji_font = ImageFont.truetype(emoji_font_path, emoji_size_cta)
             title_emoji_font = ImageFont.truetype(emoji_font_path, emoji_size_title)
 
@@ -4363,9 +4360,9 @@ class VideoQuoteAutomation:
                 title_font = ImageFont.truetype(fallback_font_path, title_font_size)
                 quote_font = ImageFont.truetype(fallback_font_path, quote_font_size)
                 cta_font = ImageFont.truetype(fallback_font_path, cta_font_size)
-                # Emoji fonts with size limits in fallback too
-                emoji_size_cta = min(int(cta_font_size * 1.2), 200)
-                emoji_size_title = min(int(title_font_size * 1.0), 200)
+                # Emoji fonts with conservative size limits in fallback too
+                emoji_size_cta = min(int(cta_font_size * 1.0), 72)
+                emoji_size_title = min(int(title_font_size * 0.8), 72)
                 emoji_font = ImageFont.truetype(emoji_font_path, emoji_size_cta)
                 title_emoji_font = ImageFont.truetype(emoji_font_path, emoji_size_title)
             except:
@@ -5717,9 +5714,8 @@ class VideoQuoteAutomation:
                         text_color_hex = self.settings.get('watermark_text_color', '#FFFFFF')
                         text_color = self.hex_to_rgb(text_color_hex)
 
-                        # Use font style directly (TextClip handles font names)
-                        # Just use Arial if custom font not found
-                        font_file = font_style if font_style else 'Arial-Bold'
+                        # Fix font name for TextClip (replace spaces with hyphens)
+                        font_file = font_style.replace(' ', '-') if font_style else 'Arial-Bold'
 
                         # Create text clip
                         watermark = TextClip(
