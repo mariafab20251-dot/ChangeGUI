@@ -5714,28 +5714,43 @@ class VideoQuoteAutomation:
                         text_color_hex = self.settings.get('watermark_text_color', '#FFFFFF')
                         text_color = self.hex_to_rgb(text_color_hex)
 
-                        # TextClip font - try to use the font or fall back to Arial
+                        # Create watermark using PIL (more reliable than TextClip)
                         try:
-                            # Try with hyphenated name first
-                            font_file = font_style.replace(' ', '-') if font_style else 'Arial'
-                            watermark = TextClip(
-                                text=watermark_text,
-                                font_size=font_size,
-                                color=text_color,
-                                font=font_file,
-                                stroke_width=2,
-                                stroke_color='black'
-                            ).with_duration(final_video.duration)
-                        except:
-                            # Fallback to plain Arial
-                            watermark = TextClip(
-                                text=watermark_text,
-                                font_size=font_size,
-                                color=text_color,
-                                font='Arial',
-                                stroke_width=2,
-                                stroke_color='black'
-                            ).with_duration(final_video.duration)
+                            from PIL import Image, ImageDraw, ImageFont
+
+                            # Use Arial font file
+                            arial_path = str(Path(r"C:\Windows\Fonts") / "arial.ttf")
+                            try:
+                                font = ImageFont.truetype(arial_path, font_size)
+                            except:
+                                font = ImageFont.load_default()
+
+                            # Measure text
+                            temp_img = Image.new('RGBA', (1, 1))
+                            temp_draw = ImageDraw.Draw(temp_img)
+                            bbox = temp_draw.textbbox((0, 0), watermark_text, font=font)
+                            text_width = bbox[2] - bbox[0]
+                            text_height = bbox[3] - bbox[1]
+
+                            # Create image
+                            padding = 10
+                            watermark_img = Image.new('RGBA', (text_width + padding*2, text_height + padding*2), (0, 0, 0, 0))
+                            draw = ImageDraw.Draw(watermark_img)
+
+                            # Draw stroke
+                            for dx in range(-2, 3):
+                                for dy in range(-2, 3):
+                                    if dx*dx + dy*dy <= 4:
+                                        draw.text((padding + dx, padding + dy), watermark_text, font=font, fill=(0, 0, 0, 255))
+
+                            # Draw text
+                            draw.text((padding, padding), watermark_text, font=font, fill=text_color + (255,))
+
+                            # Convert to clip
+                            watermark = ImageClip(np.array(watermark_img)).with_duration(final_video.duration)
+                        except Exception as e:
+                            print(f"[WARNING] Watermark creation failed: {e}")
+                            watermark = None
 
                         print(f"[OK] Created text watermark: '{watermark_text}' (font: {font_style}, size: {font_size})")
                     else:
