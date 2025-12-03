@@ -1576,15 +1576,15 @@ class VideoAutomationGUI:
         # Enable mouse wheel scrolling
         self.setup_mousewheel_scroll(canvas, content)
 
-        # Create grid container (4 columns for blur effects)
+        # Create grid container (3 columns for blur effects)
         grid_container = tk.Frame(content, bg=AppStyles.BG_CARD)
         grid_container.pack(fill='both', expand=True, padx=15, pady=10)
 
         # Configure grid columns
-        for col in range(4):
+        for col in range(3):
             grid_container.columnconfigure(col, weight=1, uniform='blur_col')
 
-        # Region Blur Settings (Row 1, Col 1)
+        # Region Blur Settings (Row 0, Col 0)
         blur_card = self.create_grid_card(grid_container, "🌫️ Region Blur", row=0, col=0)
 
         blur_var = tk.BooleanVar(value=self.settings.get('region_blur_enabled', False))
@@ -1692,8 +1692,8 @@ class VideoAutomationGUI:
         # Use the same comprehensive text controls as Quote Settings
         self.create_text_controls(blur_text_card, 'blur_text')
 
-        # Custom Blur Regions (Row 2, spans all 4 columns) - For hiding logos/watermarks at specific positions
-        custom_blur_card = self.create_grid_card(grid_container, "🎯 Custom Blur Regions (Hide Logos)", row=1, col=0, colspan=4)
+        # Custom Blur Regions (Row 1, spans all 3 columns) - For hiding logos/watermarks at specific positions
+        custom_blur_card = self.create_grid_card(grid_container, "🎯 Custom Blur Regions (Hide Logos)", row=1, col=0, colspan=3)
 
         # Header with description and preview button
         header_section = tk.Frame(custom_blur_card, bg=AppStyles.BG_CARD)
