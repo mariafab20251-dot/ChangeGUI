@@ -4300,6 +4300,7 @@ class VideoQuoteAutomation:
             if not Path(title_font_file).exists():
                 title_font_file = str(Path(r"C:\Windows\Fonts") / Path(title_font_file).name)
             title_font = ImageFont.truetype(title_font_file, title_font_size)
+            print(f"[FONT DEBUG] Title font size: {title_font_size}, Family: {title_font_family}")
 
             # Quote font - read from GUI settings (increased default from 35 to 70)
             quote_font_size = int(self.settings.get('quote_font_size', 70))
@@ -4308,6 +4309,7 @@ class VideoQuoteAutomation:
             if not Path(quote_font_file).exists():
                 quote_font_file = str(Path(r"C:\Windows\Fonts") / Path(quote_font_file).name)
             quote_font = ImageFont.truetype(quote_font_file, quote_font_size)
+            print(f"[FONT DEBUG] Quote font size: {quote_font_size}, Family: {quote_font_family}")
 
             # CTA font - read from GUI settings (increased default from 43 to 75)
             cta_font_size = int(self.settings.get('cta_font_size', 75))
@@ -4316,6 +4318,7 @@ class VideoQuoteAutomation:
             if not Path(cta_font_file).exists():
                 cta_font_file = str(Path(r"C:\Windows\Fonts") / Path(cta_font_file).name)
             cta_font = ImageFont.truetype(cta_font_file, cta_font_size)
+            print(f"[FONT DEBUG] CTA font size: {cta_font_size}, Family: {cta_font_family}")
 
             # Emoji font - for all emoji rendering (CTA, Title, etc.)
             emoji_font_path = str(Path(r"C:\Windows\Fonts") / 'seguiemj.ttf')
