@@ -5714,18 +5714,28 @@ class VideoQuoteAutomation:
                         text_color_hex = self.settings.get('watermark_text_color', '#FFFFFF')
                         text_color = self.hex_to_rgb(text_color_hex)
 
-                        # Fix font name for TextClip (replace spaces with hyphens)
-                        font_file = font_style.replace(' ', '-') if font_style else 'Arial-Bold'
-
-                        # Create text clip with duration
-                        watermark = TextClip(
-                            text=watermark_text,
-                            font_size=font_size,
-                            color=text_color,
-                            font=font_file,
-                            stroke_width=2,
-                            stroke_color='black'
-                        ).with_duration(final_video.duration)
+                        # TextClip font - try to use the font or fall back to Arial
+                        try:
+                            # Try with hyphenated name first
+                            font_file = font_style.replace(' ', '-') if font_style else 'Arial'
+                            watermark = TextClip(
+                                text=watermark_text,
+                                font_size=font_size,
+                                color=text_color,
+                                font=font_file,
+                                stroke_width=2,
+                                stroke_color='black'
+                            ).with_duration(final_video.duration)
+                        except:
+                            # Fallback to plain Arial
+                            watermark = TextClip(
+                                text=watermark_text,
+                                font_size=font_size,
+                                color=text_color,
+                                font='Arial',
+                                stroke_width=2,
+                                stroke_color='black'
+                            ).with_duration(final_video.duration)
 
                         print(f"[OK] Created text watermark: '{watermark_text}' (font: {font_style}, size: {font_size})")
                     else:
@@ -6095,6 +6105,21 @@ class VideoQuoteAutomation:
 
         print(f"Rendering with effects to: {output_path.name}")
         print(f"Video details: size={final_video.size}, duration={final_video.duration:.2f}s, fps={video.fps}")
+
+        # Performance warning
+        total_frames = int(final_video.duration * video.fps)
+        if total_frames > 900:  # More than 15 seconds at 60fps
+            print(f"[⚠️ PERFORMANCE] Rendering {total_frames} frames - this may take 10-20 minutes")
+            if self.settings.get('spotlight_background_media'):
+                print(f"[💡 TIP] Background video in spotlight adds ~5-10 min to render time")
+            particle_count = sum([
+                self.settings.get('add_stars', False),
+                self.settings.get('add_hearts', False),
+                self.settings.get('add_confetti', False),
+                self.settings.get('add_glitter', False)
+            ])
+            if particle_count > 1:
+                print(f"[💡 TIP] {particle_count} particle effects enabled - consider reducing for faster rendering")
 
         try:
             final_video.write_videofile(
