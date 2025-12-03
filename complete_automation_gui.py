@@ -648,6 +648,7 @@ class VideoAutomationGUI:
             ('video_zoom', '🔍 Zoom'),
             ('pulsing_cta', '💓 Pulsing'),
             ('filename_use_title_only', '📋 Title Filename'),
+            ('performance_mode', '⚡ Performance Mode'),
         ]
 
         for key, label in options:
@@ -1170,6 +1171,47 @@ class VideoAutomationGUI:
 
         # Outline color (default: pink/magenta like TikTok)
         self.create_color_picker(spotlight_card, 'Line Color:', 'spotlight_outline_color', '#FF00FF')
+
+        # Background Media (optional - video or image)
+        bg_media_frame = tk.Frame(spotlight_card, bg=AppStyles.BG_CARD)
+        bg_media_frame.pack(fill='x', padx=15, pady=(15, 10))
+
+        tk.Label(bg_media_frame, text='🎬 Background Media (optional):',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9, 'bold')).pack(anchor='w', pady=(0, 5))
+
+        tk.Label(bg_media_frame, text='Use video/image instead of blur or solid color',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 7, 'italic')).pack(anchor='w', pady=(0, 5))
+
+        bg_media_path_frame = tk.Frame(bg_media_frame, bg=AppStyles.BG_CARD)
+        bg_media_path_frame.pack(fill='x')
+
+        self.spotlight_bg_media_var = tk.StringVar(value=self.settings.get('spotlight_background_media', ''))
+        tk.Entry(bg_media_path_frame, textvariable=self.spotlight_bg_media_var,
+                bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 8), relief='flat', bd=1).pack(side='left', fill='x', expand=True, padx=(0, 5))
+
+        def browse_spotlight_media():
+            from tkinter import filedialog
+            file = filedialog.askopenfilename(
+                title="Select Background Video or Image",
+                filetypes=[
+                    ("Media files", "*.mp4 *.avi *.mov *.mkv *.webm *.png *.jpg *.jpeg *.gif"),
+                    ("Video files", "*.mp4 *.avi *.mov *.mkv *.webm"),
+                    ("Image files", "*.png *.jpg *.jpeg *.gif *.bmp"),
+                    ("All files", "*.*")
+                ]
+            )
+            if file:
+                self.spotlight_bg_media_var.set(file)
+                self.update_setting('spotlight_background_media', file)
+
+        ModernButton(bg_media_path_frame, text='📁 Browse',
+                    bg_color='#4299e1',
+                    font=('Segoe UI', 8),
+                    padx=8, pady=3,
+                    command=browse_spotlight_media).pack(side='left')
 
         # CTA Overlay (Row 6)
         cta_card = self.create_grid_card(grid_container, "💬 CTA Overlay", row=3, col=2)
