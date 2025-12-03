@@ -5650,7 +5650,8 @@ class VideoQuoteAutomation:
             except Exception as e:
                 print(f"[WARNING] Light leak compositing failed: {e}")
 
-        # Add watermark if enabled
+        # Prepare watermark if enabled (will be applied AFTER spotlight to stay visible on top)
+        watermark_clip = None
         if self.settings.get('watermark_enabled', False):
             try:
                 watermark_type = self.settings.get('watermark_type', 'image')
@@ -5710,7 +5711,7 @@ class VideoQuoteAutomation:
                     else:
                         print(f"[WARNING] Image watermark enabled but file not found: {watermark_path}")
 
-                # Apply watermark if created
+                # Store watermark if created (will composite AFTER spotlight)
                 if watermark:
                     # Set opacity
                     watermark = watermark.set_opacity(opacity)
@@ -5730,14 +5731,11 @@ class VideoQuoteAutomation:
                         pos = (final_video.w - watermark.w - margin_x, final_video.h - watermark.h - margin_y)  # Default to bottom-right
 
                     # Set position and duration
-                    watermark = watermark.set_position(pos).set_duration(final_video.duration)
-
-                    # Composite watermark onto video
-                    final_video = CompositeVideoClip([final_video, watermark])
-                    print(f"[OK] Applied {watermark_type} watermark at {position} (opacity: {int(opacity*100)}%)")
+                    watermark_clip = watermark.set_position(pos).set_duration(final_video.duration)
+                    print(f"[OK] Prepared {watermark_type} watermark at {position} (opacity: {int(opacity*100)}%) - will apply after spotlight")
 
             except Exception as e:
-                print(f"[WARNING] Watermark overlay failed: {e}")
+                print(f"[WARNING] Watermark preparation failed: {e}")
                 import traceback
                 traceback.print_exc()
 
@@ -6037,6 +6035,15 @@ class VideoQuoteAutomation:
                 print("[OK] Text overlays applied successfully - will appear on top of all effects")
             except Exception as e:
                 print(f"[WARNING] Failed to add text overlays: {e}")
+
+        # FIX: Add watermark AFTER spotlight and text - ensures watermark stays visible on top
+        if watermark_clip is not None:
+            try:
+                print("[OK] Adding watermark on top of all effects...")
+                final_video = CompositeVideoClip([final_video, watermark_clip])
+                print("[OK] Watermark applied successfully - will appear on top of all effects")
+            except Exception as e:
+                print(f"[WARNING] Failed to add watermark: {e}")
 
         output_path = self.output_folder / output_filename
         counter = 1
