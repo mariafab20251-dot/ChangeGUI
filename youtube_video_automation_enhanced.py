@@ -5060,8 +5060,12 @@ class VideoQuoteAutomation:
                 import traceback
                 traceback.print_exc()
 
-        # Start with video and static text overlay
-        layers = [video, txt_clip]
+        # FIX: Keep text clip separate - will be added AFTER spotlight effect
+        # This ensures text is always visible on top of spotlight
+        text_overlay_clip = txt_clip
+
+        # Start with video only (particles will be added, but NOT text yet)
+        layers = [video]
         print(f"DEBUG: txt_clip size={txt_clip.size}, position={txt_clip.pos if hasattr(txt_clip, 'pos') else 'N/A'}, duration={txt_clip.duration}")
         print(f"DEBUG: video size={video.size}, duration={video.duration}")
 
@@ -6023,6 +6027,16 @@ class VideoQuoteAutomation:
                 print(f"[WARNING] Spotlight effect failed: {e}")
                 import traceback
                 traceback.print_exc()
+
+        # FIX: Add text overlays AFTER spotlight - ensures text is visible on top
+        # This keeps Title/Quote text visible even when spotlight is enabled
+        if text_overlay_clip is not None:
+            try:
+                print("[OK] Adding text overlays on top of spotlight effect...")
+                final_video = CompositeVideoClip([final_video, text_overlay_clip])
+                print("[OK] Text overlays applied successfully - will appear on top of all effects")
+            except Exception as e:
+                print(f"[WARNING] Failed to add text overlays: {e}")
 
         output_path = self.output_folder / output_filename
         counter = 1
