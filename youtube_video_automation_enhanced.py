@@ -170,25 +170,26 @@ class VideoEffects:
                                  outside_effect='blur', blur_intensity=50,
                                  outside_color='#000000', feather=20,
                                  show_outline=True, outline_color='#FF00FF',
-                                 outline_thickness=5):
+                                 outline_thickness=5, shape='circle'):
         """
-        Apply circular spotlight effect - only circle area is visible, rest is blurred/darkened
+        Apply spotlight effect (circle or square) - only spotlight area is visible, rest is blurred/darkened
 
         Args:
             frame: Video frame
-            center_x: Circle center X position (0-100, percentage)
-            center_y: Circle center Y position (0-100, percentage)
-            radius: Circle radius (0-100, percentage of smaller dimension)
-            outside_effect: 'blur' or 'solid' - what to do with area outside circle
+            center_x: Spotlight center X position (0-100, percentage)
+            center_y: Spotlight center Y position (0-100, percentage)
+            radius: Spotlight size (0-100, percentage of smaller dimension)
+            outside_effect: 'blur' or 'solid' - what to do with area outside spotlight
             blur_intensity: Blur strength for outside area (0-100)
             outside_color: Hex color for solid color effect
             feather: Edge softness (0-100, percentage of radius)
-            show_outline: Whether to draw circle outline
-            outline_color: Hex color for circle outline (default: pink/magenta)
+            show_outline: Whether to draw spotlight outline
+            outline_color: Hex color for spotlight outline (default: pink/magenta)
             outline_thickness: Outline thickness in pixels (1-20)
+            shape: 'circle' or 'square' - shape of spotlight
 
         Returns:
-            Frame with circular spotlight effect applied
+            Frame with spotlight effect applied
         """
         import cv2
 
@@ -200,19 +201,51 @@ class VideoEffects:
         cy = int(h * center_y / 100)
         r = int(min(w, h) * radius / 100)
 
-        # Create circular mask
+        # Create mask based on shape
         mask = np.zeros((h, w), dtype=np.float32)
-        y, x = np.ogrid[:h, :w]
-        distance = np.sqrt((x - cx)**2 + (y - cy)**2)
 
-        # Apply feathering (smooth edges)
-        feather_px = int(r * feather / 100)
-        if feather_px > 0:
-            # Gradual transition from 1 (inside) to 0 (outside)
-            mask = np.clip((r + feather_px - distance) / feather_px, 0, 1)
+        if shape == 'square':
+            # Create square/rectangle mask
+            half_size = r
+            x1, y1 = max(0, cx - half_size), max(0, cy - half_size)
+            x2, y2 = min(w, cx + half_size), min(h, cy + half_size)
+
+            # Create distance map for feathering
+            y_grid, x_grid = np.ogrid[:h, :w]
+
+            # Distance from rectangle edges
+            dist_x = np.minimum(np.abs(x_grid - x1), np.abs(x_grid - x2))
+            dist_y = np.minimum(np.abs(y_grid - y1), np.abs(y_grid - y2))
+
+            # Inside rectangle
+            inside_x = (x_grid >= x1) & (x_grid <= x2)
+            inside_y = (y_grid >= y1) & (y_grid <= y2)
+            inside = inside_x & inside_y
+
+            # Apply feathering
+            feather_px = int(r * feather / 100)
+            if feather_px > 0:
+                # Calculate distance from edge
+                edge_dist = np.minimum(dist_x, dist_y)
+                # Create gradient from edge
+                mask = np.where(inside,
+                               np.minimum(edge_dist / feather_px, 1.0),
+                               0.0)
+            else:
+                mask[inside] = 1.0
         else:
-            # Hard edge
-            mask[distance <= r] = 1.0
+            # Create circular mask
+            y, x = np.ogrid[:h, :w]
+            distance = np.sqrt((x - cx)**2 + (y - cy)**2)
+
+            # Apply feathering (smooth edges)
+            feather_px = int(r * feather / 100)
+            if feather_px > 0:
+                # Gradual transition from 1 (inside) to 0 (outside)
+                mask = np.clip((r + feather_px - distance) / feather_px, 0, 1)
+            else:
+                # Hard edge
+                mask[distance <= r] = 1.0
 
         # Apply effect to outside area
         if outside_effect == 'blur':
@@ -238,15 +271,22 @@ class VideoEffects:
             mask_3d = mask[:, :, np.newaxis]
             result = (frame * mask_3d + solid_frame * (1 - mask_3d)).astype(np.uint8)
 
-        # Draw circle outline if enabled (like TikTok pink circle)
+        # Draw outline if enabled
         if show_outline and outline_thickness > 0:
             # Convert outline hex color to BGR
             outline_hex = outline_color.lstrip('#')
             outline_rgb = tuple(int(outline_hex[i:i+2], 16) for i in (0, 2, 4))
             outline_bgr = (outline_rgb[2], outline_rgb[1], outline_rgb[0])
 
-            # Draw the circle outline
-            cv2.circle(result, (cx, cy), r, outline_bgr, thickness=int(outline_thickness))
+            if shape == 'square':
+                # Draw rectangle outline
+                half_size = r
+                x1, y1 = max(0, cx - half_size), max(0, cy - half_size)
+                x2, y2 = min(w, cx + half_size), min(h, cy + half_size)
+                cv2.rectangle(result, (x1, y1), (x2, y2), outline_bgr, thickness=int(outline_thickness))
+            else:
+                # Draw circle outline
+                cv2.circle(result, (cx, cy), r, outline_bgr, thickness=int(outline_thickness))
 
         return result
 
@@ -5785,7 +5825,7 @@ class VideoQuoteAutomation:
             except Exception as e:
                 print(f"[WARNING] Particle compositing failed: {e}")
 
-        # Apply circular spotlight effect (TikTok-style focus circle)
+        # Apply spotlight effect (TikTok-style focus circle or square)
         if self.settings.get('circular_spotlight_enabled', False):
             try:
                 center_x = self.settings.get('spotlight_center_x', 50)
@@ -5798,20 +5838,21 @@ class VideoQuoteAutomation:
                 show_outline = self.settings.get('spotlight_show_outline', True)
                 outline_color = self.settings.get('spotlight_outline_color', '#FF00FF')
                 outline_thickness = self.settings.get('spotlight_outline_thickness', 5)
+                shape = self.settings.get('spotlight_shape', 'circle')
 
                 def spotlight_effect(get_frame, t):
                     frame = get_frame(t)
                     return VideoEffects.apply_circular_spotlight(
                         frame, center_x, center_y, radius,
                         outside_effect, blur_intensity, outside_color, feather,
-                        show_outline, outline_color, outline_thickness
+                        show_outline, outline_color, outline_thickness, shape
                     )
 
                 final_video = final_video.transform(lambda gf, t: spotlight_effect(gf, t))
                 outline_msg = f", outline: {outline_color} ({outline_thickness}px)" if show_outline else ", no outline"
-                print(f"[OK] Applied circular spotlight (center: {center_x},{center_y}%, radius: {radius}%, effect: {outside_effect}{outline_msg})")
+                print(f"[OK] Applied {shape} spotlight (center: {center_x},{center_y}%, size: {radius}%, effect: {outside_effect}{outline_msg})")
             except Exception as e:
-                print(f"[WARNING] Circular spotlight failed: {e}")
+                print(f"[WARNING] Spotlight effect failed: {e}")
                 import traceback
                 traceback.print_exc()
 
