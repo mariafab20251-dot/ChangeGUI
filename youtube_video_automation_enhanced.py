@@ -2734,13 +2734,13 @@ class CaptionRenderer:
                 clip = clip.with_duration(word_duration)
                 clip = clip.with_start(word_start)
 
-            # Position
+            # Position (adjusted for spotlight - bottom moved lower to avoid circle)
             if position == 'top':
-                y_pos = int(video_height * 0.1)
+                y_pos = int(video_height * 0.05)  # Higher up to be above circle
             elif position == 'center':
                 y_pos = 'center'
-            else:
-                y_pos = int(video_height * 0.75)
+            else:  # bottom
+                y_pos = int(video_height * 0.88)  # Much lower to be below circle
 
             try:
                 clip = clip.set_position(('center', y_pos))
@@ -3174,13 +3174,13 @@ class CaptionRenderer:
                     clip = clip.with_duration(duration)
                     clip = clip.with_start(start_time)
 
-                # Position
+                # Position (adjusted for spotlight - bottom moved lower to avoid circle)
                 if position == 'top':
-                    y_pos = int(video_height * 0.1)
+                    y_pos = int(video_height * 0.05)  # Higher up to be above circle
                 elif position == 'center':
                     y_pos = 'center'
                 else:  # bottom
-                    y_pos = int(video_height * 0.75)
+                    y_pos = int(video_height * 0.88)  # Much lower to be below circle
 
                 try:
                     clip = clip.set_position(('center', y_pos))
@@ -3310,13 +3310,13 @@ class CaptionRenderer:
                     clip = clip.set_duration(duration)
                     clip = clip.set_start(segment['start'])
 
-                # Position based on settings
+                # Position based on settings (adjusted for spotlight - bottom moved lower to avoid circle)
                 if position == 'top':
-                    y_pos = int(video_height * 0.1)
+                    y_pos = int(video_height * 0.05)  # Higher up to be above circle
                 elif position == 'center':
                     y_pos = 'center'
                 else:  # bottom
-                    y_pos = int(video_height * 0.75)
+                    y_pos = int(video_height * 0.88)  # Much lower to be below circle
 
                 try:
                     clip = clip.with_position(('center', y_pos))
