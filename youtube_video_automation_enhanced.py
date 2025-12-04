@@ -5807,8 +5807,8 @@ class VideoQuoteAutomation:
                     else:
                         pos = (final_video.w - watermark.w - margin_x, final_video.h - watermark.h - margin_y)  # Default to bottom-right
 
-                    # Set position and duration
-                    watermark_clip = watermark.set_position(pos).set_duration(final_video.duration)
+                    # Set position and duration (MoviePy 2.x uses with_ methods)
+                    watermark_clip = watermark.with_position(pos).with_duration(final_video.duration)
                     print(f"[OK] Prepared {watermark_type} watermark at {position} (opacity: {int(opacity*100)}%) - will apply after spotlight")
 
             except Exception as e:
@@ -6274,7 +6274,11 @@ class VideoQuoteAutomation:
         # Add thumbnail frame at end (clean video without spotlight for YouTube thumbnail)
         if thumbnail_enabled and video_before_spotlight is not None:
             try:
-                from moviepy.video.compositing.concatenate import concatenate_videoclips
+                # MoviePy 2.x import
+                try:
+                    from moviepy import concatenate_videoclips
+                except ImportError:
+                    from moviepy.editor import concatenate_videoclips
 
                 # Create thumbnail frame: clean video with text/captions/watermark (no spotlight)
                 thumbnail_frame = video_before_spotlight
