@@ -5752,7 +5752,10 @@ class VideoQuoteAutomation:
 
         # Prepare watermark if enabled (will be applied AFTER spotlight to stay visible on top)
         watermark_clip = None
-        if self.settings.get('watermark_enabled', False):
+        watermark_setting = self.settings.get('watermark_enabled', False)
+        print(f"[🔍 WATERMARK DEBUG] Watermark enabled setting: {watermark_setting}")
+        if watermark_setting:
+            print("[🔍 WATERMARK DEBUG] Watermark is enabled - starting creation process...")
             try:
                 watermark_type = self.settings.get('watermark_type', 'image')
                 position = self.settings.get('watermark_position', 'bottom-right')
@@ -5760,11 +5763,15 @@ class VideoQuoteAutomation:
                 margin_x = self.settings.get('watermark_margin_x', 20)
                 margin_y = self.settings.get('watermark_margin_y', 20)
 
+                print(f"[🔍 WATERMARK DEBUG] Type: {watermark_type}, Position: {position}, Opacity: {int(opacity*100)}%")
+                print(f"[🔍 WATERMARK DEBUG] Video dimensions: {final_video.w}x{final_video.h}")
+
                 watermark = None
 
                 if watermark_type == 'text':
                     # Text watermark
                     watermark_text = self.settings.get('watermark_text', '').strip()
+                    print(f"[🔍 WATERMARK DEBUG] Text watermark - text: '{watermark_text}'")
                     if watermark_text:
                         try:
                             from moviepy import TextClip
@@ -5777,6 +5784,8 @@ class VideoQuoteAutomation:
                         text_color_hex = self.settings.get('watermark_text_color', '#FFFFFF')
                         text_color = self.hex_to_rgb(text_color_hex)
 
+                        print(f"[🔍 WATERMARK DEBUG] Font size: {font_size}, Style: {font_style}, Color: {text_color_hex}")
+
                         # Create watermark using PIL (more reliable than TextClip)
                         try:
                             from PIL import Image, ImageDraw, ImageFont
@@ -5785,7 +5794,9 @@ class VideoQuoteAutomation:
                             arial_path = str(Path(r"C:\Windows\Fonts") / "arial.ttf")
                             try:
                                 font = ImageFont.truetype(arial_path, font_size)
-                            except:
+                                print(f"[🔍 WATERMARK DEBUG] Loaded font: {arial_path}")
+                            except Exception as font_err:
+                                print(f"[🔍 WATERMARK DEBUG] Font load failed: {font_err}, using default")
                                 font = ImageFont.load_default()
 
                             # Measure text
@@ -5794,6 +5805,8 @@ class VideoQuoteAutomation:
                             bbox = temp_draw.textbbox((0, 0), watermark_text, font=font)
                             text_width = bbox[2] - bbox[0]
                             text_height = bbox[3] - bbox[1]
+
+                            print(f"[🔍 WATERMARK DEBUG] Text dimensions: {text_width}x{text_height}")
 
                             # Create image
                             padding = 10
@@ -5811,11 +5824,17 @@ class VideoQuoteAutomation:
 
                             # Convert to clip
                             watermark = ImageClip(np.array(watermark_img)).with_duration(final_video.duration)
+                            print(f"[🔍 WATERMARK DEBUG] Successfully created ImageClip from PIL image")
                         except Exception as e:
-                            print(f"[WARNING] Watermark creation failed: {e}")
+                            print(f"[ERROR] Watermark creation failed: {e}")
+                            import traceback
+                            traceback.print_exc()
                             watermark = None
 
-                        print(f"[OK] Created text watermark: '{watermark_text}' (font: {font_style}, size: {font_size})")
+                        if watermark:
+                            print(f"[OK] Created text watermark: '{watermark_text}' (font: {font_style}, size: {font_size})")
+                        else:
+                            print(f"[ERROR] Text watermark creation failed - watermark is None")
                     else:
                         print(f"[WARNING] Text watermark enabled but no text provided")
 
@@ -5841,8 +5860,11 @@ class VideoQuoteAutomation:
 
                 # Store watermark if created (will composite AFTER spotlight)
                 if watermark:
+                    print(f"[🔍 WATERMARK DEBUG] Watermark object created, dimensions: {watermark.w}x{watermark.h}")
+
                     # Set opacity (MoviePy 2.x uses with_opacity)
                     watermark = watermark.with_opacity(opacity)
+                    print(f"[🔍 WATERMARK DEBUG] Opacity set to {int(opacity*100)}%")
 
                     # Calculate position
                     if position == 'top-left':
@@ -5858,9 +5880,14 @@ class VideoQuoteAutomation:
                     else:
                         pos = (final_video.w - watermark.w - margin_x, final_video.h - watermark.h - margin_y)  # Default to bottom-right
 
+                    print(f"[🔍 WATERMARK DEBUG] Calculated position: {pos} (position preset: {position})")
+
                     # Set position and duration (MoviePy 2.x uses with_ methods)
                     watermark_clip = watermark.with_position(pos).with_duration(final_video.duration)
                     print(f"[OK] Prepared {watermark_type} watermark at {position} (opacity: {int(opacity*100)}%) - will apply after spotlight")
+                    print(f"[🔍 WATERMARK DEBUG] watermark_clip created successfully, ready for compositing")
+                else:
+                    print(f"[ERROR] Watermark object is None - cannot proceed with positioning")
 
             except Exception as e:
                 print(f"[WARNING] Watermark preparation failed: {e}")
@@ -6316,11 +6343,18 @@ class VideoQuoteAutomation:
         # FIX: Add watermark AFTER spotlight, text, and captions - ensures watermark stays visible on top
         if watermark_clip is not None:
             try:
+                print("[🔍 WATERMARK DEBUG] watermark_clip is not None - starting compositing...")
+                print(f"[🔍 WATERMARK DEBUG] Current video dimensions: {final_video.w}x{final_video.h}")
+                print(f"[🔍 WATERMARK DEBUG] Watermark clip dimensions: {watermark_clip.w}x{watermark_clip.h}")
                 print("[OK] Adding watermark on top of all effects...")
                 final_video = CompositeVideoClip([final_video, watermark_clip])
                 print("[OK] Watermark applied successfully - will appear on top of all effects")
             except Exception as e:
-                print(f"[WARNING] Failed to add watermark: {e}")
+                print(f"[ERROR] Failed to add watermark during compositing: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            print("[🔍 WATERMARK DEBUG] watermark_clip is None - skipping watermark compositing")
 
         # Add thumbnail frame at end (clean video without spotlight for YouTube thumbnail)
         if thumbnail_enabled and video_before_spotlight is not None:
