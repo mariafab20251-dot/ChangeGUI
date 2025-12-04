@@ -848,6 +848,105 @@ class VideoAutomationGUI:
                 bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
                 font=('Segoe UI', 8, 'italic')).pack(side='left', padx=(10, 0))
 
+        # Custom Resolution Controls
+        tk.Label(preset_frame, text='📐 Custom Resolution',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 11, 'bold')).pack(anchor='w', pady=(15, 5))
+
+        resolution_frame = tk.Frame(preset_frame, bg=AppStyles.BG_CARD)
+        resolution_frame.pack(fill='x', pady=5)
+
+        # Quick preset buttons
+        tk.Label(resolution_frame, text='Quick Presets:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9)).pack(anchor='w', pady=(0, 5))
+
+        presets_row = tk.Frame(resolution_frame, bg=AppStyles.BG_CARD)
+        presets_row.pack(fill='x')
+
+        # Resolution presets
+        resolution_presets = [
+            ('📱 Portrait HD', 1080, 1920),
+            ('📱 Portrait 720p', 720, 1280),
+            ('🖥️ Landscape HD', 1920, 1080),
+            ('🖥️ Landscape 720p', 1280, 720),
+            ('⬛ Square HD', 1080, 1080),
+            ('⬛ Square 720p', 720, 720),
+        ]
+
+        for label, width, height in resolution_presets:
+            def set_resolution(w=width, h=height):
+                self.settings['output_width'] = w
+                self.settings['output_height'] = h
+                self.width_var.set(str(w))
+                self.height_var.set(str(h))
+                self.save_all_settings()
+
+            ModernButton(presets_row, text=label,
+                        bg_color='#4a5568',
+                        font=('Segoe UI', 8),
+                        padx=8, pady=4,
+                        command=set_resolution).pack(side='left', padx=3)
+
+        # Manual resolution inputs
+        manual_frame = tk.Frame(resolution_frame, bg=AppStyles.BG_CARD)
+        manual_frame.pack(fill='x', pady=(10, 0))
+
+        tk.Label(manual_frame, text='Custom:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9)).pack(side='left', padx=(0, 10))
+
+        # Width
+        tk.Label(manual_frame, text='Width:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9)).pack(side='left')
+
+        self.width_var = tk.StringVar(value=str(self.settings.get('output_width', 1080)))
+        width_entry = tk.Entry(manual_frame, textvariable=self.width_var,
+                              bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                              font=('Segoe UI', 9), width=8)
+        width_entry.pack(side='left', padx=5)
+        width_entry.bind('<FocusOut>', lambda e: self.update_setting('output_width', int(self.width_var.get())))
+
+        tk.Label(manual_frame, text='×',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 12, 'bold')).pack(side='left', padx=5)
+
+        # Height
+        tk.Label(manual_frame, text='Height:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9)).pack(side='left')
+
+        self.height_var = tk.StringVar(value=str(self.settings.get('output_height', 1920)))
+        height_entry = tk.Entry(manual_frame, textvariable=self.height_var,
+                               bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                               font=('Segoe UI', 9), width=8)
+        height_entry.pack(side='left', padx=5)
+        height_entry.bind('<FocusOut>', lambda e: self.update_setting('output_height', int(self.height_var.get())))
+
+        # Aspect ratio info
+        def update_aspect_info():
+            try:
+                w = int(self.width_var.get())
+                h = int(self.height_var.get())
+                from math import gcd
+                divisor = gcd(w, h)
+                aspect_w = w // divisor
+                aspect_h = h // divisor
+                aspect_label.config(text=f'Aspect: {aspect_w}:{aspect_h}')
+            except:
+                aspect_label.config(text='Aspect: -')
+
+        aspect_label = tk.Label(manual_frame, text='Aspect: 9:16',
+                                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                                font=('Segoe UI', 8, 'italic'))
+        aspect_label.pack(side='left', padx=(10, 0))
+
+        # Update aspect ratio when values change
+        self.width_var.trace('w', lambda *args: update_aspect_info())
+        self.height_var.trace('w', lambda *args: update_aspect_info())
+        update_aspect_info()
+
     def create_text_settings_tab(self):
         """Create Text Settings tab with horizontal grid layout"""
         tab = tk.Frame(self.notebook, bg=AppStyles.BG_CARD)
