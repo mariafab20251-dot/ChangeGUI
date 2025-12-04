@@ -5407,8 +5407,26 @@ class VideoQuoteAutomation:
 
                 # IMPORTANT: Captions display subtitle_text (short), but sync with voiceover audio
                 # We need to create timing for subtitle words based on voiceover duration
-                if voiceover_file and voiceover_file.exists():
-                    print(f"Adding synchronized captions for subtitle text...")
+                # PRIORITY 1: Use actual word timings if available (best sync)
+                if word_timings and len(word_timings) > 0:
+                    print(f"[CAPTIONS] Using precise word-level timing from TTS ({len(word_timings)} words)")
+                    try:
+                        # Use actual word timings for perfect synchronization
+                        caption_clips = CaptionRenderer.create_word_captions(
+                            word_timings,
+                            video.w,
+                            video.h,
+                            self.settings
+                        )
+                        print(f"  → {len(caption_clips)} caption clips with precise TTS timing")
+                    except Exception as e:
+                        print(f"[WARNING] Word-level captions failed: {e}")
+                        print(f"  → Falling back to estimated timing")
+                        word_timings = []  # Clear to trigger fallback
+
+                # PRIORITY 2: Fallback to estimated timing if word timings unavailable
+                if not caption_clips and voiceover_file and voiceover_file.exists():
+                    print(f"[CAPTIONS] Using estimated timing based on audio duration")
                     try:
                         tts_audio = AudioFileClip(str(voiceover_file))
                         audio_duration = tts_audio.duration
@@ -5434,39 +5452,9 @@ class VideoQuoteAutomation:
                                 self.settings
                             )
                         print(f"  → Captions show: {subtitle_text[:60]}...")
-                        print(f"  → Synced to {audio_duration:.2f}s voiceover")
+                        print(f"  → Synced to {audio_duration:.2f}s voiceover (estimated)")
                     except Exception as e:
-                        print(f"[WARNING] Could not get TTS audio duration: {e}")
-                elif word_timings:
-                    # If we have word timings but they're for voiceover_text,
-                    # we still need to use subtitle_text for display
-                    print(f"[WARNING] Word timings from voiceover don't match subtitle - using estimated timing")
-                    # Try to estimate timing
-                    if voiceover_file and voiceover_file.exists():
-                        try:
-                            tts_audio = AudioFileClip(str(voiceover_file))
-                            audio_duration = tts_audio.duration
-                            tts_audio.close()
-
-                            # Check if highlighted captions are enabled (CapCut style)
-                            if self.settings.get('caption_highlight_enabled', False):
-                                caption_clips = CaptionRenderer.create_highlighted_word_captions(
-                                    subtitle_text,
-                                    audio_duration,
-                                    video.w,
-                                    video.h,
-                                    self.settings
-                                )
-                            else:
-                                caption_clips = CaptionRenderer.create_estimated_captions(
-                                    subtitle_text,
-                                    audio_duration,
-                                    video.w,
-                                    video.h,
-                                    self.settings
-                                )
-                        except Exception as e:
-                            print(f"[WARNING] Could not create captions: {e}")
+                        print(f"[WARNING] Could not create estimated captions: {e}")
 
                 if caption_clips:
                     print(f"[OK] Prepared {len(caption_clips)} caption clips (will be composited after spotlight)")
