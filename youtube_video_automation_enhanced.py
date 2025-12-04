@@ -2734,13 +2734,14 @@ class CaptionRenderer:
                 clip = clip.with_duration(word_duration)
                 clip = clip.with_start(word_start)
 
-            # Position (adjusted for spotlight - bottom moved lower to avoid circle)
+            # Position (with manual offset adjustment)
+            caption_offset = settings.get('caption_y_offset', 0)  # Manual adjustment in pixels
             if position == 'top':
-                y_pos = int(video_height * 0.05)  # Higher up to be above circle
+                y_pos = int(video_height * 0.05) + caption_offset
             elif position == 'center':
-                y_pos = 'center'
+                y_pos = int(video_height * 0.50) + caption_offset
             else:  # bottom
-                y_pos = int(video_height * 0.88)  # Much lower to be below circle
+                y_pos = int(video_height * 0.82) + caption_offset  # Adjusted for spotlight
 
             try:
                 clip = clip.set_position(('center', y_pos))
@@ -3174,13 +3175,14 @@ class CaptionRenderer:
                     clip = clip.with_duration(duration)
                     clip = clip.with_start(start_time)
 
-                # Position (adjusted for spotlight - bottom moved lower to avoid circle)
+                # Position (with manual offset adjustment)
+                caption_offset = settings.get('caption_y_offset', 0)  # Manual adjustment in pixels
                 if position == 'top':
-                    y_pos = int(video_height * 0.05)  # Higher up to be above circle
+                    y_pos = int(video_height * 0.05) + caption_offset
                 elif position == 'center':
-                    y_pos = 'center'
+                    y_pos = int(video_height * 0.50) + caption_offset
                 else:  # bottom
-                    y_pos = int(video_height * 0.88)  # Much lower to be below circle
+                    y_pos = int(video_height * 0.82) + caption_offset  # Adjusted for spotlight
 
                 try:
                     clip = clip.set_position(('center', y_pos))
@@ -3310,13 +3312,14 @@ class CaptionRenderer:
                     clip = clip.set_duration(duration)
                     clip = clip.set_start(segment['start'])
 
-                # Position based on settings (adjusted for spotlight - bottom moved lower to avoid circle)
+                # Position based on settings (with manual offset adjustment)
+                caption_offset = settings.get('caption_y_offset', 0)  # Manual adjustment in pixels
                 if position == 'top':
-                    y_pos = int(video_height * 0.05)  # Higher up to be above circle
+                    y_pos = int(video_height * 0.05) + caption_offset
                 elif position == 'center':
-                    y_pos = 'center'
+                    y_pos = int(video_height * 0.50) + caption_offset
                 else:  # bottom
-                    y_pos = int(video_height * 0.88)  # Much lower to be below circle
+                    y_pos = int(video_height * 0.82) + caption_offset  # Adjusted for spotlight
 
                 try:
                     clip = clip.with_position(('center', y_pos))
@@ -4488,17 +4491,20 @@ class VideoQuoteAutomation:
                 current_bg = title_bg
                 current_text_color = self.hex_to_rgb(self.settings.get('title_text_color', '#000000'))
                 current_outline_color = self.hex_to_rgb(self.settings.get('title_outline_color', '#000000'))
+                outline_enabled = self.settings.get('title_outline', False)
             elif is_cta:
                 current_bg = cta_bg
                 current_text_color = self.hex_to_rgb(self.settings.get('cta_text_color', '#000000'))
                 current_outline_color = self.hex_to_rgb(self.settings.get('cta_outline_color', '#000000'))
+                outline_enabled = self.settings.get('cta_outline', False)
             else:  # Quote
                 current_bg = quote_bg
                 current_text_color = self.hex_to_rgb(self.settings.get('quote_text_color', '#000000'))
                 current_outline_color = self.hex_to_rgb(self.settings.get('quote_outline_color', '#000000'))
+                outline_enabled = self.settings.get('quote_outline', False)
 
-            # Check if outline should be drawn (when outline color differs from text color)
-            draw_outline = current_outline_color != current_text_color
+            # Check if outline should be drawn (must be enabled AND colors must differ)
+            draw_outline = outline_enabled and (current_outline_color != current_text_color)
             outline_width = 2  # Outline thickness in pixels
 
             bubble_width = box_info['width'] + (self.settings['padding_horizontal'] * 2)

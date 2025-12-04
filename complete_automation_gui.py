@@ -3539,6 +3539,12 @@ class VideoAutomationGUI:
                           selectcolor=AppStyles.BG_INPUT,
                           font=('Segoe UI', 9)).pack(side='left', padx=15)
 
+        # Manual Y position adjustment slider
+        tk.Label(global_card, text='Fine-tune vertical position:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', padx=20, pady=(10, 0))
+        self.create_slider_control(global_card, 'Y Offset:', 'caption_y_offset', -300, 300, 0, value_format=lambda v: f"{int(v)}px")
+
         # Words per line
         self.create_slider_control(global_card, 'Words Per Caption:', 'caption_words_per_line', 1, 5, 3)
 
