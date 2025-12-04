@@ -5802,8 +5802,8 @@ class VideoQuoteAutomation:
 
                 # Store watermark if created (will composite AFTER spotlight)
                 if watermark:
-                    # Set opacity
-                    watermark = watermark.set_opacity(opacity)
+                    # Set opacity (MoviePy 2.x uses with_opacity)
+                    watermark = watermark.with_opacity(opacity)
 
                     # Calculate position
                     if position == 'top-left':
