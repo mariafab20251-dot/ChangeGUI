@@ -6065,6 +6065,14 @@ class VideoQuoteAutomation:
             except Exception as e:
                 print(f"[WARNING] Particle compositing failed: {e}")
 
+        # Save clean video BEFORE spotlight for thumbnail frame (if enabled)
+        thumbnail_enabled = self.settings.get('add_thumbnail_frame', False)
+        thumbnail_duration = self.settings.get('thumbnail_frame_duration', 3.0)
+        video_before_spotlight = None
+        if thumbnail_enabled:
+            # Keep reference to video before spotlight is applied
+            video_before_spotlight = final_video
+
         # Apply spotlight effect (TikTok-style focus circle or square) - OPTIMIZED WITH CACHING
         if self.settings.get('circular_spotlight_enabled', False):
             try:
@@ -6143,6 +6151,45 @@ class VideoQuoteAutomation:
                 print("[OK] Watermark applied successfully - will appear on top of all effects")
             except Exception as e:
                 print(f"[WARNING] Failed to add watermark: {e}")
+
+        # Add thumbnail frame at end (clean video without spotlight for YouTube thumbnail)
+        if thumbnail_enabled and video_before_spotlight is not None:
+            try:
+                from moviepy.video.VideoClip import ImageClip
+                from moviepy.video.compositing.concatenate import concatenate_videoclips
+
+                # Create thumbnail frame: clean video with text/captions/watermark (no spotlight)
+                thumbnail_frame = video_before_spotlight
+
+                # Add text overlays to thumbnail
+                if text_overlay_clip is not None:
+                    thumbnail_frame = CompositeVideoClip([thumbnail_frame, text_overlay_clip])
+
+                # Add captions to thumbnail
+                if caption_clips:
+                    all_clips = [thumbnail_frame] + caption_clips
+                    thumbnail_frame = CompositeVideoClip(all_clips)
+
+                # Add watermark to thumbnail
+                if watermark_clip is not None:
+                    thumbnail_frame = CompositeVideoClip([thumbnail_frame, watermark_clip])
+
+                # Get a single frame from the middle of the video for thumbnail
+                thumbnail_time = thumbnail_frame.duration / 2
+                thumbnail_img = thumbnail_frame.get_frame(thumbnail_time)
+
+                # Create static image clip from the frame
+                thumbnail_clip = ImageClip(thumbnail_img).with_duration(thumbnail_duration)
+                thumbnail_clip = thumbnail_clip.with_fps(video.fps)
+
+                # Concatenate: main video (with spotlight) + thumbnail frame (without spotlight)
+                final_video = concatenate_videoclips([final_video, thumbnail_clip])
+
+                print(f"[OK] Added {thumbnail_duration}s thumbnail frame at end (full video without spotlight)")
+            except Exception as e:
+                print(f"[WARNING] Failed to add thumbnail frame: {e}")
+                import traceback
+                traceback.print_exc()
 
         output_path = self.output_folder / output_filename
         counter = 1

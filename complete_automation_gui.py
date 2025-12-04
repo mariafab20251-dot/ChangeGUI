@@ -1213,6 +1213,25 @@ class VideoAutomationGUI:
                     padx=8, pady=3,
                     command=browse_spotlight_media).pack(side='left')
 
+        # Thumbnail Frame Feature
+        tk.Label(spotlight_card, text='📸 Thumbnail Frame (for YouTube)',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9, 'bold')).pack(anchor='w', padx=15, pady=(15, 5))
+
+        thumbnail_var = tk.BooleanVar(value=self.settings.get('add_thumbnail_frame', False))
+        tk.Checkbutton(spotlight_card, text='Add thumbnail frame at end (no spotlight)',
+                      variable=thumbnail_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 8),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('add_thumbnail_frame', thumbnail_var.get())).pack(anchor='w', padx=15, pady=3)
+
+        tk.Label(spotlight_card, text='Adds a clean frame without circle cutout for thumbnail',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 7, 'italic')).pack(anchor='w', padx=15, pady=(0, 5))
+
+        self.create_slider_control(spotlight_card, 'Duration:', 'thumbnail_frame_duration', 1, 10, 3, value_format=lambda v: f"{v:.1f}s")
+
         # CTA Overlay (Row 6)
         cta_card = self.create_grid_card(grid_container, "💬 CTA Overlay", row=3, col=2)
 
@@ -3516,8 +3535,8 @@ class VideoAutomationGUI:
                       selectcolor=AppStyles.BG_INPUT,
                       font=('Segoe UI', 9)).pack(side='left', padx=10)
 
-        # Font size
-        self.create_slider_control(global_card, 'Caption Font Size:', 'caption_font_size', 30, 100, 60)
+        # Font size (increased max to 200 for larger captions)
+        self.create_slider_control(global_card, 'Caption Font Size:', 'caption_font_size', 30, 200, 60)
 
         # Position
         pos_frame = tk.Frame(global_card, bg=AppStyles.BG_CARD)
@@ -3619,8 +3638,8 @@ class VideoAutomationGUI:
                                     font=('Segoe UI', 9), width=30)
         hl_font_combo.pack(fill='x', pady=5)
 
-        # Highlight font size
-        self.create_slider_control(capcut_card, 'Highlight Font Size:', 'caption_highlight_font_size', 20, 80, 60)
+        # Highlight font size (increased max to 150 for larger highlights)
+        self.create_slider_control(capcut_card, 'Highlight Font Size:', 'caption_highlight_font_size', 20, 150, 60)
 
         # Active/Inactive colors
         self.create_color_picker(capcut_card, 'Active Word:', 'caption_highlight_color', '#FFD700')
