@@ -5449,11 +5449,9 @@ class VideoQuoteAutomation:
                             print(f"[WARNING] Could not create captions: {e}")
 
                 if caption_clips:
-                    print(f"Compositing {len(caption_clips)} caption clips with video...")
-                    # Composite video with captions
-                    all_clips = [final_video] + caption_clips
-                    final_video = CompositeVideoClip(all_clips)
-                    print(f"[OK] Added {len(caption_clips)} caption segments")
+                    print(f"[OK] Prepared {len(caption_clips)} caption clips (will be composited after spotlight)")
+                    # Store caption clips to composite AFTER spotlight (so they appear on top)
+                    # DO NOT composite here - captions would be hidden behind spotlight
                 else:
                     print("[WARNING] No caption clips were created")
 
@@ -6107,7 +6105,17 @@ class VideoQuoteAutomation:
             except Exception as e:
                 print(f"[WARNING] Failed to add text overlays: {e}")
 
-        # FIX: Add watermark AFTER spotlight and text - ensures watermark stays visible on top
+        # FIX: Add captions AFTER spotlight - ensures captions are visible on top
+        if caption_clips:
+            try:
+                print(f"[OK] Adding {len(caption_clips)} captions on top of spotlight effect...")
+                all_clips = [final_video] + caption_clips
+                final_video = CompositeVideoClip(all_clips)
+                print("[OK] Captions applied successfully - will appear on top of spotlight")
+            except Exception as e:
+                print(f"[WARNING] Failed to add captions: {e}")
+
+        # FIX: Add watermark AFTER spotlight, text, and captions - ensures watermark stays visible on top
         if watermark_clip is not None:
             try:
                 print("[OK] Adding watermark on top of all effects...")
