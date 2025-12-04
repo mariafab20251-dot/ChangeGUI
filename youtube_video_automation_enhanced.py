@@ -6065,6 +6065,137 @@ class VideoQuoteAutomation:
             except Exception as e:
                 print(f"[WARNING] Particle compositing failed: {e}")
 
+        # Apply dual video overlay (top and bottom videos with crop/pan/zoom controls)
+        if self.settings.get('dual_video_enabled', False):
+            try:
+                from moviepy.video.fx.resize import resize as fx_resize
+                from moviepy.video.fx.crop import crop as fx_crop
+
+                print("[VIDEO] Applying dual video overlay...")
+
+                # Top video settings
+                top_video_path = self.settings.get('top_video_path', '')
+                top_position_y = self.settings.get('top_video_position_y', 0)  # % from top
+                top_height = self.settings.get('top_video_height', 20)  # % of video height
+                top_crop_x = self.settings.get('top_video_crop_x', 0)  # % from left
+                top_crop_y = self.settings.get('top_video_crop_y', 0)  # % from top
+                top_crop_width = self.settings.get('top_video_crop_width', 100)  # % of source width
+                top_crop_height = self.settings.get('top_video_crop_height', 100)  # % of source height
+                top_zoom = self.settings.get('top_video_zoom', 100)  # % zoom (100 = no zoom)
+
+                # Bottom video settings
+                bottom_video_path = self.settings.get('bottom_video_path', '')
+                bottom_position_y = self.settings.get('bottom_video_position_y', 80)  # % from top
+                bottom_height = self.settings.get('bottom_video_height', 20)  # % of video height
+                bottom_crop_x = self.settings.get('bottom_video_crop_x', 0)
+                bottom_crop_y = self.settings.get('bottom_video_crop_y', 0)
+                bottom_crop_width = self.settings.get('bottom_video_crop_width', 100)
+                bottom_crop_height = self.settings.get('bottom_video_crop_height', 100)
+                bottom_zoom = self.settings.get('bottom_video_zoom', 100)
+
+                overlay_clips = []
+
+                # Process top video
+                if top_video_path and Path(top_video_path).exists():
+                    try:
+                        top_vid = VideoFileClip(top_video_path)
+
+                        # Apply crop if needed
+                        if top_crop_width < 100 or top_crop_height < 100 or top_crop_x > 0 or top_crop_y > 0:
+                            crop_x1 = int(top_vid.w * top_crop_x / 100)
+                            crop_y1 = int(top_vid.h * top_crop_y / 100)
+                            crop_x2 = crop_x1 + int(top_vid.w * top_crop_width / 100)
+                            crop_y2 = crop_y1 + int(top_vid.h * top_crop_height / 100)
+                            top_vid = top_vid.cropped(x1=crop_x1, y1=crop_y1, x2=crop_x2, y2=crop_y2)
+
+                        # Apply zoom
+                        if top_zoom != 100:
+                            zoom_factor = top_zoom / 100.0
+                            top_vid = top_vid.resized(zoom_factor)
+
+                        # Resize to fit position
+                        target_height = int(video.h * top_height / 100)
+                        top_vid = top_vid.resized(height=target_height)
+
+                        # Ensure width doesn't exceed video width
+                        if top_vid.w > video.w:
+                            top_vid = top_vid.resized(width=video.w)
+
+                        # Loop video if shorter than main video
+                        if top_vid.duration < final_video.duration:
+                            num_loops = int(final_video.duration / top_vid.duration) + 1
+                            from moviepy.video.compositing.concatenate import concatenate_videoclips
+                            top_vid = concatenate_videoclips([top_vid] * num_loops)
+
+                        # Trim to match main video duration
+                        top_vid = top_vid.with_duration(final_video.duration)
+
+                        # Position
+                        y_pos = int(video.h * top_position_y / 100)
+                        x_pos = (video.w - top_vid.w) // 2  # Center horizontally
+                        top_vid = top_vid.with_position((x_pos, y_pos))
+
+                        overlay_clips.append(top_vid)
+                        print(f"[OK] Added top video overlay: {Path(top_video_path).name}")
+                    except Exception as e:
+                        print(f"[WARNING] Failed to load top video: {e}")
+
+                # Process bottom video
+                if bottom_video_path and Path(bottom_video_path).exists():
+                    try:
+                        bottom_vid = VideoFileClip(bottom_video_path)
+
+                        # Apply crop if needed
+                        if bottom_crop_width < 100 or bottom_crop_height < 100 or bottom_crop_x > 0 or bottom_crop_y > 0:
+                            crop_x1 = int(bottom_vid.w * bottom_crop_x / 100)
+                            crop_y1 = int(bottom_vid.h * bottom_crop_y / 100)
+                            crop_x2 = crop_x1 + int(bottom_vid.w * bottom_crop_width / 100)
+                            crop_y2 = crop_y1 + int(bottom_vid.h * bottom_crop_height / 100)
+                            bottom_vid = bottom_vid.cropped(x1=crop_x1, y1=crop_y1, x2=crop_x2, y2=crop_y2)
+
+                        # Apply zoom
+                        if bottom_zoom != 100:
+                            zoom_factor = bottom_zoom / 100.0
+                            bottom_vid = bottom_vid.resized(zoom_factor)
+
+                        # Resize to fit position
+                        target_height = int(video.h * bottom_height / 100)
+                        bottom_vid = bottom_vid.resized(height=target_height)
+
+                        # Ensure width doesn't exceed video width
+                        if bottom_vid.w > video.w:
+                            bottom_vid = bottom_vid.resized(width=video.w)
+
+                        # Loop video if shorter than main video
+                        if bottom_vid.duration < final_video.duration:
+                            num_loops = int(final_video.duration / bottom_vid.duration) + 1
+                            from moviepy.video.compositing.concatenate import concatenate_videoclips
+                            bottom_vid = concatenate_videoclips([bottom_vid] * num_loops)
+
+                        # Trim to match main video duration
+                        bottom_vid = bottom_vid.with_duration(final_video.duration)
+
+                        # Position
+                        y_pos = int(video.h * bottom_position_y / 100)
+                        x_pos = (video.w - bottom_vid.w) // 2  # Center horizontally
+                        bottom_vid = bottom_vid.with_position((x_pos, y_pos))
+
+                        overlay_clips.append(bottom_vid)
+                        print(f"[OK] Added bottom video overlay: {Path(bottom_video_path).name}")
+                    except Exception as e:
+                        print(f"[WARNING] Failed to load bottom video: {e}")
+
+                # Composite overlay videos with main video
+                if overlay_clips:
+                    all_clips = [final_video] + overlay_clips
+                    final_video = CompositeVideoClip(all_clips)
+                    print(f"[OK] Composited {len(overlay_clips)} overlay video(s)")
+
+            except Exception as e:
+                print(f"[WARNING] Dual video overlay failed: {e}")
+                import traceback
+                traceback.print_exc()
+
         # Save clean video BEFORE spotlight for thumbnail frame (if enabled)
         thumbnail_enabled = self.settings.get('add_thumbnail_frame', False)
         thumbnail_duration = self.settings.get('thumbnail_frame_duration', 3.0)

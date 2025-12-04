@@ -1274,6 +1274,131 @@ class VideoAutomationGUI:
         self.create_slider_control(cta_card, 'Start:', 'cta_overlay_start_time', 0, 10, 3.0, resolution=0.5, value_format=lambda v: f"{v:.1f}s")
         self.create_slider_control(cta_card, 'Duration:', 'cta_overlay_duration', 1, 10, 3.0, resolution=0.5, value_format=lambda v: f"{v:.1f}s")
 
+        # Dual Video Overlay (New feature - Row 4)
+        dual_video_card = self.create_grid_card(grid_container, "🎬 Dual Video Overlay", row=4, col=0, colspan=2)
+
+        # Enable/Disable
+        header_frame = tk.Frame(dual_video_card, bg=AppStyles.BG_CARD)
+        header_frame.pack(fill='x', padx=15, pady=(10, 5))
+
+        dual_video_var = tk.BooleanVar(value=self.settings.get('dual_video_enabled', False))
+        tk.Checkbutton(header_frame, text='✓ Enable Dual Video Overlay',
+                      variable=dual_video_var, bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                      font=('Segoe UI', 9, 'bold'),
+                      activebackground=AppStyles.BG_CARD,
+                      selectcolor=AppStyles.BG_INPUT,
+                      command=lambda: self.update_setting('dual_video_enabled', dual_video_var.get())).pack(side='left')
+
+        ModernButton(header_frame, text='👁️ Preview',
+                    bg_color='#4299e1',
+                    font=('Segoe UI', 8, 'bold'),
+                    padx=8, pady=3,
+                    command=self.show_dual_video_preview).pack(side='right')
+
+        tk.Label(dual_video_card, text='Add videos at top and bottom with crop/pan/zoom controls',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', padx=15, pady=(0, 10))
+
+        # TOP VIDEO SECTION
+        tk.Label(dual_video_card, text='⬆️ TOP VIDEO',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9, 'bold')).pack(anchor='w', padx=15, pady=(10, 5))
+
+        # Top video path
+        top_path_frame = tk.Frame(dual_video_card, bg=AppStyles.BG_CARD)
+        top_path_frame.pack(fill='x', padx=15, pady=5)
+
+        tk.Label(top_path_frame, text='Video:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 8)).pack(side='left', padx=(0, 5))
+
+        self.top_video_path_var = tk.StringVar(value=self.settings.get('top_video_path', ''))
+        top_path_entry = tk.Entry(top_path_frame, textvariable=self.top_video_path_var,
+                                  bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                                  font=('Segoe UI', 7), width=25)
+        top_path_entry.pack(side='left', fill='x', expand=True, padx=5)
+
+        def browse_top_video():
+            from tkinter import filedialog
+            file = filedialog.askopenfilename(
+                title="Select Top Video",
+                filetypes=[("Video files", "*.mp4 *.avi *.mov *.mkv *.webm"), ("All files", "*.*")]
+            )
+            if file:
+                self.top_video_path_var.set(file)
+                self.update_setting('top_video_path', file)
+
+        ModernButton(top_path_frame, text='📁',
+                    bg_color='#4299e1',
+                    font=('Segoe UI', 8),
+                    padx=6, pady=2,
+                    command=browse_top_video).pack(side='left')
+
+        # Top video controls
+        self.create_slider_control(dual_video_card, 'Position Y:', 'top_video_position_y', 0, 100, 0, value_format=lambda v: f"{int(v)}%")
+        self.create_slider_control(dual_video_card, 'Height:', 'top_video_height', 5, 50, 20, value_format=lambda v: f"{int(v)}%")
+        self.create_slider_control(dual_video_card, 'Zoom:', 'top_video_zoom', 50, 200, 100, value_format=lambda v: f"{int(v)}%")
+
+        # Top video crop controls
+        tk.Label(dual_video_card, text='Crop Controls:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', padx=15, pady=(5, 0))
+
+        self.create_slider_control(dual_video_card, 'Crop X:', 'top_video_crop_x', 0, 100, 0, value_format=lambda v: f"{int(v)}%")
+        self.create_slider_control(dual_video_card, 'Crop Y:', 'top_video_crop_y', 0, 100, 0, value_format=lambda v: f"{int(v)}%")
+        self.create_slider_control(dual_video_card, 'Crop Width:', 'top_video_crop_width', 10, 100, 100, value_format=lambda v: f"{int(v)}%")
+        self.create_slider_control(dual_video_card, 'Crop Height:', 'top_video_crop_height', 10, 100, 100, value_format=lambda v: f"{int(v)}%")
+
+        # BOTTOM VIDEO SECTION
+        tk.Label(dual_video_card, text='⬇️ BOTTOM VIDEO',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 9, 'bold')).pack(anchor='w', padx=15, pady=(15, 5))
+
+        # Bottom video path
+        bottom_path_frame = tk.Frame(dual_video_card, bg=AppStyles.BG_CARD)
+        bottom_path_frame.pack(fill='x', padx=15, pady=5)
+
+        tk.Label(bottom_path_frame, text='Video:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_DARK,
+                font=('Segoe UI', 8)).pack(side='left', padx=(0, 5))
+
+        self.bottom_video_path_var = tk.StringVar(value=self.settings.get('bottom_video_path', ''))
+        bottom_path_entry = tk.Entry(bottom_path_frame, textvariable=self.bottom_video_path_var,
+                                     bg=AppStyles.BG_INPUT, fg=AppStyles.TEXT_DARK,
+                                     font=('Segoe UI', 7), width=25)
+        bottom_path_entry.pack(side='left', fill='x', expand=True, padx=5)
+
+        def browse_bottom_video():
+            from tkinter import filedialog
+            file = filedialog.askopenfilename(
+                title="Select Bottom Video",
+                filetypes=[("Video files", "*.mp4 *.avi *.mov *.mkv *.webm"), ("All files", "*.*")]
+            )
+            if file:
+                self.bottom_video_path_var.set(file)
+                self.update_setting('bottom_video_path', file)
+
+        ModernButton(bottom_path_frame, text='📁',
+                    bg_color='#4299e1',
+                    font=('Segoe UI', 8),
+                    padx=6, pady=2,
+                    command=browse_bottom_video).pack(side='left')
+
+        # Bottom video controls
+        self.create_slider_control(dual_video_card, 'Position Y:', 'bottom_video_position_y', 0, 100, 80, value_format=lambda v: f"{int(v)}%")
+        self.create_slider_control(dual_video_card, 'Height:', 'bottom_video_height', 5, 50, 20, value_format=lambda v: f"{int(v)}%")
+        self.create_slider_control(dual_video_card, 'Zoom:', 'bottom_video_zoom', 50, 200, 100, value_format=lambda v: f"{int(v)}%")
+
+        # Bottom video crop controls
+        tk.Label(dual_video_card, text='Crop Controls:',
+                bg=AppStyles.BG_CARD, fg=AppStyles.TEXT_MEDIUM,
+                font=('Segoe UI', 8, 'italic')).pack(anchor='w', padx=15, pady=(5, 0))
+
+        self.create_slider_control(dual_video_card, 'Crop X:', 'bottom_video_crop_x', 0, 100, 0, value_format=lambda v: f"{int(v)}%")
+        self.create_slider_control(dual_video_card, 'Crop Y:', 'bottom_video_crop_y', 0, 100, 0, value_format=lambda v: f"{int(v)}%")
+        self.create_slider_control(dual_video_card, 'Crop Width:', 'bottom_video_crop_width', 10, 100, 100, value_format=lambda v: f"{int(v)}%")
+        self.create_slider_control(dual_video_card, 'Crop Height:', 'bottom_video_crop_height', 10, 100, 100, value_format=lambda v: f"{int(v)}%")
+
         # Progress Bar (Row 6)
         progress_card = self.create_grid_card(grid_container, "📊 Progress Bar", row=0, col=3)
 
@@ -1892,6 +2017,221 @@ class VideoAutomationGUI:
             update_preview()
 
             # Auto-refresh every 500ms to pick up setting changes
+            def auto_refresh():
+                if preview_window.winfo_exists():
+                    update_preview()
+                    preview_window.after(500, auto_refresh)
+
+            preview_window.after(500, auto_refresh)
+
+            # Refresh button
+            refresh_btn = tk.Frame(preview_window, bg='#2d3748', pady=10)
+            refresh_btn.pack(fill='x')
+
+            ModernButton(refresh_btn, text='🔄 Refresh Now',
+                        bg_color='#48bb78',
+                        font=('Segoe UI', 10, 'bold'),
+                        padx=20, pady=8,
+                        command=update_preview).pack()
+
+        except Exception as e:
+            messagebox.showerror("Preview Error", f"Could not create preview:\n{str(e)}")
+            import traceback
+            traceback.print_exc()
+
+    def show_dual_video_preview(self):
+        """Show live preview of dual video overlay effect"""
+        import tkinter as tk
+        from tkinter import messagebox
+        from PIL import Image, ImageTk
+        import cv2
+        import os
+        import numpy as np
+
+        # Get main video path
+        input_folder = self.video_folder_var.get().strip()
+        if not input_folder or not os.path.exists(input_folder):
+            messagebox.showerror("No Video Folder",
+                "Please select a Video Folder in the Quick Process tab first!")
+            return
+
+        # Find first video file
+        video_path = None
+        for file in os.listdir(input_folder):
+            if file.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
+                video_path = os.path.join(input_folder, file)
+                break
+
+        if not video_path:
+            messagebox.showerror("No Video", "No video files found in input folder!")
+            return
+
+        try:
+            # Load first frame from main video
+            cap = cv2.VideoCapture(video_path)
+            ret, main_frame = cap.read()
+            cap.release()
+
+            if not ret:
+                messagebox.showerror("Error", "Could not read main video frame!")
+                return
+
+            # Convert BGR to RGB
+            main_frame_rgb = cv2.cvtColor(main_frame, cv2.COLOR_BGR2RGB)
+            h, w = main_frame_rgb.shape[:2]
+
+            # Create preview window
+            preview_window = tk.Toplevel(self.root)
+            preview_window.title("🎬 Live Preview - Dual Video Overlay")
+            preview_window.geometry("900x750")
+            preview_window.configure(bg='#1a202c')
+
+            # Header
+            header = tk.Frame(preview_window, bg='#2d3748', pady=10)
+            header.pack(fill='x')
+            tk.Label(header, text="👁️ Live Preview - Dual Video Overlay",
+                    bg='#2d3748', fg='#e2e8f0',
+                    font=('Segoe UI', 12, 'bold')).pack()
+            tk.Label(header, text=f"Main Video: {os.path.basename(video_path)} ({w}x{h})",
+                    bg='#2d3748', fg='#a0aec0',
+                    font=('Segoe UI', 9)).pack()
+
+            # Canvas for image
+            canvas_frame = tk.Frame(preview_window, bg='#1a202c')
+            canvas_frame.pack(fill='both', expand=True, padx=20, pady=10)
+
+            canvas = tk.Label(canvas_frame, bg='#000000')
+            canvas.pack()
+
+            # Store frame for redrawing
+            preview_window.main_frame = main_frame_rgb.copy()
+            preview_window.video_size = (w, h)
+
+            def update_preview():
+                """Redraw preview with current dual video settings"""
+                # Start with main frame
+                preview_frame = preview_window.main_frame.copy()
+                pil_img = Image.fromarray(preview_frame)
+
+                # Get dual video settings
+                enabled = self.settings.get('dual_video_enabled', False)
+
+                if enabled:
+                    # Top video
+                    top_video_path = self.settings.get('top_video_path', '')
+                    if top_video_path and os.path.exists(top_video_path):
+                        try:
+                            top_cap = cv2.VideoCapture(top_video_path)
+                            ret, top_frame = top_cap.read()
+                            top_cap.release()
+
+                            if ret:
+                                top_frame_rgb = cv2.cvtColor(top_frame, cv2.COLOR_BGR2RGB)
+                                top_h, top_w = top_frame_rgb.shape[:2]
+
+                                # Apply crop
+                                crop_x = int(self.settings.get('top_video_crop_x', 0))
+                                crop_y = int(self.settings.get('top_video_crop_y', 0))
+                                crop_width = int(self.settings.get('top_video_crop_width', 100))
+                                crop_height = int(self.settings.get('top_video_crop_height', 100))
+
+                                x1 = int(top_w * crop_x / 100)
+                                y1 = int(top_h * crop_y / 100)
+                                x2 = x1 + int(top_w * crop_width / 100)
+                                y2 = y1 + int(top_h * crop_height / 100)
+                                top_frame_rgb = top_frame_rgb[y1:y2, x1:x2]
+
+                                # Apply zoom
+                                zoom = self.settings.get('top_video_zoom', 100) / 100.0
+                                if zoom != 1.0:
+                                    new_h = int(top_frame_rgb.shape[0] * zoom)
+                                    new_w = int(top_frame_rgb.shape[1] * zoom)
+                                    top_frame_rgb = cv2.resize(top_frame_rgb, (new_w, new_h))
+
+                                # Resize to target height
+                                target_height = int(h * self.settings.get('top_video_height', 20) / 100)
+                                aspect = top_frame_rgb.shape[1] / top_frame_rgb.shape[0]
+                                target_width = int(target_height * aspect)
+                                target_width = min(target_width, w)  # Don't exceed video width
+                                top_frame_rgb = cv2.resize(top_frame_rgb, (target_width, target_height))
+
+                                # Position
+                                y_pos = int(h * self.settings.get('top_video_position_y', 0) / 100)
+                                x_pos = (w - target_width) // 2
+
+                                # Overlay on main frame
+                                top_pil = Image.fromarray(top_frame_rgb)
+                                pil_img.paste(top_pil, (x_pos, y_pos))
+
+                        except Exception as e:
+                            print(f"[WARNING] Could not load top video for preview: {e}")
+
+                    # Bottom video
+                    bottom_video_path = self.settings.get('bottom_video_path', '')
+                    if bottom_video_path and os.path.exists(bottom_video_path):
+                        try:
+                            bottom_cap = cv2.VideoCapture(bottom_video_path)
+                            ret, bottom_frame = bottom_cap.read()
+                            bottom_cap.release()
+
+                            if ret:
+                                bottom_frame_rgb = cv2.cvtColor(bottom_frame, cv2.COLOR_BGR2RGB)
+                                bottom_h, bottom_w = bottom_frame_rgb.shape[:2]
+
+                                # Apply crop
+                                crop_x = int(self.settings.get('bottom_video_crop_x', 0))
+                                crop_y = int(self.settings.get('bottom_video_crop_y', 0))
+                                crop_width = int(self.settings.get('bottom_video_crop_width', 100))
+                                crop_height = int(self.settings.get('bottom_video_crop_height', 100))
+
+                                x1 = int(bottom_w * crop_x / 100)
+                                y1 = int(bottom_h * crop_y / 100)
+                                x2 = x1 + int(bottom_w * crop_width / 100)
+                                y2 = y1 + int(bottom_h * crop_height / 100)
+                                bottom_frame_rgb = bottom_frame_rgb[y1:y2, x1:x2]
+
+                                # Apply zoom
+                                zoom = self.settings.get('bottom_video_zoom', 100) / 100.0
+                                if zoom != 1.0:
+                                    new_h = int(bottom_frame_rgb.shape[0] * zoom)
+                                    new_w = int(bottom_frame_rgb.shape[1] * zoom)
+                                    bottom_frame_rgb = cv2.resize(bottom_frame_rgb, (new_w, new_h))
+
+                                # Resize to target height
+                                target_height = int(h * self.settings.get('bottom_video_height', 20) / 100)
+                                aspect = bottom_frame_rgb.shape[1] / bottom_frame_rgb.shape[0]
+                                target_width = int(target_height * aspect)
+                                target_width = min(target_width, w)
+                                bottom_frame_rgb = cv2.resize(bottom_frame_rgb, (target_width, target_height))
+
+                                # Position
+                                y_pos = int(h * self.settings.get('bottom_video_position_y', 80) / 100)
+                                x_pos = (w - target_width) // 2
+
+                                # Overlay on main frame
+                                bottom_pil = Image.fromarray(bottom_frame_rgb)
+                                pil_img.paste(bottom_pil, (x_pos, y_pos))
+
+                        except Exception as e:
+                            print(f"[WARNING] Could not load bottom video for preview: {e}")
+
+                # Resize for display
+                max_width = 800
+                max_height = 600
+                scale = min(max_width / w, max_height / h, 1.0)
+                display_w = int(w * scale)
+                display_h = int(h * scale)
+                pil_img = pil_img.resize((display_w, display_h), Image.Resampling.LANCZOS)
+
+                # Convert to PhotoImage and display
+                photo = ImageTk.PhotoImage(pil_img)
+                canvas.config(image=photo)
+                canvas.image = photo
+
+            # Initial draw
+            update_preview()
+
+            # Auto-refresh every 500ms
             def auto_refresh():
                 if preview_window.winfo_exists():
                     update_preview()
