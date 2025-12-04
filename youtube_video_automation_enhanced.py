@@ -18,6 +18,57 @@ if sys.platform == 'win32':
     sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'ignore')
     sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'ignore')
 
+# ANSI color codes for terminal output
+class Colors:
+    """ANSI color codes for colored terminal output"""
+    RED = '\033[91m'        # Bright red for errors
+    YELLOW = '\033[93m'     # Yellow for warnings
+    GREEN = '\033[92m'      # Green for success
+    BLUE = '\033[94m'       # Blue for info
+    CYAN = '\033[96m'       # Cyan for debug
+    RESET = '\033[0m'       # Reset to default
+
+    @staticmethod
+    def error(msg):
+        """Print error message in red"""
+        return f"{Colors.RED}{msg}{Colors.RESET}"
+
+    @staticmethod
+    def warning(msg):
+        """Print warning message in yellow"""
+        return f"{Colors.YELLOW}{msg}{Colors.RESET}"
+
+    @staticmethod
+    def success(msg):
+        """Print success message in green"""
+        return f"{Colors.GREEN}{msg}{Colors.RESET}"
+
+    @staticmethod
+    def info(msg):
+        """Print info message in blue"""
+        return f"{Colors.BLUE}{msg}{Colors.RESET}"
+
+# Override print to automatically color [ERROR], [WARNING], [OK] messages
+_original_print = print
+def colored_print(*args, **kwargs):
+    """Enhanced print that automatically colors error/warning/success messages"""
+    if args:
+        msg = ' '.join(str(arg) for arg in args)
+        # Color code based on message content
+        if '[ERROR]' in msg or '✗ Error' in msg or 'Traceback' in msg or 'AttributeError' in msg or 'ModuleNotFoundError' in msg:
+            msg = Colors.error(msg)
+        elif '[WARNING]' in msg or '[⚠️' in msg:
+            msg = Colors.warning(msg)
+        elif '[OK]' in msg or '✓ ' in msg or '[✓' in msg or '[⚡' in msg:
+            msg = Colors.success(msg)
+        elif '[DEBUG]' in msg or '[FONT DEBUG]' in msg or '[SAVE DEBUG]' in msg:
+            msg = Colors.info(msg)
+        args = (msg,) + args[1:]
+    _original_print(*args, **kwargs)
+
+# Replace built-in print
+print = colored_print
+
 try:
     from moviepy import VideoFileClip, ImageClip, CompositeVideoClip, AudioFileClip, CompositeAudioClip
     from moviepy.video.fx import Resize, FadeIn

@@ -18,14 +18,44 @@ import logging
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-# Setup logging with UTF-8 encoding to handle Unicode filenames
+# Custom colored formatter for console output
+class ColoredFormatter(logging.Formatter):
+    """Custom formatter that adds colors to console output"""
+
+    # ANSI escape codes for colors
+    COLORS = {
+        'DEBUG': '\033[36m',      # Cyan
+        'INFO': '\033[0m',        # Default/White
+        'WARNING': '\033[33m',    # Yellow
+        'ERROR': '\033[91m',      # Bright Red
+        'CRITICAL': '\033[1;91m'  # Bold Bright Red
+    }
+    RESET = '\033[0m'
+
+    def format(self, record):
+        # Add color to levelname
+        levelname = record.levelname
+        if levelname in self.COLORS:
+            record.levelname = f"{self.COLORS[levelname]}{levelname}{self.RESET}"
+
+        # Format the message
+        result = super().format(record)
+
+        # Reset levelname to original (for file logging)
+        record.levelname = levelname
+
+        return result
+
+# Setup logging with UTF-8 encoding and colored output
+file_handler = logging.FileHandler('video_automation.log', encoding='utf-8')
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(ColoredFormatter('%(asctime)s - %(levelname)s - %(message)s'))
+
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('video_automation.log', encoding='utf-8'),
-        logging.StreamHandler()
-    ]
+    handlers=[file_handler, console_handler]
 )
 logger = logging.getLogger(__name__)
 
