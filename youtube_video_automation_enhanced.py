@@ -3933,6 +3933,10 @@ class VideoQuoteAutomation:
         self.log_file = self.output_folder / "processing_log.json"
         self.processing_log = self._load_log()
 
+        # State file to track last used quote index (persists across script restarts)
+        self.state_file = self.output_folder / "quote_state.json"
+        self.quote_state = self._load_quote_state()
+
         # Load voiceover files if enabled
         self.voiceover_files = []
         if self.settings.get('add_voiceover', False) and self.settings.get('voiceover_folder'):
@@ -4020,6 +4024,22 @@ class VideoQuoteAutomation:
         """Save processing log"""
         with open(self.log_file, 'w', encoding='utf-8') as f:
             json.dump(self.processing_log, f, indent=2, ensure_ascii=False)
+
+    def _load_quote_state(self) -> dict:
+        """Load quote state (tracks last used quote index)"""
+        if self.state_file.exists():
+            try:
+                with open(self.state_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"[WARNING] Could not load quote state: {e}")
+                return {"last_quote_index": -1}
+        return {"last_quote_index": -1}
+
+    def _save_quote_state(self):
+        """Save quote state (persists last used quote index)"""
+        with open(self.state_file, 'w', encoding='utf-8') as f:
+            json.dump(self.quote_state, f, indent=2, ensure_ascii=False)
 
     def hex_to_rgb(self, hex_color: str) -> tuple:
         """Convert hex color to RGB tuple"""
@@ -6203,12 +6223,13 @@ class VideoQuoteAutomation:
             if not quotes:
                 raise Exception("No quotes found in quotes file")
 
-            # Get quote at index (cycle through quotes if more videos than quotes)
-            quote_index = video_index % len(quotes)
+            # Get next quote index (continues from last processed, even after script restart)
+            last_index = self.quote_state.get('last_quote_index', -1)
+            quote_index = (last_index + 1) % len(quotes)
             quote = quotes[quote_index]
 
             print(f"\n[OK] Processing video {video_index + 1}")
-            print(f"[OK] Using quote {quote_index + 1}/{len(quotes)}")
+            print(f"[OK] Using quote {quote_index + 1}/{len(quotes)} (continuing from last session)")
 
             # Process the video
             output_path, filename = self.add_quote_to_video(video_path, quote, video_index=video_index)
@@ -6235,6 +6256,10 @@ class VideoQuoteAutomation:
             self.processing_log['processed_count'] += 1
             self.processing_log['processed_videos'].append(result)
             self._save_log()
+
+            # Update quote state to remember which quote was used (persists across restarts)
+            self.quote_state['last_quote_index'] = quote_index
+            self._save_quote_state()
 
             print(f"✓ Successfully processed: {filename}")
 
