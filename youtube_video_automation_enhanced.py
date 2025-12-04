@@ -6286,7 +6286,6 @@ class VideoQuoteAutomation:
         # Add thumbnail frame at end (clean video without spotlight for YouTube thumbnail)
         if thumbnail_enabled and video_before_spotlight is not None:
             try:
-                from moviepy.video.VideoClip import ImageClip
                 from moviepy.video.compositing.concatenate import concatenate_videoclips
 
                 # Create thumbnail frame: clean video with text/captions/watermark (no spotlight)
